@@ -37,8 +37,8 @@
 
 #ifndef _CC1111_H_
 #define _CC1111_H_
-#include <cc1110.h>
 #include <stdint.h>
+#include "cc1110.h"
 
 __sfr __at 0xA8 IEN0;      /* Interrupt Enable 0 Register */
 
@@ -87,9 +87,11 @@ __sfr __at 0xC6 CLKCON; /* Clock Control */
 #define CLKCON_OSC32K_RC     (1 << 7)
 #define CLKCON_OSC32K_XTAL   (0 << 7)
 #define CLKCON_OSC32K_MASK   (1 << 7)
+
 #define CLKCON_OSC_RC        (1 << 6)
 #define CLKCON_OSC_XTAL      (0 << 6)
 #define CLKCON_OSC_MASK      (1 << 6)
+
 #define CLKCON_TICKSPD_MASK  (7 << 3)
 #define CLKCON_TICKSPD_1     (0 << 3)
 #define CLKCON_TICKSPD_1_2   (1 << 3)
@@ -99,6 +101,7 @@ __sfr __at 0xC6 CLKCON; /* Clock Control */
 #define CLKCON_TICKSPD_1_32  (5 << 3)
 #define CLKCON_TICKSPD_1_64  (6 << 3)
 #define CLKCON_TICKSPD_1_128 (7 << 3)
+
 #define CLKCON_CLKSPD_MASK   (7 << 0)
 #define CLKCON_CLKSPD_1      (0 << 0)
 #define CLKCON_CLKSPD_1_2    (1 << 0)

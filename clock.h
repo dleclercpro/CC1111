@@ -6,5 +6,6 @@
 #define NOP() __asm nop __endasm // SDCC compiler ASM indications
 
 void clock_init();
+void timer_init();
 
 #endif

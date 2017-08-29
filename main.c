@@ -11,16 +11,24 @@ void main () {
 
     // Initialize stuff
 	clock_init();
+	timer_init();
     led_init();
 
     // Loop
 	while(1) {
 
-        // Switch LED
-		led_switch();
+		// If timer has reached modulo
+		if ((T1CTL & T1CTL_OVFIF) == T1CTL_OVFIF) {
+
+	        // Switch LED
+			led_switch();
+
+			// Reset timer overflow flag
+			T1CTL &= ~T1CTL_OVFIF;
+		}
 
         // Wait
-		delay(100);
+		//delay(100);
 	}
 }
 
