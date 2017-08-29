@@ -1,0 +1,30 @@
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#    Title:    20-stick.rules
+#
+#    Author:   David Leclerc
+#
+#    Version:  0.1
+#
+#    Date:     28.08.2017
+#
+#    License:  GNU General Public License, Version 3
+#              (http://www.gnu.org/licenses/gpl.html)
+#
+#    Overview: This is a UDEV rule to assign a fixed DEV path to a Texas
+#			   Instruments USB radio stick CC1111.
+#
+#    Notes:    This needs to be stored in: /etc/udev/rules.d/
+#              After storing it, enact it with: sudo udevadm trigger
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ATTRS{idVendor}=="0451", ATTRS{idProduct}=="4715", \
+  ENV{ID_MM_DEVICE_IGNORE}="1"
+
+ACTION=="add", \
+  SUBSYSTEM=="tty", \
+  ATTRS{idVendor}=="0451", ATTRS{idProduct}=="4715", \
+  GROUP="dialout", \
+  MODE="0660", \
+  SYMLINK+="ttyUSB.cc1111"
