@@ -99,16 +99,15 @@ __sfr __at 0xC6 CLKCON; /* Clock Control */
 #define CLKCON_TICKSPD_1_32  (5 << 3)
 #define CLKCON_TICKSPD_1_64  (6 << 3)
 #define CLKCON_TICKSPD_1_128 (7 << 3)
-
-#define CLKCON_CLKSPD_MASK  (7 << 0)
-#define CLKCON_CLKSPD_1     (0 << 0)
-#define CLKCON_CLKSPD_1_2   (1 << 0)
-#define CLKCON_CLKSPD_1_4   (2 << 0)
-#define CLKCON_CLKSPD_1_8   (3 << 0)
-#define CLKCON_CLKSPD_1_16  (4 << 0)
-#define CLKCON_CLKSPD_1_32  (5 << 0)
-#define CLKCON_CLKSPD_1_64  (6 << 0)
-#define CLKCON_CLKSPD_1_128 (7 << 0)
+#define CLKCON_CLKSPD_MASK   (7 << 0)
+#define CLKCON_CLKSPD_1      (0 << 0)
+#define CLKCON_CLKSPD_1_2    (1 << 0)
+#define CLKCON_CLKSPD_1_4    (2 << 0)
+#define CLKCON_CLKSPD_1_8    (3 << 0)
+#define CLKCON_CLKSPD_1_16   (4 << 0)
+#define CLKCON_CLKSPD_1_32   (5 << 0)
+#define CLKCON_CLKSPD_1_64   (6 << 0)
+#define CLKCON_CLKSPD_1_128  (7 << 0)
 
 /* SLEEP 0xBE */
 #define SLEEP_USB_EN       (1 << 7)
@@ -169,15 +168,15 @@ __sfr __at 0x9B S1CON; /* CPU Interrupt Flag 3 */
 /*
  * IRCON
  */
-__sfr __at 0xC0 IRCON; /* CPU Interrupt Flag 4 */
+__sfr __at 0xC0 IRCON;       /* CPU Interrupt Flag 4 */
 
-__sbit __at 0xC0 DMAIF; /* DMA complete interrupt flag */
-__sbit __at 0xC1 T1IF;  /* Timer 1 interrupt flag. Automatically cleared */
-__sbit __at 0xC2 T2IF;  /* Timer 2 interrupt flag. Automatically cleared */
-__sbit __at 0xC3 T3IF;  /* Timer 3 interrupt flag. Automatically cleared */
-__sbit __at 0xC4 T4IF;  /* Timer 4 interrupt flag. Automatically cleared */
-__sbit __at 0xC5 P0IF;  /* Port0 interrupt flag */
-__sbit __at 0xC7 STIF;  /* Sleep Timer interrupt flag */
+__sbit __at 0xC0 DMAIF;      /* DMA complete interrupt flag */
+__sbit __at 0xC1 T1IF;       /* Timer 1 interrupt flag. Automatically cleared */
+__sbit __at 0xC2 T2IF;       /* Timer 2 interrupt flag. Automatically cleared */
+__sbit __at 0xC3 T3IF;       /* Timer 3 interrupt flag. Automatically cleared */
+__sbit __at 0xC4 T4IF;       /* Timer 4 interrupt flag. Automatically cleared */
+__sbit __at 0xC5 P0IF;       /* Port0 interrupt flag */
+__sbit __at 0xC7 STIF;       /* Sleep Timer interrupt flag */
 
 #define IRCON_DMAIF (1 << 0) /* DMA complete interrupt flag */
 #define IRCON_T1IF  (1 << 1) /* Timer 1 interrupt flag. Automatically cleared */
@@ -190,15 +189,15 @@ __sbit __at 0xC7 STIF;  /* Sleep Timer interrupt flag */
 /*
  * IRCON2
  */
-__sfr __at 0xE8 IRCON2; /* CPU Interrupt Flag 5 */
+__sfr __at 0xE8 IRCON2;         /* CPU Interrupt Flag 5 */
 
-__sbit __at 0xE8 USBIF;   /* USB interrupt flag (shared with Port2) */
-__sbit __at 0xE8 P2IF;    /* Port2 interrupt flag (shared with USB) */
-__sbit __at 0xE9 UTX0IF;  /* USART0 TX interrupt flag */
-__sbit __at 0xEA UTX1IF;  /* USART1 TX interrupt flag (shared with I2S TX) */
-__sbit __at 0xEA I2STXIF; /* I2S TX interrupt flag (shared with USART1 TX) */
-__sbit __at 0xEB P1IF;    /* Port1 interrupt flag */
-__sbit __at 0xEC WDTIF;   /* Watchdog timer interrupt flag */
+__sbit __at 0xE8 USBIF;         /* USB interrupt flag (shared with Port2) */
+__sbit __at 0xE8 P2IF;          /* Port2 interrupt flag (shared with USB) */
+__sbit __at 0xE9 UTX0IF;        /* USART0 TX interrupt flag */
+__sbit __at 0xEA UTX1IF;        /* USART1 TX interrupt flag (shared with I2S TX) */
+__sbit __at 0xEA I2STXIF;       /* I2S TX interrupt flag (shared with USART1 TX) */
+__sbit __at 0xEB P1IF;          /* Port1 interrupt flag */
+__sbit __at 0xEC WDTIF;         /* Watchdog timer interrupt flag */
 
 #define IRCON2_USBIF   (1 << 0) /* USB interrupt flag (shared with Port2) */
 #define IRCON2_P2IF    (1 << 0) /* Port2 interrupt flag (shared with USB) */
@@ -481,14 +480,14 @@ volatile uint16_t ADCXDATA;
 /* ADC Control Register 1 */
 __sfr __at 0xB4 ADCCON1;
 
-#define ADCCON1_EOC (1 << 7) /* Conversion complete */
-#define ADCCON1_ST  (1 << 6) /* Start conversion */
+#define ADCCON1_EOC (1 << 7)              /* Conversion complete */
+#define ADCCON1_ST  (1 << 6)              /* Start conversion */
 
-#define ADCCON1_STSEL_MASK      (3 << 4) /* Start select */
-#define ADCCON1_STSEL_EXTERNAL  (0 << 4) /* P2_0 pin triggers */
-#define ADCCON1_STSEL_FULLSPEED (1 << 4) /* Full speed, no waiting */
-#define ADCCON1_STSEL_TIMER1    (2 << 4) /* Timer 1 channel 0 */
-#define ADCCON1_STSEL_START     (3 << 4) /* Set start bit */
+#define ADCCON1_STSEL_MASK      (3 << 4)  /* Start select */
+#define ADCCON1_STSEL_EXTERNAL  (0 << 4)  /* P2_0 pin triggers */
+#define ADCCON1_STSEL_FULLSPEED (1 << 4)  /* Full speed, no waiting */
+#define ADCCON1_STSEL_TIMER1    (2 << 4)  /* Timer 1 channel 0 */
+#define ADCCON1_STSEL_START     (3 << 4)  /* Set start bit */
 
 #define ADCCON1_RCTRL_MASK       (3 << 2) /* Random number control */
 #define ADCCON1_RCTRL_COMPLETE   (0 << 2) /* Operation completed */
@@ -503,13 +502,13 @@ __sfr __at 0xB5 ADCCON2;
 #define ADCCON2_SREF_VDD           (2 << 6) /* VDD on the AVDD pin */
 #define ADCCON2_SREF_EXTERNAL_DIFF (3 << 6) /* External on AIN6-7 cc1110 */
 
-#define ADCCON2_SDIV_MASK (3 << 4) /* Decimation rate */
-#define ADCCON2_SDIV_64   (0 << 4) /* 7 bits */
-#define ADCCON2_SDIV_128  (1 << 4) /* 9 bits */
-#define ADCCON2_SDIV_256  (2 << 4) /* 10 bits */
-#define ADCCON2_SDIV_512  (3 << 4) /* 12 bits */
+#define ADCCON2_SDIV_MASK (3 << 4)          /* Decimation rate */
+#define ADCCON2_SDIV_64   (0 << 4)          /* 7 bits */
+#define ADCCON2_SDIV_128  (1 << 4)          /* 9 bits */
+#define ADCCON2_SDIV_256  (2 << 4)          /* 10 bits */
+#define ADCCON2_SDIV_512  (3 << 4)          /* 12 bits */
 
-#define ADCCON2_SCH_MASK      (0xf << 0) /* Sequence channel select */
+#define ADCCON2_SCH_MASK      (0xf << 0)    /* Sequence channel select */
 #define ADCCON2_SCH_SHIFT     0
 #define ADCCON2_SCH_AIN0      (0 << 0)
 #define ADCCON2_SCH_AIN1      (1 << 0)

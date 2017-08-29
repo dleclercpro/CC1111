@@ -1,4 +1,5 @@
-#include "hal.h"
+#include "clock.h"
+#include "led.h"
 #include "main.h"
 
 /*
@@ -8,11 +9,9 @@
 */
 void main () {
 
-    // Initialize LED
-    led_on();
-
-    // Initialize USB
-    usb_on();
+    // Initialize stuff
+	clock_init();
+    led_init();
 
     // Loop
 	while(1) {

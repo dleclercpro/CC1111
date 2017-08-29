@@ -21,9 +21,8 @@ CFLAGS += --debug
 endif
 
 SRC = main.c \
-	hal.c \
-	usb.c \
-	usb_descriptors.c
+	clock.c \
+	led.c
 ADB = $(SRC:.c=.adb)
 ASM = $(SRC:.c=.asm)
 LNK = $(SRC:.c=.lnk)
