@@ -1,5 +1,8 @@
 #include "clock.h"
+#include "interrupts.h"
+#include "timer.h"
 #include "led.h"
+#include "lib.h"
 #include "main.h"
 
 /*
@@ -7,10 +10,11 @@
     MAIN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void main () {
+void main (void) {
 
     // Initialize stuff
 	clock_init();
+	interrupts_init();
 	timer_init();
     led_init();
 
@@ -18,7 +22,7 @@ void main () {
 	while(1) {
 
 		// If timer has reached modulo
-		if ((T1CTL & T1CTL_OVFIF) == T1CTL_OVFIF) {
+		if (T1CTL & T1CTL_OVFIF) {
 
 	        // Switch LED
 			led_switch();
@@ -28,22 +32,6 @@ void main () {
 		}
 
         // Wait
-		//delay(100);
-	}
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	DELAY
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void delay (int t) {
-
-	int i, j;
-
-	for (i = 0; i < t; i++) {
-		for (j = 0; j < 1000; j++) {
-
-		}
+		//delay(500);
 	}
 }

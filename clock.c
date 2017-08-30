@@ -5,7 +5,7 @@
     CLOCK_INIT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void clock_init() {
+void clock_init(void) {
 
 	// Define speed mask and value
 	// CC1111's crystal oscillator reference frequency: 24 MHz
@@ -34,34 +34,12 @@ void clock_init() {
 		NOP();
 	}
 
-	// Wait until crystal oscillator is stable
+	// Wait until crystal oscillator is stable (for RF operation and before
+	// powering other unused oscillator)
 	while ((SLEEP & SLEEP_XOSC_STB) != SLEEP_XOSC_STB) {
 		NOP();
 	}
 
 	// Power down unused RC oscillator
 	SLEEP |= SLEEP_OSC_PD;
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    TIMER_INIT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-	Note: always read T1CNTL before T1CNTH!
-*/
-void timer_init() {
-
-	// Suspend timer 1
-	T1CTL = 0;
-
-	// Reset it
-	T1CNTL = 0;
-
-	// Define modulo
-	T1CC0H = 0xFF;
-	T1CC0L = 0xFF;
-
-	// Resume it in modulo mode with divider
-	T1CTL = T1CTL_MODE_MODULO;
 }

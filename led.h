@@ -3,9 +3,9 @@
 
 #include "cc1111.h"
 
-void led_init();
-void led_on();
-void led_off();
-void led_switch();
+void led_init(void);
+void led_on(void);
+void led_off(void);
+void led_switch(void);
 
 #endif

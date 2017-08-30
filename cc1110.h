@@ -99,22 +99,22 @@ SFR(RFIM,     0x91); // RF Interrupt Mask
 SFR(DPS,      0x92); // Data Pointer Select
 SFR(MPAGE,    0x93); // Memory Page Select
 SFR(_XPAGE,   0x93); // Memory Page Select under the name SDCC needs it
-SFR(_SFR94,   0x94); // not used
-SFR(_SFR95,   0x95); // not used
-SFR(_SFR96,   0x96); // not used
-SFR(_SFR97,   0x97); // not used
+SFR(_SFR94,   0x94); // Not used
+SFR(_SFR95,   0x95); // Not used
+SFR(_SFR96,   0x96); // Not used
+SFR(_SFR97,   0x97); // Not used
 
 SFR(S0CON,    0x98); // Interrupt Flags 2
    SBIT(ENCIF_0,  0x98, 0); // AES Interrupt Flag 0
    SBIT(ENCIF_1,  0x98, 1); // AES Interrupt Flag 1
 
-SFR(_SFR99,   0x99); // not used
+SFR(_SFR99,   0x99); // Not used
 SFR(IEN2,     0x9A); // Interrupt Enable 2
 SFR(S1CON,    0x9B); // CPU Interrupt Flag 3
 SFR(T2CT,     0x9C); // Timer 2 Count
 SFR(T2PR,     0x9D); // Timer 2 Prescaler
 SFR(T2CTL,    0x9E); // Timer 2 Control
-SFR(_SFR9F,   0x9F); // not used
+SFR(_SFR9F,   0x9F); // Not used
 
 SFR(P2,       0xA0); // Port 2
    SBIT(P2_0,     0xA0, 0); // Port 2 bit 0
@@ -132,7 +132,7 @@ SFR(WOREVT0,  0xA3); // Sleep Timer Event0 Timeout Low
 SFR(WOREVT1,  0xA4); // Sleep Timer Event0 Timeout High
 SFR(WORTIME0, 0xA5); // Sleep Timer Low Byte
 SFR(WORTIME1, 0xA6); // Sleep Timer High Byte
-SFR(_SFRA7,   0xA7); // not used
+SFR(_SFRA7,   0xA7); // Not used
 
 SFR(IEN0,     0xA8); // Interrupt Enable 0
    SBIT(RFTXRXIE, 0xA8, 0); // RF TX/RX FIFO interrupt enable
@@ -144,21 +144,21 @@ SFR(IEN0,     0xA8); // Interrupt Enable 0
    SBIT(EA,       0xA8, 7); // Global Interrupt Enable
 
 SFR(IP0,      0xA9); // Interrupt Priority 0
-SFR(_SFRAA,   0xAA); // not used
+SFR(_SFRAA,   0xAA); // Not used
 SFR(FWT,      0xAB); // Flash Write Timing
 SFR(FADDRL,   0xAC); // Flash Address Low Byte
 SFR(FADDRH,   0xAD); // Flash Address High Byte
 SFR(FCTL,     0xAE); // Flash Control
 SFR(FWDATA,   0xAF); // Flash Write Data
 
-SFR(_SFRB0,   0xB0); // not used
+SFR(_SFRB0,   0xB0); // Not used
 SFR(ENCDI,    0xB1); // Encryption Input Data
 SFR(ENCDO,    0xB2); // Encryption Output Data
 SFR(ENCCS,    0xB3); // Encryption Control and Status
 SFR(ADCCON1,  0xB4); // ADC Control 1
 SFR(ADCCON2,  0xB5); // ADC Control 2
 SFR(ADCCON3,  0xB6); // ADC Control 3
-SFR(_SFRB7,   0xB7); // not used
+SFR(_SFRB7,   0xB7); // Not used
 
 SFR(IEN1,     0xB8); // Interrupt Enable 1
    SBIT(DMAIE,    0xB8, 0); // DMA Transfer Interrupt Enable
@@ -174,7 +174,7 @@ SFR(ADCH,     0xBB); // ADC Data High
 SFR(RNDL,     0xBC); // Random Number Generator Data Low Byte
 SFR(RNDH,     0xBD); // Random Number Generator Data High Byte
 SFR(SLEEP,    0xBE); // Sleep Mode Control
-SFR(_SFRBF,   0xBF); // not used
+SFR(_SFRBF,   0xBF); // Not used
 
 SFR(IRCON,    0xC0); // Interrupt Flags 4
    SBIT(DMAIF,    0xC0, 0); // DMA Complete Interrupt Flag
@@ -187,13 +187,13 @@ SFR(IRCON,    0xC0); // Interrupt Flags 4
 
 SFR(U0DBUF,   0xC1); // USART 0 Receive/Transmit Data Buffer
 SFR(U0BAUD,   0xC2); // USART 0 Baud Rate Control
-SFR(_SFRC3,   0xC3); // not in use
+SFR(_SFRC3,   0xC3); // Not in use
 SFR(U0UCR,    0xC4); // USART 0 UART Control
 SFR(U0GCR,    0xC5); // USART 0 Generic Control
 SFR(CLKCON,   0xC6); // Clock Control
 SFR(MEMCTR,   0xC7); // Memory Arbiter Control
 
-SFR(_SFRC8,   0xC8); // not in use
+SFR(_SFRC8,   0xC8); // Not in use
 SFR(WDCTL,    0xC9); // Watchdog Timer Control
 SFR(T3CNT,    0xCA); // Timer 3 Counter
 SFR(T3CTL,    0xCB); // Timer 3 Control
