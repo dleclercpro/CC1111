@@ -1,28 +1,26 @@
-#
-# CC Debugger
-# Fergus Noble (c) 2011
-# Modified by David Leclerc (c) 2017
-#
-
 CC = sdcc
 
-CFLAGS = --model-small --opt-code-speed
+CODEFLAGS = \
+	--model-small \
+	--opt-code-speed \
+	--stack-auto
 
-LDFLAGS_FLASH = \
+CFLAGS = $(CODEFLAGS)
+
+LDFLAGS = \
 	--out-fmt-ihx \
-	--code-loc 0x000 \
+	--code-loc 0x0000 \
+	--xram-loc 0xF000 \
 	--code-size 0x8000 \
-	--xram-loc 0xf000 \
-	--xram-size 0x300 \
-	--iram-size 0x100
+	--xram-size 0x0F00 \
+	--iram-size 0x0100
 
 ifdef DEBUG
 CFLAGS += --debug
 endif
 
-SRC = main.c \
-	clock.c \
-	led.c
+PROGS = main.hex
+SRC = main.c clock.c led.c
 ADB = $(SRC:.c=.adb)
 ASM = $(SRC:.c=.asm)
 LNK = $(SRC:.c=.lnk)
@@ -30,7 +28,6 @@ LST = $(SRC:.c=.lst)
 REL = $(SRC:.c=.rel)
 RST = $(SRC:.c=.rst)
 SYM = $(SRC:.c=.sym)
-PROGS = main.hex
 PCDB = $(PROGS:.hex=.cdb)
 PLNK = $(PROGS:.hex=.lnk)
 PMAP = $(PROGS:.hex=.map)
@@ -43,7 +40,10 @@ PAOM = $(PROGS:.hex=)
 all: $(PROGS) clean
 
 main.hex: $(REL) Makefile
-	$(CC) $(LDFLAGS_FLASH) $(CFLAGS) -o main.hex $(REL)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o main.hex $(REL)
+
+install:
+	sudo cc-tool -v -e -w main.hex
 
 clean:
 	rm -f $(ADB) $(ASM) $(LNK) $(LST) $(REL) $(RST) $(SYM)
