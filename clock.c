@@ -9,10 +9,8 @@ void clock_init(void) {
 
 	// Define speed mask and value
 	// CC1111's crystal oscillator reference frequency: 24 MHz
-	// Clock frequency: 24 MHz
-	// Tick frequency (prescaler): 187.5 MHz
 	const uint8_t speed_mask = CLKCON_TICKSPD_MASK | CLKCON_CLKSPD_MASK;
-	const uint8_t speed_value = CLKCON_TICKSPD_1_128 | CLKCON_CLKSPD_1;
+	const uint8_t speed_value = CLKCON_TICKSPD_1 | CLKCON_CLKSPD_1;
 	
 	// Power up both oscillators (force oscillator bit to 0 and let the rest
 	// like it is)

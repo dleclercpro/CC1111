@@ -20,5 +20,5 @@ void timer_init(void) {
 	T1CC0L = 0xFF;
 
 	// Resume it in modulo mode with divider
-	T1CTL = T1CTL_MODE_MODULO;
+	T1CTL = T1CTL_MODE_MODULO | T1CTL_DIV_128;
 }
