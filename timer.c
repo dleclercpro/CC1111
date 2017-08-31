@@ -1,9 +1,11 @@
 #include "timer.h"
 
-#define F_CPU    375 // (kHz)
-#define PRESCALE 8   // (-)
-#define PERIOD   400 // (ms)
-#define N        (F_CPU / PRESCALE * PERIOD) // (-) MAX: 65536
+#define TICKSPD  12000000 // (Hz)
+#define PRESCALE 128      // (-)
+#define DELAY    100      // (ms)
+#define N        (TICKSPD / PRESCALE * DELAY / 1000) // (-) MAX: 65536
+
+// Preprocessor cannot deal with floating points!
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -27,8 +29,8 @@ void timer_init(void) {
     T1CC0L = getByte(N - 1, 0);
     T1CC0H = getByte(N - 1, 1);
 
-    // Enable overflow interrupts
-    //OVFIM = 1;
+    // Disable overflow interrupt requests
+    OVFIM = 0;
 
     // Enable interrupts
     T1IE = 1;
@@ -42,7 +44,7 @@ void timer_init(void) {
 void timer_start(void) {
 
     // Start timer in free mode with prescale divider
-    T1CTL = T1CTL_MODE_FREE | T1CTL_DIV_8;
+    T1CTL = T1CTL_MODE_FREE | T1CTL_DIV_128;
 }
 
 /*
@@ -53,13 +55,19 @@ void timer_start(void) {
 */
 void timer_isr(void) __interrupt T1_VECTOR {
 
-    // Reset interrupt flag
-    T1CTL &= ~T1CTL_CH0IF;
+    // Read current compare value
+    uint16_t n = (T1CC0L << 0) + (T1CC0H << 8);
 
-    // Update compare value (leapfrogging)
-    T1CC0L += getByte(N, 0);
-    T1CC0H += getByte(N, 1);
+    // Update it (leapfrogging)
+    n += N;
+
+    // Set it
+    T1CC0L = getByte(n, 0);
+    T1CC0H = getByte(n, 1);
 
     // Switch LED
     led_switch();
+
+    // Reset interrupt flag
+    T1CTL &= ~T1CTL_CH0IF;
 }

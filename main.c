@@ -1,8 +1,3 @@
-#include "clock.h"
-#include "interrupts.h"
-#include "timer.h"
-#include "led.h"
-#include "lib.h"
 #include "main.h"
 
 /*
