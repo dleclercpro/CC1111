@@ -42,7 +42,7 @@ void timer_init(void) {
 void timer_start(void) {
 
     // Start timer in free mode with prescale divider
-    T1CTL = T1CTL_MODE_FREE | T1CTL_DIV_128;
+    T1CTL = T1CTL_MODE_FREE | T1CTL_DIV_8;
 }
 
 /*
