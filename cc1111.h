@@ -271,17 +271,17 @@ __sfr __at 0xA9 IP0; /* Interrupt Priority 0 */
 #define T1CCTL_MODE_CAPTURE (0 << 2)
 #define T1CCTL_MODE_COMPARE (1 << 2)
 
-#define T1CTL_CMP_SET       (0 << 3)
-#define T1CTL_CMP_CLEAR     (1 << 3)
-#define T1CTL_CMP_TOGGLE    (2 << 3)
-#define T1CTL_CMP_SET_CLEAR (3 << 3)
-#define T1CTL_CMP_CLEAR_SET (4 << 3)
+#define T1CCTL_CMP_SET       (0 << 3)
+#define T1CCTL_CMP_CLEAR     (1 << 3)
+#define T1CCTL_CMP_TOGGLE    (2 << 3)
+#define T1CCTL_CMP_SET_CLEAR (3 << 3)
+#define T1CCTL_CMP_CLEAR_SET (4 << 3)
 
-#define T1CTL_IM_DISABLED (0 << 6)
-#define T1CTL_IM_ENABLED  (1 << 6)
+#define T1CCTL_IM_DISABLED (0 << 6)
+#define T1CCTL_IM_ENABLED  (1 << 6)
 
-#define T1CTL_CPSEL_NORMAL (0 << 7)
-#define T1CTL_CPSEL_RF     (1 << 7)
+#define T1CCTL_CPSEL_NORMAL (0 << 7)
+#define T1CCTL_CPSEL_RF     (1 << 7)
 
 /*
  * Timer 3 and Timer 4

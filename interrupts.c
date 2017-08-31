@@ -13,6 +13,9 @@ void interrupts_init(void) {
 	// Reset interrupts
 	interrupts_reset();
 
+	// Enable timer 1 channel 0 compare interrupts
+	T1CCTL0 = T1CCTL_NO_CAPTURE | T1CCTL_MODE_COMPARE | T1CCTL_CMP_SET | T1CCTL_IM_ENABLED | T1CCTL_CPSEL_NORMAL;
+
 	// Enable timer 1 overflow interrupts
 	OVFIM = 1;
 
