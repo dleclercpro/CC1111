@@ -1,9 +1,9 @@
 #include "timer.h"
 
-#define TICKSPD  12000000 // (Hz)
-#define PRESCALE 128      // (-)
-#define DELAY    100      // (ms)
-#define N        (TICKSPD / PRESCALE * DELAY / 1000) // (-) MAX: 65536
+#define TICKSPEED 12000000 // (Hz)
+#define PRESCALE  128      // (-)
+#define DELAY     100      // (ms)
+#define N         (TICKSPEED / PRESCALE * DELAY / 1000) // (-) MAX: 65536
 
 // Preprocessor cannot deal with floating points!
 
