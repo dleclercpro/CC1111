@@ -4,6 +4,5 @@
 #include "cc1111.h"
 
 void interrupts_init(void);
-void interrupts_reset(void);
 
 #endif

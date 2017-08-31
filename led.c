@@ -8,7 +8,7 @@
 void led_init(void) {
 
 	// Activate it
-	P1DIR |= 2;
+	P1DIR |= 0x02;
 
 	// Turn it off
 	led_off();

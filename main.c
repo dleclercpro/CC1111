@@ -14,24 +14,19 @@ void main (void) {
 
     // Initialize stuff
 	clock_init();
-	interrupts_init();
 	timer_init();
-    led_init();
+	led_init();
+	interrupts_init();
+
+    // Start timer
+    timer_start();
 
     // Loop
+	/*
 	while(1) {
 
-		// If timer has reached modulo
-		if (T1CTL & T1CTL_OVFIF) {
-
-	        // Switch LED
-			led_switch();
-
-			// Reset timer overflow flag
-			T1CTL &= ~T1CTL_OVFIF;
-		}
-
         // Wait
-		//delay(500);
+		delay(500);
 	}
+	*/
 }

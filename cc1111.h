@@ -37,8 +37,9 @@
 
 #ifndef _CC1111_H_
 #define _CC1111_H_
-#include <stdint.h>
+
 #include "cc1110.h"
+#include <stdint.h>
 
 __sfr __at 0xA8 IEN0;      /* Interrupt Enable 0 Register */
 
