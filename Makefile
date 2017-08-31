@@ -20,7 +20,7 @@ CFLAGS += --debug
 endif
 
 PROGS = main.hex
-SRC = main.c clock.c led.c
+SRC = main.c clock.c interrupts.c timer.c led.c
 ADB = $(SRC:.c=.adb)
 ASM = $(SRC:.c=.asm)
 LNK = $(SRC:.c=.lnk)
