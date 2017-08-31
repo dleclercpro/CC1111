@@ -19,9 +19,10 @@ void timer_init(void) {
     // Reset its count
     T1CNTL = 0;
 
-    // Configure it in output compare mode
-    T1CCTL0 |= T1CCTL_NO_CAPTURE | T1CCTL_MODE_COMPARE | T1CCTL_CMP_SET |
-               T1CCTL_IM_ENABLED | T1CCTL_CPSEL_NORMAL;
+    // Configure channels
+    T1CCTL0 = T1CCTL_MODE_COMPARE | T1CCTL_IM_ENABLED;
+    T1CCTL1 = 0;
+    T1CCTL2 = 0;
 
     // Define compare value
     T1CC0L = (N - 1) >> 0;
