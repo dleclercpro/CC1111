@@ -1,10 +1,9 @@
 #include "timer.h"
-#include "led.h"
 
-#define F_CPU    24  // (MHz)
-#define PRESCALE 128 // (-)
-#define PERIOD   500 // (ms)
-#define N        ((F_CPU / PRESCALE * PERIOD) * 1000) // (-)
+#define F_CPU    375 // (kHz)
+#define PRESCALE 8   // (-)
+#define PERIOD   400 // (ms)
+#define N        (F_CPU / PRESCALE * PERIOD) // (-) MAX: 65536
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,8 +24,8 @@ void timer_init(void) {
     T1CCTL2 = 0;
 
     // Define compare value
-    T1CC0L = (N - 1) >> 0;
-    T1CC0H = (N - 1) >> 8;
+    T1CC0L = getByte(N - 1, 0);
+    T1CC0H = getByte(N - 1, 1);
 
     // Enable overflow interrupts
     //OVFIM = 1;
@@ -57,9 +56,9 @@ void timer_isr(void) __interrupt T1_VECTOR {
     // Reset interrupt flag
     T1CTL &= ~T1CTL_CH0IF;
 
-    // Update compare value
-    T1CC0L += N >> 0;
-    T1CC0H += N >> 8;
+    // Update compare value (leapfrogging)
+    T1CC0L += getByte(N, 0);
+    T1CC0H += getByte(N, 1);
 
     // Switch LED
     led_switch();

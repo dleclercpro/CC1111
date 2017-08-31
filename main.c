@@ -25,8 +25,6 @@ void main (void) {
 	/*
 	while(1) {
 
-        // Wait
-		delay(500);
 	}
 	*/
 }

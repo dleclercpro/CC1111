@@ -2,16 +2,10 @@
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	DELAY
+	GETBYTE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	Note: can only split 2 bytes due to CPU program memory.
 */
-void delay (int t) {
-
-	int i, j;
-
-	for (i = 0; i < t; i++) {
-		for (j = 0; j < 1000; j++) {
-
-		}
-	}
+uint8_t getByte (uint16_t bytes, uint8_t n) {
+	return (bytes & (0xFF << n)) >> n;
 }
