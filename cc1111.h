@@ -402,10 +402,10 @@ volatile uint8_t USBFRML;
 __xdata __at (0xde0d)
 volatile uint8_t USBFRMH;
 
+/* Indexed USB registers, must set USBINDEX to 0-5 */
 __xdata __at (0xde0e)
 volatile uint8_t USBINDEX;
 
-/* Indexed USB registers, must set USBINDEX to 0-5 */
 __xdata __at (0xde10)
 volatile uint8_t USBMAXI;
 
