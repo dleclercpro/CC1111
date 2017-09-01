@@ -32,11 +32,11 @@
 #define USB_OUTEP1IF (1 << 1)
 
 // USB descriptors
-#define USB_DESC_DEVICE			  1
-#define USB_DESC_CONFIGURATION	  2
-#define USB_DESC_STRING			  3
-#define USB_DESC_INTERFACE		  4
-#define USB_DESC_ENDPOINT		  5
+#define USB_DESC_DEVICE           1
+#define USB_DESC_CONFIGURATION    2
+#define USB_DESC_STRING           3
+#define USB_DESC_INTERFACE        4
+#define USB_DESC_ENDPOINT         5
 #define USB_DESC_DEVICE_QUALIFIER 6
 #define USB_DESC_OTHER_SPEED      7
 #define USB_DESC_INTERFACE_POWER  8
@@ -47,12 +47,12 @@
 #define USB_TRANSFER_INTERRUPT   3
 
 #define USB_SIZE_EP_CONTROL 32
-#define USB_SIZE_EP_INT	    8
+#define USB_SIZE_EP_INT     8
 #define USB_SIZE_EP_IN      64
 #define USB_SIZE_EP_OUT     64
 
 #define USB_ADDRESS_EP_CONTROL 0 // Not used
-#define USB_ADDRESS_EP_INT 	   1
+#define USB_ADDRESS_EP_INT     1
 #define USB_ADDRESS_EP_OUT     5
 #define USB_ADDRESS_EP_IN      5
 
