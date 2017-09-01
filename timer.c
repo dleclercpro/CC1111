@@ -26,8 +26,7 @@ void timer_init(void) {
     T1CCTL2 = 0;
 
     // Define compare value
-    T1CC0L = getByte(N - 1, 0);
-    T1CC0H = getByte(N - 1, 1);
+    set_word(T1CC0, N - 1);
 
     // Disable overflow interrupt requests
     OVFIM = 0;
@@ -59,11 +58,7 @@ void timer_isr(void) __interrupt T1_VECTOR {
     uint16_t n = (T1CC0L << 0) + (T1CC0H << 8);
 
     // Update it (leapfrogging)
-    n += N;
-
-    // Set it
-    T1CC0L = getByte(n, 0);
-    T1CC0H = getByte(n, 1);
+    set_word(T1CC0, n + N);
 
     // Switch LED
     led_switch();

@@ -5,6 +5,6 @@
 
 #define NOP() __asm nop __endasm // SDCC compiler ASM indications
 
-uint8_t getByte(uint16_t bytes, uint8_t n);
+uint8_t get_byte(uint16_t bytes, uint8_t n);
 
 #endif
