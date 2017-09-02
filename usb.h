@@ -93,8 +93,8 @@
 
 #define USB_ADDRESS_EP_CONTROL 0 // Not used
 #define USB_ADDRESS_EP_INT     1
+#define USB_ADDRESS_EP_IN      4
 #define USB_ADDRESS_EP_OUT     5
-#define USB_ADDRESS_EP_IN      5
 
 #define USB_DIRECTION_IN  (1 << 7)
 #define USB_DIRECTION_OUT (0 << 0)
@@ -102,11 +102,9 @@
 #define USB_MAX_POWER 50 // Maximum power in mA
 
 void usb_init(void);
-void usb_enumerate(void);
-void usb_ep_in(void);
+void usb_set_ep(uint8_t ep);
 void usb_end_transaction(void);
-void usb_select_ep(uint8_t address);
-void usb_setup(void);
+void usb_setup_transaction(void);
 void usb_control(void);
 void usb_int(void);
 void usb_in(void);

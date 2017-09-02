@@ -54,11 +54,8 @@ void timer_start(void) {
 */
 void timer_isr(void) __interrupt T1_VECTOR {
 
-    // Read current compare value
-    uint16_t n = (T1CC0L << 0) + (T1CC0H << 8);
-
-    // Update it (leapfrogging)
-    set_word(T1CC0, n + N);
+    // Read current compare value and update it (leapfrogging)
+    set_word(T1CC0, get_word(T1CC0) + N);
 
     // Switch LED
     led_switch();

@@ -158,7 +158,7 @@ void usb_init(void) {
     SLEEP |= SLEEP_USB_EN;
 
     // Enable control and IN EP interrupts
-    USBIIE = USB_EP0IE | USB_INEP1IE | USB_INEP5IE;
+    USBIIE = USB_EP0IE | USB_INEP1IE | USB_INEP4IE;
 
     // Enable OUT EP interrupts
     USBOIE = USB_OUTEP5IE;
@@ -172,41 +172,63 @@ void usb_init(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_ENUMERATE
+    USB_SET_ADDRESS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Note: address given by bits [0, 6].
 */
-void usb_enumerate(void) {
+void usb_set_address(uint8_t address) {
 
+    // Set address
+    USBADDR = address;
+
+    // Wait until address is set
+    while (USBADDR != address) {
+        NOP();
+    }
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_EP_IN
+    USB_SET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Note: EP range given by [0, 5]
+    Note: EP range given by [0, 5].
 */
-void usb_ep_in(uint8_t ep) {
+void usb_set_ep(uint8_t ep) {
 
     // Set EP
-    USBINDEX = ep & 0x0F;
+    USBINDEX = ep;
 
-    // Set max packet size
-    USBMAXI = USB_IN_SIZE;
+    // Wait until EP is set
+    while (USBINDEX != ep) {
+        NOP();
+    }
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_EP_OUT
+    USB_GET_DESCRIPTOR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Note: EP range given by [0, 5]
 */
-void usb_ep_in(uint8_t ep) {
+void usb_get_descriptor(uint16_t x) {
 
-    // Set EP
-    USBINDEX = ep & 0x0F;
+    // Get type and index
+    uint8_t type = x >> 8;   // MSB
+    uint8_t index = x & 255; // LSB
 
-    // Set max packet size
-    USBMAXO = USB_OUT_SIZE;
+    // Initialize looping index
+    uint8_t i = 0;
+
+    // Loop on descriptors
+    while (usb_descriptors[i] != 0) {
+
+        // Compare types
+        if (usb_descriptors[i + 1] == type) {
+            NOP();
+        }
+
+        // Update index
+        i += usb_descriptors[i];
+    }
 }
 
 /*
@@ -222,153 +244,137 @@ void usb_end_transaction(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_SELECT_EP
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_select_ep(uint8_t address) {
-
-    // Select EP
-    USBINDEX = address;
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_GET_DESCRIPTOR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_get_descriptor(uint16_t x) {
-
-    // Get type and index
-    uint8_t type = x >> 8; // MSB
-    uint8_t index = x & 255; // LSB
-
-    // Initialize looping index
-    uint8_t i = 0;
-
-    // Loop on descriptors
-    while (usb_descriptors[i] != 0) {
-
-        // Compare types
-        if (usb_descriptors[i + 1] == type && usb_descriptors[i + 2] == index) {
-
-        }
-
-        // Update index
-        i += usb_descriptors[i];
-    }
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_SETUP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_setup(void) {
+void usb_setup_transaction(void) {
 
-    // Type
-    switch (usb_setup.info & USB_SETUP_TYPE) {
-
-        // Standard
-        case USB_TYPE_STANDARD:
-
-            // Recipient
-            switch (usb_setup.info & USB_SETUP_RECIPIENT) {
-
-                // Device
-                case USB_RECIPIENT_DEVICE:
-
-                    // Request
-                    switch (usb_setup.request) {
-
-                        case USB_REQUEST_DEVICE_GET_STATUS:
-                            break;
-
-                        case USB_REQUEST_DEVICE_CLEAR_FEATURE:
-                            break;
-
-                        case USB_REQUEST_DEVICE_SET_FEATURE:
-                            break;
-
-                        case USB_REQUEST_DEVICE_SET_ADDRESS:
-                            break;
-
-                        case USB_REQUEST_DEVICE_GET_DESCRIPTOR:
-                            break;
-
-                        case USB_REQUEST_DEVICE_SET_DESCRIPTOR:
-                            break;
-
-                        case USB_REQUEST_DEVICE_GET_CONFIGURATION:
-                            break;
-
-                        case USB_REQUEST_DEVICE_SET_CONFIGURATION:
-                            break;
-                    }
-
-                    break;
-
-                // Interface
-                case USB_RECIPIENT_INTERFACE:
-
-                    // Request
-                    switch (usb_setup.request) {
-
-                        case USB_REQUEST_INTERFACE_GET_STATUS:
-                            break;
-
-                        case USB_REQUEST_INTERFACE_CLEAR_FEATURE:
-                            break;
-
-                        case USB_REQUEST_INTERFACE_SET_FEATURE:
-                            break;
-
-                        case USB_REQUEST_INTERFACE_GET_INTERFACE:
-                            break;
-
-                        case USB_REQUEST_INTERFACE_SET_INTERFACE:
-                            break;
-                    }
-
-                    break;
-
-                // Endpoint
-                case USB_RECIPIENT_EP:
-
-                    // Request
-                    switch (usb_setup.request) {
-
-                        case USB_REQUEST_EP_GET_STATUS:
-                            break;
-
-                        case USB_REQUEST_EP_CLEAR_FEATURE:
-                            break;
-
-                        case USB_REQUEST_EP_SET_FEATURE:
-                            break;
-
-                        case USB_REQUEST_EP_SYNCH_FRAME:
-                            break;
-                    }
-
-                    break;
-            }
-
-            break;
-
-        // Class
-        case USB_TYPE_CLASS:
-
-            switch (usb_setup.request) {
-
-                case 0:
-                    break;
-
-                case 1:
-                    break;
-            }
-
-            break;
+    // A data packet that was loaded into the EP0 FIFO has been sent to the
+    // USB host
+    if (USBCS0 & USBCS0_INPKT_RDY) {
+        NOP();
     }
+
+    // Data packet has been received
+    else if (USBCS0 & USBCS0_OUTPKT_RDY) {
+
+        // Type
+        switch (usb_setup.info & USB_SETUP_TYPE) {
+
+            // Standard
+            case USB_TYPE_STANDARD:
+
+                // Recipient
+                switch (usb_setup.info & USB_SETUP_RECIPIENT) {
+
+                    // Device
+                    case USB_RECIPIENT_DEVICE:
+
+                        // Request
+                        switch (usb_setup.request) {
+
+                            case USB_REQUEST_DEVICE_GET_STATUS:
+                                break;
+
+                            case USB_REQUEST_DEVICE_CLEAR_FEATURE:
+                                break;
+
+                            case USB_REQUEST_DEVICE_SET_FEATURE:
+                                break;
+
+                            case USB_REQUEST_DEVICE_SET_ADDRESS:
+                                usb_set_address(usb_setup.value);
+                                break;
+
+                            case USB_REQUEST_DEVICE_GET_DESCRIPTOR:
+                                usb_get_descriptor(usb_setup.value);
+                                break;
+
+                            case USB_REQUEST_DEVICE_SET_DESCRIPTOR:
+                                break;
+
+                            case USB_REQUEST_DEVICE_GET_CONFIGURATION:
+                                break;
+
+                            case USB_REQUEST_DEVICE_SET_CONFIGURATION:
+                                break;
+                        }
+
+                        break;
+
+                    // Interface
+                    case USB_RECIPIENT_INTERFACE:
+
+                        // Request
+                        switch (usb_setup.request) {
+
+                            case USB_REQUEST_INTERFACE_GET_STATUS:
+                                break;
+
+                            case USB_REQUEST_INTERFACE_CLEAR_FEATURE:
+                                break;
+
+                            case USB_REQUEST_INTERFACE_SET_FEATURE:
+                                break;
+
+                            case USB_REQUEST_INTERFACE_GET_INTERFACE:
+                                break;
+
+                            case USB_REQUEST_INTERFACE_SET_INTERFACE:
+                                break;
+                        }
+
+                        break;
+
+                    // Endpoint
+                    case USB_RECIPIENT_EP:
+
+                        // Request
+                        switch (usb_setup.request) {
+
+                            case USB_REQUEST_EP_GET_STATUS:
+                                break;
+
+                            case USB_REQUEST_EP_CLEAR_FEATURE:
+                                break;
+
+                            case USB_REQUEST_EP_SET_FEATURE:
+                                break;
+
+                            case USB_REQUEST_EP_SYNCH_FRAME:
+                                break;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            // Class
+            case USB_TYPE_CLASS:
+
+                switch (usb_setup.request) {
+
+                    case 0:
+                        break;
+
+                    case 1:
+                        break;
+                }
+
+                break;
+        }
+    }
+
+    // Otherwise, no data stage
+    else {
+
+        // End of data
+        USBSC0 |= USBSC0_DATA_END;
+    }
+
+    // End of setup stage
+    USBSC0 |= USBCS0_CLR_OUTPKT_RDY;
 }
 
 /*
@@ -378,43 +384,47 @@ void usb_setup(void) {
 */
 void usb_control(void) {
 
-    // Select control EP
-    usb_select_ep(USB_ADDRESS_EP_CONTROL);
+    // Set control EP
+    usb_set_ep(USB_ADDRESS_EP_CONTROL);
 
-    // A control transfer ends due to a premature end of control transfer or
-    // EP0 receives an unexpected token during the Data stage
-    if (USBCS0 & USBCS0_SETUP_END) {
-
-        // Clear setup end bit
-        USBCS0 |= USBCS0_CLR_SETUP_END;
-    }
+    // Set max packet size
+    USBMAXI = USB_SIZE_EP_CONTROL / 8;
+    USBMAXO = USB_SIZE_EP_CONTROL / 8;
 
     // Error: a STALL has been sent
     if (USBCS0 & USBCS0_SENT_STALL) {
 
-        // Clear flag
+        // Reset flag
         USBCS0 &= ~USBCS0_SENT_STALL;
+
+        // Abort transfer
+        NOP();
     }
 
-    // A data packet that was loaded into the EP0 FIFO has been sent to the
-    // USB host
-    if (USBCS0 & USBCS0_INPKT_RDY) {
+    // A control transfer ends due to a premature end of control transfer or
+    // EP0 receives an unexpected token during the data stage
+    if (USBCS0 & USBCS0_SETUP_END) {
 
+        // Reset flag
+        USBCS0 |= USBCS0_CLR_SETUP_END;
+
+        // If new setup packet
+        if (USBCS0 & USBCS0_OUTPKT_RDY) {
+
+            // Setup stage
+            usb_setup_transaction();
+        }
+
+        // Otherwise
+        else {
+
+            // Abort transfer
+            NOP();
+        }
     }
 
-    // Data packet has been received
-    if (USBCS0 & USBCS0_OUTPKT_RDY) {
-
-        // Unload Setup packet from EP0 FIFO
-
-        // Examine contents and perform operations
-
-        // End of setup stage
-        USBSC0 |= USBCS0_CLR_OUTPKT_RDY;
-
-        // Control transfer has no Data stage
-        USBSC0 |= USBSC0_DATA_END;
-    }
+    // Setup stage
+    usb_setup_transaction();
 }
 
 /*
@@ -423,7 +433,13 @@ void usb_control(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_int(void) {
-    NOP();
+
+    // Select EP
+    usb_ep_select(USB_ADDRESS_EP_INT);
+
+    // Set max packet size
+    USBMAXI = USB_SIZE_EP_INT / 8;
+    USBMAXO = 0;
 }
 
 /*
@@ -432,7 +448,13 @@ void usb_int(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_in(void) {
-    NOP();
+
+    // Select EP
+    usb_ep_select(USB_ADDRESS_EP_IN);
+
+    // Set max packet size
+    USBMAXI = USB_SIZE_EP_IN / 8;
+    USBMAXO = 0;
 }
 
 /*
@@ -441,7 +463,13 @@ void usb_in(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_out(void) {
-    NOP();
+
+    // Select EP
+    usb_ep_select(USB_ADDRESS_EP_OUT);
+
+    // Set max packet size
+    USBMAXI = 0;
+    USBMAXO = USB_SIZE_EP_OUT / 8;
 }
 
 /*
@@ -474,8 +502,8 @@ void usb_isr(void) __interrupt P2INT_VECTOR {
         usb_int();
     }
 
-    // EP5
-    if (USBIIF & USB_INEP5IF) {
+    // EP4
+    if (USBIIF & USB_INEP4IF) {
 
         // Data to host sequence
         usb_in();
