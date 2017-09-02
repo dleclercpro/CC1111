@@ -4,6 +4,20 @@
 #include "cc1111.h"
 #include "lib.h"
 
+// USB FIFO bits
+__xdata __at (0xde20)
+volatile uint8_t USBF0;
+__xdata __at (0xde22)
+volatile uint8_t USBF1;
+__xdata __at (0xde24)
+volatile uint8_t USBF2;
+__xdata __at (0xde26)
+volatile uint8_t USBF3;
+__xdata __at (0xde28)
+volatile uint8_t USBF4;
+__xdata __at (0xde2a)
+volatile uint8_t USBF5;
+
 // USB bit masks
 #define USB_INEP5IE (1 << 5)
 #define USB_INEP4IE (1 << 4)
@@ -91,10 +105,10 @@
 #define USB_SIZE_EP_IN      64
 #define USB_SIZE_EP_OUT     64
 
-#define USB_ADDRESS_EP_CONTROL 0 // Not used
-#define USB_ADDRESS_EP_INT     1
-#define USB_ADDRESS_EP_IN      4
-#define USB_ADDRESS_EP_OUT     5
+#define USB_EP_CONTROL 0
+#define USB_EP_INT     1
+#define USB_EP_IN      4
+#define USB_EP_OUT     5
 
 #define USB_DIRECTION_IN  (1 << 7)
 #define USB_DIRECTION_OUT (0 << 0)
