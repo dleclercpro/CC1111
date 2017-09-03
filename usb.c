@@ -11,8 +11,8 @@ __xdata uint8_t usb_descriptors[] = {
     0,                   // Subclass
     0,                   // Protocol
     USB_SIZE_EP_CONTROL, // Max packet size for EP0
-    LE_WORD(USB_VID),     // Vendor
-    LE_WORD(USB_PID),     // Product
+    LE_WORD(USB_VID),    // Vendor
+    LE_WORD(USB_PID),    // Product
     LE_WORD(0x0100),     // Release number
     1,                   // Manufacturer string descriptor index
     2,                   // Product string descriptor index
@@ -57,7 +57,7 @@ __xdata uint8_t usb_descriptors[] = {
     USB_DIRECTION_IN | USB_EP_INT, // Direction and address
     USB_TRANSFER_INTERRUPT,        // Transfer type
     LE_WORD(USB_SIZE_EP_INT),      // Max packet size
-    255,                           // Polling interval in frames
+    10,                            // Polling interval in frames
 
     // Data EP OUT
     7,                              // Size
@@ -601,7 +601,6 @@ void usb_setup(void) {
                         //    break;
 
                         case USB_REQUEST_GET_CONFIGURATION:
-                            led_switch();
                             usb_get_configuration();
                             break;
 
@@ -663,6 +662,10 @@ void usb_setup(void) {
                     break;
             }
 
+            break;
+
+        // Class
+        case USB_TYPE_CLASS:
             break;
     }
 
