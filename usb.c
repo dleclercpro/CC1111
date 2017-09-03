@@ -150,10 +150,18 @@ struct usb_setup {
 };
 
 // Generate instance of USB device
-__xdata static struct usb_setup usb_setup;
+static struct usb_device usb_device;
 
 // Generate instance of USB setup
-__xdata static struct usb_setup usb_setup;
+static struct usb_setup usb_setup;
+
+// Generate data pointers
+static uint8_t *data_in;
+static uint8_t *data_out;
+
+// Generate byte counts
+static uint8_t n_bytes_in = 0;
+static uint8_t n_bytes_out = 0;
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -232,10 +240,14 @@ void usb_set_ep(uint8_t ep, uint8_t max_in, uint8_t max_out) {
     USBINDEX = ep;
 
     // Only for EP [1, 5]
-    if (ep != 0) {
+    if (max_in != NULL) {
 
         // Set maximum packet size for selected IN EP (in units of 8 bytes)
         USBMAXI = max_in / 8;
+    }
+
+    // Only for EP [1, 5]
+    if (max_out != NULL) {
 
         // Set maximum packet size for selected OUT EP (in units of 8 bytes)
         USBMAXO = max_out / 8;
@@ -244,13 +256,40 @@ void usb_set_ep(uint8_t ep, uint8_t max_in, uint8_t max_out) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_END_TRANSACTION
+    USB_GET_FIFO
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_end_transaction(void) {
+void usb_get_fifo(void) {
 
-    // Send STALL
-    USBCS0 |= USBCS0_SEND_STALL;
+    // Initialize FIFO pointer
+    uint8_t *fifo;
+
+    // Read and return byte from active EP FIFO
+    switch (USBINDEX) {
+
+        // EP0
+        case USB_EP_CONTROL:
+            fifo = &USBF0;
+            break;
+
+        // EP1
+        case USB_EP_INT:
+            fifo = &USBF1;
+            break;
+
+        // EP4
+        case USB_EP_IN:
+            fifo = &USBF4;
+            break;
+
+        // EP5
+        case USB_EP_OUT:
+            fifo = &USBF5;
+            break;
+    }
+
+    // Return FIFO pointer
+    return fifo;
 }
 
 /*
@@ -260,43 +299,14 @@ void usb_end_transaction(void) {
 */
 uint8_t usb_get_byte(void) {
 
-    // Read and return byte from active EP FIFO
-    switch (USBINDEX) {
+    // Get active FIFO
+    uint8_t fifo = usb_get_fifo();
 
-        // EP0
-        case USB_EP_CONTROL:
-            return USBF0;
+    // Read byte from FIFO
+    uint8_t byte = *fifo;
 
-        // EP1
-        case USB_EP_INT:
-            return USBF1;
-
-        // EP4
-        case USB_EP_IN:
-            return USBF4;
-
-        // EP5
-        case USB_EP_OUT:
-            return USBF5;
-    }
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_GET_BYTES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-uint8_t usb_get_bytes(uint8_t n) {
-
-    // Initialize looping variable
-    uint8_t i;
-
-    // Loop on bytes
-    for (i = 0; i < n; i++) {
-
-        // Get byte
-        usb_get_byte();
-    }
+    // Return it
+    return byte;
 }
 
 /*
@@ -306,48 +316,102 @@ uint8_t usb_get_bytes(uint8_t n) {
 */
 void usb_set_byte(uint8_t byte) {
 
-    // Load chosen EP FIFO
-    switch (USBINDEX) {
+    // Get active FIFO
+    uint8_t fifo = usb_get_fifo();
 
-        // EP0
-        case USB_EP_CONTROL:
-            USBF0 = byte;
-
-        // EP1
-        case USB_EP_INT:
-            USBF1 = byte;
-
-        // EP4
-        case USB_EP_IN:
-            USBF4 = byte;
-
-        // EP5
-        case USB_EP_OUT:
-            USBF5 = byte;
-    }
+    // Set byte to FIFO
+    *fifo = byte;
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_SET_BYTES
+    USB_RECEIVE_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_set_bytes(uint8_t bytes, uint8_t n) {
+void usb_receive_bytes() {
 
     // Initialize looping variable
     uint8_t i;
 
-    // Loop on bytes (from MSB to LSB)
-    for (i = 1; i <= n; i++) {
+    // Wait until new bytes are ready to be read
+    while (USBSC0 & USBCS0_OUTPKT_RDY) {
+        NOP();
+    }
 
-        // Set byte
-        usb_set_byte(bytes & (255 << (8 * (n - i))));
+    // Loop on bytes
+    for (i = 0; i < n_bytes_out; i++) {
+
+        // Get byte
+        data_out[i] = usb_get_byte();
+    }
+
+    // Byte read
+    USBSC0 |= USBCS0_CLR_OUTPKT_RDY;
+
+    // If last byte read
+    if (n_bytes_out < USB_SIZE_EP_CONTROL) {
+
+        // End of data
+        USBCS0 |= USBSC0_DATA_END;
     }
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_GET_SETUP
+    USB_SEND_BYTES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_send_bytes() {
+
+    // Initialize number of bytes that will be sent
+    uint8_t n;
+
+    // Initialize looping variable
+    uint8_t i;
+
+    // Wait until last bytes are sent
+    while (USBSC0 & USBCS0_INPKT_RDY) {
+        NOP();
+    }
+
+    // If bytes to send exceed max
+    if (n_bytes_in > USB_SIZE_EP_CONTROL) {
+
+        // Update count of bytes to send
+        n = USB_SIZE_EP_CONTROL;
+    }
+
+    // Otherwise
+    else {
+
+        // Send them all
+        n = n_bytes_in;
+    }
+
+    // Loop on bytes
+    for (i = 0; i < n; i++) {
+
+        // Set byte
+        usb_set_byte(data_in[i]);
+    }
+
+    // Bytes ready
+    USBSC0 |= USBCS0_INPKT_RDY;
+
+    // If last byte sent
+    if (n_bytes_in == 0) {
+
+        // End of data
+        USBCS0 |= USBSC0_DATA_END;
+    }
+
+    // Diminish count of bytes remaining to send
+    n_bytes_in -= n;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_GET_SETUP_PACKET
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_get_setup_packet(void) {
@@ -371,33 +435,46 @@ void usb_get_descriptor(uint16_t value) {
     uint8_t type = value >> 8;
     uint8_t index = value & 255;
 
-    // Initialize looping index
-    uint8_t i = 0;
+    // Initialize descriptor length
+    uint8_t n;
+
+    // Initialize pointer to current descriptor
+    uint8_t *descriptor = usb_descriptors;
 
     // Loop on descriptors
-    while (usb_descriptors[i] != 0) {
+    while (descriptor[0] != 0) {
 
-        // Compare types
-        if (usb_descriptors[i + 1] == type && usb_descriptors[i + 2] == index) {
+        // Compare types and decrease index until desired descriptor is matched
+        if (descriptor[1] == type && index-- == 0) {
 
             // If asked for configuration descriptor
             if (type == USB_DESC_CONFIGURATION) {
 
-                // Send descriptors
-                usb_set_bytes(usb_descriptors[i], usb_descriptors[i + 2]);
+                // Read descriptor length
+                n = descriptor[2];
             }
 
             // Otherwise
             else {
 
-                // Send descriptor
-                usb_set_bytes(usb_descriptors[i], usb_descriptors[i])
+                // Read descriptor length
+                n = descriptor[0];
             }
+
+            // Prepare to send descriptor
+            data_in = descriptor;
+            n_bytes_in = n;
+
+            // Exit
+            return;
         }
 
-        // Update index
-        i += usb_descriptors[i];
+        // Update pointer
+        descriptor += descriptor[0];
     }
+
+    // No descriptor found
+    NOP();
 }
 
 /*
@@ -407,7 +484,6 @@ void usb_get_descriptor(uint16_t value) {
 */
 void usb_setup_transaction(void) {
 
-    // SETUP STAGE
     // Get setup packet
     usb_get_setup_packet();
 
@@ -426,33 +502,33 @@ void usb_setup_transaction(void) {
                     // Request
                     switch (usb_setup.request) {
 
-                        case USB_REQUEST_DEVICE_GET_STATUS:
+                        case USB_REQUEST_GET_STATUS:
                             usb_set_byte(0); // Device bus powered
                             usb_set_byte(0); // Remote wake up disabled
                             break;
 
-                        case USB_REQUEST_DEVICE_CLEAR_FEATURE:
+                        case USB_REQUEST_CLEAR_FEATURE:
                             break;
 
-                        case USB_REQUEST_DEVICE_SET_FEATURE:
+                        case USB_REQUEST_SET_FEATURE:
                             break;
 
-                        case USB_REQUEST_DEVICE_SET_ADDRESS:
+                        case USB_REQUEST_SET_ADDRESS:
                             usb_set_address(usb_setup.value);
                             break;
 
-                        case USB_REQUEST_DEVICE_GET_DESCRIPTOR:
+                        case USB_REQUEST_GET_DESCRIPTOR:
                             usb_get_descriptor(usb_setup.value);
                             break;
 
-                        case USB_REQUEST_DEVICE_SET_DESCRIPTOR:
+                        case USB_REQUEST_SET_DESCRIPTOR:
                             break;
 
-                        case USB_REQUEST_DEVICE_GET_CONFIGURATION:
+                        case USB_REQUEST_GET_CONFIGURATION:
                             usb_set_byte(usb_device.configuration);
                             break;
 
-                        case USB_REQUEST_DEVICE_SET_CONFIGURATION:
+                        case USB_REQUEST_SET_CONFIGURATION:
                             usb_set_configuration(usb_setup.value);
                             break;
                     }
@@ -465,22 +541,22 @@ void usb_setup_transaction(void) {
                     // Request
                     switch (usb_setup.request) {
 
-                        case USB_REQUEST_INTERFACE_GET_STATUS:
+                        case USB_REQUEST_GET_STATUS:
                             usb_set_byte(0); // Reserved for future use?
                             usb_set_byte(0); // Reserved for future use?
                             break;
 
-                        case USB_REQUEST_INTERFACE_CLEAR_FEATURE:
+                        case USB_REQUEST_CLEAR_FEATURE:
                             break;
 
-                        case USB_REQUEST_INTERFACE_SET_FEATURE:
+                        case USB_REQUEST_SET_FEATURE:
                             break;
 
-                        case USB_REQUEST_INTERFACE_GET_INTERFACE:
+                        case USB_REQUEST_GET_INTERFACE:
                             usb_set_byte(0); // No alternative interfaces
                             break;
 
-                        case USB_REQUEST_INTERFACE_SET_INTERFACE:
+                        case USB_REQUEST_SET_INTERFACE:
                             break;
                     }
 
@@ -492,18 +568,18 @@ void usb_setup_transaction(void) {
                     // Request
                     switch (usb_setup.request) {
 
-                        case USB_REQUEST_EP_GET_STATUS:
+                        case USB_REQUEST_GET_STATUS:
                             usb_set_byte(0); // Not halted
                             usb_set_byte(0); // Not stalled
                             break;
 
-                        case USB_REQUEST_EP_CLEAR_FEATURE:
+                        case USB_REQUEST_CLEAR_FEATURE:
                             break;
 
-                        case USB_REQUEST_EP_SET_FEATURE:
+                        case USB_REQUEST_SET_FEATURE:
                             break;
 
-                        case USB_REQUEST_EP_SYNCH_FRAME:
+                        case USB_REQUEST_SYNCH_FRAME:
                             break;
                     }
 
@@ -513,25 +589,37 @@ void usb_setup_transaction(void) {
             break;
     }
 
-    // DATA STAGE
-    // If data
-    if (usb_setup.length > 0) {
+    // Data processing over
+    USBSC0 |= USBCS0_CLR_OUTPKT_RDY;
 
-        // Read number of bytes received
-        //uint8_t n = USBCNT0;
+    // If data to send
+    if (n_bytes_in) {
 
-        // Done processing setup packet
-        USBSC0 |= USBCS0_CLR_OUTPKT_RDY;
+        // If number of bytes to send is larger than asked by host
+        if (n_bytes_in > usb_setup.length) {
 
-        // Packet ready to be picked up by host
-        USBSC0 |= USBCS0_INPKT_RDY;
+            // Reassign it
+            n_bytes_in = usb_setup.length;
+        }
     }
 
-    // Otherwise
-    else {
+    // If data to receive
+    else if (n_bytes_out) {
+        NOP();
+    }
 
-        // Done processing setup packet and end of data
-        USBSC0 |= USBCS0_CLR_OUTPKT_RDY | USBSC0_DATA_END;
+    // Oops! Host expects data stage, but there is no data to give!
+    else if (usb_setup.length) {
+
+        // Send stall
+        USBCS0 |= USBCS0_SEND_STALL;
+    }
+
+    // If last byte sent
+    else (usb_setup.length == 0) {
+
+        // End of data
+        USBCS0 |= USBSC0_DATA_END;
     }
 }
 
@@ -543,27 +631,41 @@ void usb_setup_transaction(void) {
 void usb_control(void) {
 
     // Set control EP
-    usb_set_ep(USB_EP_CONTROL);
+    usb_set_ep(USB_EP_CONTROL, NULL, NULL);
 
-    // Error: a STALL has been sent
+    // Control transfer ends due to a premature end of control transfer or
+    // EP0 receives an unexpected token during the data stage
+    if (USBCS0 & USBCS0_SETUP_END) {
+
+        // Reset flag
+        USBCS0 |= USBCS0_CLR_SETUP_END;
+
+        // Abort transfer
+        NOP();
+    }
+
+    // EP0 is stalled
     if (USBCS0 & USBCS0_SENT_STALL) {
 
         // Reset flag
         USBCS0 &= ~USBCS0_SENT_STALL;
 
         // Abort transfer
-        NOP();
+        return;
     }
 
-    // A control transfer ends due to a premature end of control transfer or
-    // EP0 receives an unexpected token during the data stage
-    else if (USBCS0 & USBCS0_SETUP_END) {
+    // Data asked for
+    if (USBCS0 & USBCS0_INPKT_RDY) {
 
-        // Reset flag
-        USBCS0 |= USBCS0_CLR_SETUP_END;
+        // Send data
+        usb_send_bytes();
+    }
 
-        // If new setup packet
-        if (USBCS0 & USBCS0_OUTPKT_RDY) {
+    // Data ready
+    if (USBCS0 & USBCS0_OUTPKT_RDY) {
+
+        // If no data
+        if (n_bytes_out == 0) {
 
             // Setup stage
             usb_setup_transaction();
@@ -572,16 +674,9 @@ void usb_control(void) {
         // Otherwise
         else {
 
-            // Abort transfer
-            NOP();
+            // Receive data
+            usb_receive_bytes();
         }
-    }
-
-    // Otherwise normal setup
-    else if (USBCS0 & USBCS0_OUTPKT_RDY) {
-
-        // Setup stage
-        usb_setup_transaction();
     }
 }
 
@@ -593,11 +688,7 @@ void usb_control(void) {
 void usb_int(void) {
 
     // Select EP
-    usb_ep_select(USB_EP_INT);
-
-    // Set max packet size
-    USBMAXI = USB_SIZE_EP_INT / 8;
-    USBMAXO = 0;
+    usb_set_ep(USB_EP_INT, NULL, NULL);
 }
 
 /*
@@ -608,11 +699,7 @@ void usb_int(void) {
 void usb_in(void) {
 
     // Select EP
-    usb_ep_select(USB_EP_IN);
-
-    // Set max packet size
-    USBMAXI = USB_SIZE_EP_IN / 8;
-    USBMAXO = 0;
+    usb_set_ep(USB_EP_IN, NULL, NULL);
 }
 
 /*
@@ -623,11 +710,7 @@ void usb_in(void) {
 void usb_out(void) {
 
     // Select EP
-    usb_ep_select(USB_EP_OUT);
-
-    // Set max packet size
-    USBMAXI = 0;
-    USBMAXO = USB_SIZE_EP_OUT / 8;
+    usb_set_ep(USB_EP_OUT, NULL, NULL);
 }
 
 /*
