@@ -47,9 +47,13 @@ volatile uint8_t USBF5;
 #define USB_OUTEP1IF (1 << 1)
 
 // USB setup masks
-#define USB_SETUP_DIRECTION (1 << 7)
-#define USB_SETUP_TYPE      (3 << 5)
-#define USB_SETUP_RECIPIENT (31 << 0)
+#define USB_SETUP_DIRECTION (0x01 << 7)
+#define USB_SETUP_TYPE      (0x03 << 5)
+#define USB_SETUP_RECIPIENT (0x1F << 0)
+
+// USB directions
+#define USB_DIRECTION_OUT (0 << 7)
+#define USB_DIRECTION_IN  (1 << 7)
 
 // USB types
 #define USB_TYPE_STANDARD   (0 << 5)
@@ -94,18 +98,14 @@ volatile uint8_t USBF5;
 // USB max bytes
 #define USB_SIZE_EP_CONTROL 32
 #define USB_SIZE_EP_INT     8
-#define USB_SIZE_EP_IN      64
 #define USB_SIZE_EP_OUT     64
+#define USB_SIZE_EP_IN      64
 
 // USB EPs
 #define USB_EP_CONTROL 0
 #define USB_EP_INT     1
-#define USB_EP_IN      4
-#define USB_EP_OUT     5
-
-// USB EP directions
-#define USB_DIRECTION_IN  (1 << 7)
-#define USB_DIRECTION_OUT (0 << 0)
+#define USB_EP_OUT     4
+#define USB_EP_IN      5
 
 // USB power
 #define USB_MAX_POWER 50 // Maximum power in mA
@@ -116,6 +116,10 @@ volatile uint8_t USBF5;
 #define USB_STATE_RECEIVE 2
 #define USB_STATE_STALL   3
 
+// USB vendor and product IDs
+#define USB_VID 0x1D50
+#define USB_PID 0x8001
+
 // USB device
 struct usb_device {
     uint8_t configuration;
@@ -123,8 +127,8 @@ struct usb_device {
 };
 
 // USB setup
-struct usb_setup {
-    uint8_t type;
+struct usb_setup_packet {
+    uint8_t info;
     uint8_t request;
     uint16_t value;
     uint16_t index;
@@ -137,12 +141,15 @@ void usb_set_byte(uint8_t byte);
 void usb_queue_byte(uint8_t byte);
 void usb_receive_bytes(void);
 void usb_send_bytes(void);
+void usb_reset_interrupts(void);
+void usb_enable_interrupts(void);
 void usb_set_configuration(uint8_t value);
 void usb_get_configuration(void);
 void usb_set_address(uint8_t address);
 void usb_get_descriptor(uint16_t value);
 void usb_get_setup_packet(void);
-void usb_setup_transaction(void);
+void usb_parse_setup_packet(void);
+void usb_setup(void);
 void usb_control(void);
 void usb_int(void);
 void usb_in(void);
