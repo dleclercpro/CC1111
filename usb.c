@@ -398,15 +398,15 @@ void usb_send_bytes() {
     // Bytes ready
     USBSC0 |= USBCS0_INPKT_RDY;
 
+    // Diminish count of bytes remaining to send
+    n_bytes_in -= n;
+
     // If last byte sent
     if (n_bytes_in == 0) {
 
         // End of data
         USBCS0 |= USBSC0_DATA_END;
     }
-
-    // Diminish count of bytes remaining to send
-    n_bytes_in -= n;
 }
 
 /*
