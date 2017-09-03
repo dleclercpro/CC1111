@@ -11,7 +11,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Store 2 bytes in a pair of registers
 */
-#define set_word(name, bytes)     			  \
+#define SET_WORD(name, bytes)     			  \
 	do {				          			  \
 		name##L = ((uint16_t)(bytes)) & 0xFF; \
 		name##H = ((uint16_t)(bytes)) >> 8;   \
@@ -23,7 +23,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Read 2 bytes in a pair of registers
 */
-#define get_word(name) ((uint16_t)(name##L)) + (((uint16_t)(name##H)) << 8)
+#define GET_WORD(name) ((uint16_t)(name##L)) + (((uint16_t)(name##H)) << 8)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -31,7 +31,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	Return word in little endian fashion, with both bytes separated by a comma
 */
-#define le_word(bytes) ((uint16_t)(bytes)) & 255, \
+#define LE_WORD(bytes) ((uint16_t)(bytes)) & 255, \
 					   ((uint16_t)(bytes)) >> 8
 
 #endif

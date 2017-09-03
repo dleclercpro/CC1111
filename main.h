@@ -3,6 +3,7 @@
 
 #include "clock.h"
 #include "timer.h"
+#include "usb.h"
 #include "led.h"
 #include "interrupts.h"
 

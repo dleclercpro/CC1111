@@ -3,6 +3,7 @@
 
 #include "cc1111.h"
 #include "lib.h"
+#include "led.h"
 
 // USB FIFO bits
 __xdata __at (0xde20)
@@ -90,20 +91,30 @@ volatile uint8_t USBF5;
 #define USB_TRANSFER_BULK        2
 #define USB_TRANSFER_INTERRUPT   3
 
+// USB max bytes
 #define USB_SIZE_EP_CONTROL 32
 #define USB_SIZE_EP_INT     8
 #define USB_SIZE_EP_IN      64
 #define USB_SIZE_EP_OUT     64
 
+// USB EPs
 #define USB_EP_CONTROL 0
 #define USB_EP_INT     1
 #define USB_EP_IN      4
 #define USB_EP_OUT     5
 
+// USB EP directions
 #define USB_DIRECTION_IN  (1 << 7)
 #define USB_DIRECTION_OUT (0 << 0)
 
+// USB power
 #define USB_MAX_POWER 50 // Maximum power in mA
+
+// USB states
+#define USB_STATE_IDLE    0
+#define USB_STATE_SEND    1
+#define USB_STATE_RECEIVE 2
+#define USB_STATE_STALL   3
 
 // USB device
 struct usb_device {
@@ -121,20 +132,22 @@ struct usb_setup {
 };
 
 void usb_init(void);
-void usb_set_configuration(uint8_t value);
-void usb_set_address(uint8_t address);
-void usb_set_ep(uint8_t ep);
 uint8_t usb_get_byte(void);
 void usb_set_byte(uint8_t byte);
+void usb_queue_byte(uint8_t byte);
 void usb_receive_bytes(void);
 void usb_send_bytes(void);
-void usb_get_setup_packet(void);
+void usb_set_configuration(uint8_t value);
+void usb_get_configuration(void);
+void usb_set_address(uint8_t address);
 void usb_get_descriptor(uint16_t value);
+void usb_get_setup_packet(void);
 void usb_setup_transaction(void);
 void usb_control(void);
 void usb_int(void);
 void usb_in(void);
 void usb_out(void);
+void usb_set_ep(uint8_t ep);
 void usb_isr(void) __interrupt P2INT_VECTOR;
 
 #endif

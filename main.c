@@ -11,15 +11,11 @@ void main (void) {
 	clock_init();
 	timer_init();
 	led_init();
-	interrupts_init();
+	usb_init();
+
+	// Enable interrupts
+	interrupts_enable();
 
     // Start timer
     timer_start();
-
-    // Loop
-	/*
-	while(1) {
-
-	}
-	*/
 }

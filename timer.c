@@ -26,7 +26,7 @@ void timer_init(void) {
     T1CCTL2 = 0;
 
     // Define compare value
-    set_word(T1CC0, N - 1);
+    SET_WORD(T1CC0, N - 1);
 
     // Disable overflow interrupt requests
     OVFIM = 0;
@@ -55,10 +55,10 @@ void timer_start(void) {
 void timer_isr(void) __interrupt T1_VECTOR {
 
     // Read current compare value and update it (leapfrogging)
-    set_word(T1CC0, get_word(T1CC0) + N);
+    SET_WORD(T1CC0, GET_WORD(T1CC0) + N);
 
     // Switch LED
-    led_switch();
+    //led_switch();
 
     // Reset interrupt flag
     T1CTL &= ~T1CTL_CH0IF;

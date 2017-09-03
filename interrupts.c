@@ -2,10 +2,10 @@
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    INTERRUPTS_INIT
+    INTERRUPTS_ENABLE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void interrupts_init(void) {
+void interrupts_enable(void) {
 
 	// Reset all interrupt flags
 	TCON = 0x05;
@@ -16,4 +16,15 @@ void interrupts_init(void) {
 
 	// Enable interrupts globally
 	EA = 1;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    INTERRUPTS_DISABLE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void interrupts_disable(void) {
+
+	// Disable interrupts globally
+	EA = 0;
 }

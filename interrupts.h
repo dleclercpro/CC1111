@@ -3,6 +3,7 @@
 
 #include "cc1111.h"
 
-void interrupts_init(void);
+void interrupts_enable(void);
+void interrupts_disable(void);
 
 #endif
