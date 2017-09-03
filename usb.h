@@ -105,9 +105,31 @@ volatile uint8_t USBF5;
 
 #define USB_MAX_POWER 50 // Maximum power in mA
 
+// USB device
+struct usb_device {
+    uint8_t configuration;
+    uint8_t interface;
+};
+
+// USB setup
+struct usb_setup {
+    uint8_t type;
+    uint8_t request;
+    uint16_t value;
+    uint16_t index;
+    uint16_t length;
+};
+
 void usb_init(void);
+void usb_set_configuration(uint8_t value);
+void usb_set_address(uint8_t address);
 void usb_set_ep(uint8_t ep);
-void usb_end_transaction(void);
+uint8_t usb_get_byte(void);
+void usb_set_byte(uint8_t byte);
+void usb_receive_bytes(void);
+void usb_send_bytes(void);
+void usb_get_setup_packet(void);
+void usb_get_descriptor(uint16_t value);
 void usb_setup_transaction(void);
 void usb_control(void);
 void usb_int(void);
