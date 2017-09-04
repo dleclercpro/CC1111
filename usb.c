@@ -1,104 +1,5 @@
 #include "usb.h"
 
-// USB descriptors
-__xdata uint8_t usb_descriptors[] = {
-
-    // Device descriptor
-    18,                  // Size
-    USB_DESC_DEVICE,     // Type
-    LE_WORD(0x0200),     // USB specification number
-    2,                   // Class
-    0,                   // Subclass
-    0,                   // Protocol
-    USB_SIZE_EP_CONTROL, // Max packet size for EP0
-    LE_WORD(USB_VID),    // Vendor
-    LE_WORD(USB_PID),    // Product
-    LE_WORD(0x0100),     // Release number
-    1,                   // Manufacturer string descriptor index
-    2,                   // Product string descriptor index
-    3,                   // Serial number string descriptor index
-    1,                   // Number of configurations
-
-    // Configuration descriptor
-    9,                      // Size
-    USB_DESC_CONFIGURATION, // Type
-    LE_WORD(48),            // Total length (configuration, interfaces and EPs)
-    2,                      // Number of interfaces
-    1,                      // Configuration index
-    0,                      // Configuration string descriptor (none)
-    192,                    // Power parameters for this configuration
-    USB_MAX_POWER / 2,      // Max power in 2mA units (divided by 2)
-
-    // Interface descriptor 1 (control)
-    9,                  // Size
-    USB_DESC_INTERFACE, // Type
-    0,                  // Interface number (start with zero, then increment)
-    0,                  // Alternative setting
-    1,                  // Number of EP for this interface
-    2,                  // Class
-    2,                  // Subclass
-    1,                  // Protocol
-    0,                  // Interface string descriptor (none)
-
-    // Notification EP
-    7,                             // Size
-    USB_DESC_ENDPOINT,             // Type
-    USB_DIRECTION_IN | USB_EP_INT, // Direction and address
-    USB_TRANSFER_INTERRUPT,        // Transfer type
-    LE_WORD(USB_SIZE_EP_INT),      // Max packet size
-    10,                            // Polling interval in frames
-
-    // Interface descriptor 2 (data)
-    9,                  // Size
-    USB_DESC_INTERFACE, // Type
-    1,                  // Interface number
-    0,                  // Alternative setting
-    2,                  // Number of EP for this interface
-    10,                 // Class (data)
-    0,                  // Subclass
-    0,                  // Protocol
-    0,                  // Interface string descriptor (none)
-
-    // Data EP OUT
-    7,                              // Size
-    USB_DESC_ENDPOINT,              // Type
-    USB_DIRECTION_OUT | USB_EP_OUT, // Direction and address
-    USB_TRANSFER_BULK,              // Transfer type
-    LE_WORD(USB_SIZE_EP_OUT),       // Max packet size
-    0,                              // Polling interval in frames (none)
-
-    // Data EP IN
-    7,                            // Size
-    USB_DESC_ENDPOINT,            // Type
-    USB_DIRECTION_IN | USB_EP_IN, // Direction and address
-    USB_TRANSFER_BULK,            // Transfer type
-    LE_WORD(USB_SIZE_EP_IN),      // Max packet size
-    0,                            // Polling interval in frames (none)
-
-    // String descriptors
-    4,               // Size
-    USB_DESC_STRING, // Type
-    LE_WORD(0x1009), // Language (EN-CA)
-
-    // String descriptor (manufacturer)
-    USB_MANUFACTURER_LENGTH + 2,
-    USB_DESC_STRING,
-    USB_MANUFACTURER,
-
-    // String descriptor (product)
-    USB_PRODUCT_LENGTH + 2,
-    USB_DESC_STRING,
-    USB_PRODUCT,
-
-    // String descriptor (serial)
-    USB_SERIAL_LENGTH + 2,
-    USB_DESC_STRING,
-    USB_SERIAL,
-
-    // EOD
-    0
-};
-
 // Generate instance of USB device
 static struct usb_device usb_device;
 
@@ -820,6 +721,9 @@ void usb_isr(void) __interrupt P2INT_VECTOR {
 
     // Check for OUT EP4 flags
     if (USBOIF & USB_OUTEP4IF) {
+
+        // Flash LED
+        led_switch();
 
         // Data to device sequence
         usb_out();
