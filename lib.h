@@ -34,4 +34,7 @@
 #define LE_WORD(bytes) ((uint16_t)(bytes)) & 255, \
 					   ((uint16_t)(bytes)) >> 8
 
+uint8_t min(uint8_t x, uint8_t y);
+uint8_t max(uint8_t x, uint8_t y);
+
 #endif

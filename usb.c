@@ -144,8 +144,8 @@ static struct usb_setup_packet usb_setup_packet;
 static uint8_t *data_in;
 static uint8_t *data_out;
 
-// Generate data buffer (8 bytes)
-static uint8_t data_buffer[8] = {0};
+// Generate data buffer
+static uint8_t data_buffer[256] = {0};
 
 // Generate byte counts
 static uint8_t n_bytes_in = 0;
@@ -268,28 +268,17 @@ void usb_queue_byte(uint8_t byte) {
     USB_RECEIVE_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_receive_bytes(void) {
+void usb_receive_bytes(uint8_t enable_eod) {
 
-    // Read number of bytes remaining to receive
-    uint8_t n = n_bytes_out;
+    // Read number of bytes remaining to receive and looping variable
+    uint8_t N = n_bytes_out;
+    uint8_t n = 0;
 
-    // Wait until bytes are ready to be read
-    while ((USBCS0 & USBCS0_OUTPKT_RDY) == 0) {
-        NOP();
-    }
-
-    // If byte count exceeds expectation
-    if (n > USB_SIZE_EP_CONTROL) {
-
-        // Update count
-        n = USB_SIZE_EP_CONTROL;
-    }
-
-    // Diminish count of bytes remaining to send
-    n_bytes_out -= n;
+    // Byte count must not exceed max
+    N = min(N, USB_SIZE_EP_CONTROL);
 
     // Loop on bytes
-    while (n--) {
+    for (n = 0; n < N; n++) {
 
         // Get byte
         *data_out++ = usb_get_byte();
@@ -299,14 +288,21 @@ void usb_receive_bytes(void) {
     USBCS0 |= USBCS0_CLR_OUTPKT_RDY;
 
     // If last byte read
-    if (n_bytes_out == 0) {
+    if (n_bytes_out < USB_SIZE_EP_CONTROL) {
 
-        // End of data
-        USBCS0 |= USBCS0_DATA_END;
+        // If EOD signaling allowed
+        if (enable_eod) {
+
+            // End of data
+            USBCS0 |= USBCS0_DATA_END;
+        }
 
         // Update USB state
         usb_state = USB_STATE_IDLE;
     }
+
+    // Diminish count of bytes remaining to send
+    n_bytes_out -= N;
 }
 
 /*
@@ -316,26 +312,20 @@ void usb_receive_bytes(void) {
 */
 void usb_send_bytes(void) {
 
-    // Initialize number of bytes remaining to send
-    uint8_t n = n_bytes_in;
+    // Initialize number of bytes remaining to send and looping variable
+    uint8_t N = n_bytes_in;
+    uint8_t n = 0;
+
+    // Byte count must not exceed max
+    N = min(N, USB_SIZE_EP_CONTROL);
 
     // Wait until last bytes are picked up
     while (USBCS0 & USBCS0_INPKT_RDY) {
         NOP();
     }
 
-    // If byte count exceeds max
-    if (n_bytes_in > USB_SIZE_EP_CONTROL) {
-
-        // Update count
-        n = USB_SIZE_EP_CONTROL;
-    }
-
-    // Diminish count of bytes remaining to send
-    n_bytes_in -= n;
-
     // Loop on bytes
-    while (n--) {
+    for (n = 0; n < N; n++) {
 
         // Set byte
         usb_set_byte(*data_in++);
@@ -345,7 +335,7 @@ void usb_send_bytes(void) {
     USBCS0 |= USBCS0_INPKT_RDY;
 
     // If last byte sent
-    if (n_bytes_in == 0) {
+    if (n_bytes_in < USB_SIZE_EP_CONTROL) {
 
         // End of data
         USBCS0 |= USBCS0_DATA_END;
@@ -353,6 +343,9 @@ void usb_send_bytes(void) {
         // Update USB state
         usb_state = USB_STATE_IDLE;
     }
+
+    // Diminish count of bytes remaining to send
+    n_bytes_in -= N;
 }
 
 /*
@@ -509,8 +502,8 @@ void usb_get_setup_packet(void) {
     // Setup packet is 8 bytes long
     n_bytes_out = 8; // USBCNT0 ?
 
-    // Fill setup packet
-    usb_receive_bytes();
+    // Fill setup packet (without EOD signaling)
+    usb_receive_bytes(0);
 }
 
 /*
@@ -536,6 +529,13 @@ void usb_parse_setup_packet(void) {
             // OUT
             case (USB_DIRECTION_OUT):
 
+                // Link data with buffer
+                // FIXME ?
+                data_out = data_buffer;
+
+                // Set number of packets to receive
+                n_bytes_out = usb_setup_packet.length
+
                 // Update USB state
                 usb_state = USB_STATE_RECEIVE;
                 break;
@@ -545,8 +545,8 @@ void usb_parse_setup_packet(void) {
     // Otherwise
     else {
 
-        // Update USB state
-        usb_state = USB_STATE_IDLE;
+        // End of data
+        USBCS0 |= USBCS0_DATA_END;
     }
 }
 
@@ -665,26 +665,18 @@ void usb_setup(void) {
             break;
 
         // Class
-        case USB_TYPE_CLASS:
-            break;
+        //case USB_TYPE_CLASS:
+        //    break;
     }
 
     // If data to send
     if (usb_state == USB_STATE_SEND) {
 
         // If number of bytes to send is larger than asked by host
-        if (n_bytes_in > usb_setup_packet.length) {
+        n_bytes_in = min(n_bytes_in, usb_setup_packet.length);
 
-            // Reassign it
-            n_bytes_in = usb_setup_packet.length;
-        }
-    }
-
-    // If data to receive
-    else if (usb_state == USB_STATE_RECEIVE) {
-
-        // Read number of bytes to receive
-        n_bytes_out = usb_setup_packet.length;
+        // Send first bytes
+        usb_send_bytes();
     }
 }
 
@@ -749,7 +741,7 @@ void usb_control(void) {
             case (USB_STATE_RECEIVE):
 
                 // Receive data
-                usb_receive_bytes();
+                usb_receive_bytes(1);
                 break;
         }
     }

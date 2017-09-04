@@ -139,7 +139,7 @@ void usb_init(void);
 uint8_t usb_get_byte(void);
 void usb_set_byte(uint8_t byte);
 void usb_queue_byte(uint8_t byte);
-void usb_receive_bytes(void);
+void usb_receive_bytes(uint8_t enable_eod);
 void usb_send_bytes(void);
 void usb_reset_interrupts(void);
 void usb_enable_interrupts(void);
