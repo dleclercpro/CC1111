@@ -27,7 +27,7 @@ __xdata uint8_t usb_descriptors[] = {
     1,                      // Configuration index
     0,                      // Configuration string descriptor (none)
     192,                    // Power parameters for this configuration
-    USB_MAX_POWER >> 1,     // Max power in 2mA units (divided by 2)
+    USB_MAX_POWER / 2,      // Max power in 2mA units (divided by 2)
 
     // Interface descriptor 1 (control)
     9,                  // Size
@@ -40,6 +40,14 @@ __xdata uint8_t usb_descriptors[] = {
     1,                  // Protocol
     0,                  // Interface string descriptor (none)
 
+    // Notification EP
+    7,                             // Size
+    USB_DESC_ENDPOINT,             // Type
+    USB_DIRECTION_IN | USB_EP_INT, // Direction and address
+    USB_TRANSFER_INTERRUPT,        // Transfer type
+    LE_WORD(USB_SIZE_EP_INT),      // Max packet size
+    10,                            // Polling interval in frames
+
     // Interface descriptor 2 (data)
     9,                  // Size
     USB_DESC_INTERFACE, // Type
@@ -50,14 +58,6 @@ __xdata uint8_t usb_descriptors[] = {
     0,                  // Subclass
     0,                  // Protocol
     0,                  // Interface string descriptor (none)
-
-    // Notification EP
-    7,                             // Size
-    USB_DESC_ENDPOINT,             // Type
-    USB_DIRECTION_IN | USB_EP_INT, // Direction and address
-    USB_TRANSFER_INTERRUPT,        // Transfer type
-    LE_WORD(USB_SIZE_EP_INT),      // Max packet size
-    10,                            // Polling interval in frames
 
     // Data EP OUT
     7,                              // Size
@@ -81,54 +81,19 @@ __xdata uint8_t usb_descriptors[] = {
     LE_WORD(0x1009), // Language (EN-CA)
 
     // String descriptor (manufacturer)
-    60,
+    USB_MANUFACTURER_LENGTH + 2,
     USB_DESC_STRING,
-    LE_WORD('k'),
-    LE_WORD('e'),
-    LE_WORD('i'),
-    LE_WORD('n'),
-    LE_WORD('e'),
-    LE_WORD('c'),
-    LE_WORD('h'),
-    LE_WORD('t'),
-    LE_WORD('e'),
-    LE_WORD('r'),
-    LE_WORD('d'),
-    LE_WORD('e'),
-    LE_WORD('u'),
-    LE_WORD('t'),
-    LE_WORD('s'),
-    LE_WORD('c'),
-    LE_WORD('h'),
-    LE_WORD('e'),
-    LE_WORD('r'),
-    LE_WORD('@'),
-    LE_WORD('g'),
-    LE_WORD('m'),
-    LE_WORD('a'),
-    LE_WORD('i'),
-    LE_WORD('l'),
-    LE_WORD('.'),
-    LE_WORD('c'),
-    LE_WORD('o'),
-    LE_WORD('m'),
+    USB_MANUFACTURER,
 
     // String descriptor (product)
-    14,
+    USB_PRODUCT_LENGTH + 2,
     USB_DESC_STRING,
-    LE_WORD('C'),
-    LE_WORD('C'),
-    LE_WORD('1'),
-    LE_WORD('1'),
-    LE_WORD('1'),
-    LE_WORD('1'),
+    USB_PRODUCT,
 
     // String descriptor (serial)
-    8,
+    USB_SERIAL_LENGTH + 2,
     USB_DESC_STRING,
-    LE_WORD('0'),
-    LE_WORD('0'),
-    LE_WORD('1'),
+    USB_SERIAL,
 
     // EOD
     0
@@ -162,12 +127,8 @@ static uint8_t usb_state = USB_STATE_IDLE;
 */
 void usb_init(void) {
 
-    // Enable USB controller
-    SLEEP |= SLEEP_USB_EN;
-
     // Enable USB
-    P1DIR |= 1;
-    P1_0 = 1;
+    usb_enable();
 
     // Reset interrupts
     usb_reset_interrupts();
@@ -177,6 +138,50 @@ void usb_init(void) {
 
     // Enable interrupts
     usb_enable_interrupts();
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_ENABLE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_enable(void) {
+
+    // Enable USB controller
+    SLEEP |= SLEEP_USB_EN;
+
+    // Enable USB
+    P1DIR |= 1;
+    P1_0 = 1;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_ABORT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_abort(void) {
+
+    // Reset byte counts
+    n_bytes_in = 0;
+    n_bytes_out = 0;
+
+    // Update USB state
+    usb_state = USB_STATE_IDLE;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_STALL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_stall(void) {
+
+    // Send stall packet
+    USBCS0 |= USBCS0_SEND_STALL;
+
+    // Update status
+    usb_state = USB_STATE_STALL;
 }
 
 /*
@@ -259,9 +264,6 @@ void usb_queue_byte(uint8_t byte) {
 
     // Queue byte in buffer
     data_queue[n_bytes_in++] = byte;
-
-    // Link data to buffer
-    data_in = data_queue;
 }
 
 /*
@@ -277,6 +279,7 @@ void usb_receive_bytes(uint8_t enable_eod) {
 
     // Byte count must not exceed max
     N = min(N, USB_SIZE_EP_CONTROL);
+    N = min(N, USBCNT0);
 
     // Loop on bytes
     for (n = 0; n < N; n++) {
@@ -419,9 +422,6 @@ void usb_get_configuration(void) {
 
     // Queue configuration
     usb_queue_byte(usb_device.configuration);
-
-    // Link data to buffer
-    data_in = data_buffer;
 }
 
 /*
@@ -487,7 +487,7 @@ void usb_get_descriptor(uint16_t value) {
     }
 
     // No descriptor found
-    NOP();
+    usb_stall();
 }
 
 /*
@@ -522,6 +522,9 @@ void usb_parse_setup_packet(void) {
 
             // IN
             case (USB_DIRECTION_IN):
+
+                // Link data with queue
+                data_in = data_queue;
                 
                 // Update USB state
                 usb_state = USB_STATE_SEND;
@@ -534,7 +537,7 @@ void usb_parse_setup_packet(void) {
                 data_out = data_buffer;
 
                 // Set number of packets to receive
-                n_bytes_out = usb_setup_packet.length
+                n_bytes_out = usb_setup_packet.length;
 
                 // Update USB state
                 usb_state = USB_STATE_RECEIVE;
@@ -697,11 +700,8 @@ void usb_control(void) {
         // Reset flag
         USBCS0 |= USBCS0_CLR_SETUP_END;
 
-        // Update USB state
-        usb_state = USB_STATE_IDLE;
-
         // Abort transfer
-        return;
+        usb_abort();
     }
 
     // EP0 is stalled
@@ -710,11 +710,8 @@ void usb_control(void) {
         // Reset flag
         USBCS0 &= ~USBCS0_SENT_STALL;
 
-        // Update USB state
-        usb_state = USB_STATE_IDLE;
-
         // Abort transfer
-        return;
+        usb_abort();
     }
 
     // Data asked for

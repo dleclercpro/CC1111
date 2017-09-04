@@ -4,7 +4,7 @@
 import usb.core
 
 # Find stick
-stick = usb.core.find(idVendor = 0x1d50, idProduct = 0x8001)
+stick = usb.core.find(idVendor = 0x0451, idProduct = 0x16A7)
 
 # No stick found
 if stick is None:

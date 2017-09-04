@@ -108,7 +108,7 @@ volatile uint8_t USBF5;
 #define USB_EP_IN      5
 
 // USB power
-#define USB_MAX_POWER 50 // Maximum power in mA
+#define USB_MAX_POWER 100 // Maximum power in mA
 
 // USB states
 #define USB_STATE_IDLE    0
@@ -117,8 +117,56 @@ volatile uint8_t USBF5;
 #define USB_STATE_STALL   3
 
 // USB vendor and product IDs
-#define USB_VID 0x1D50
-#define USB_PID 0x8001
+#define USB_VID 0x0451
+#define USB_PID 0x16A7
+
+// USB string descriptors
+#define USB_MANUFACTURER_LENGTH (29 * 2)
+#define USB_MANUFACTURER \
+	LE_WORD('k'),		 \
+    LE_WORD('e'),		 \
+    LE_WORD('i'),		 \
+    LE_WORD('n'),		 \
+    LE_WORD('e'),		 \
+    LE_WORD('c'),		 \
+    LE_WORD('h'),		 \
+    LE_WORD('t'),		 \
+    LE_WORD('e'),		 \
+    LE_WORD('r'),		 \
+    LE_WORD('d'),		 \
+    LE_WORD('e'),		 \
+    LE_WORD('u'),		 \
+    LE_WORD('t'),		 \
+    LE_WORD('s'),		 \
+    LE_WORD('c'),		 \
+    LE_WORD('h'),		 \
+    LE_WORD('e'),		 \
+    LE_WORD('r'),		 \
+    LE_WORD('@'),		 \
+    LE_WORD('g'),		 \
+    LE_WORD('m'),		 \
+    LE_WORD('a'),		 \
+    LE_WORD('i'),		 \
+    LE_WORD('l'),		 \
+    LE_WORD('.'),		 \
+    LE_WORD('c'),		 \
+    LE_WORD('o'),		 \
+    LE_WORD('m')
+
+#define USB_PRODUCT_LENGTH (6 * 2)
+#define USB_PRODUCT \
+    LE_WORD('C'),	\
+    LE_WORD('C'),	\
+    LE_WORD('1'),	\
+    LE_WORD('1'),	\
+    LE_WORD('1'),	\
+    LE_WORD('1')
+
+#define USB_SERIAL_LENGTH (3 * 2)
+#define USB_SERIAL \
+    LE_WORD('0'),  \
+    LE_WORD('0'),  \
+    LE_WORD('1')
 
 // USB device
 struct usb_device {
@@ -136,6 +184,9 @@ struct usb_setup_packet {
 };
 
 void usb_init(void);
+void usb_enable(void);
+void usb_abort(void);
+void usb_stall(void);
 uint8_t usb_get_byte(void);
 void usb_set_byte(uint8_t byte);
 void usb_queue_byte(uint8_t byte);
