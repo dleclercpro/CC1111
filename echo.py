@@ -82,6 +82,9 @@ def main():
     print EPs
     print
 
+    # Write to EP IN
+    print EPs["OUT"].write('Hello');
+
 
 
 # Run this when script is called from terminal
