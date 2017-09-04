@@ -144,8 +144,9 @@ static struct usb_setup_packet usb_setup_packet;
 static uint8_t *data_in;
 static uint8_t *data_out;
 
-// Generate data buffer
-static uint8_t data_buffer[256] = {0};
+// Generate data buffer/queue
+static uint8_t data_queue[2] = {0};
+static uint8_t data_buffer[64] = {0};
 
 // Generate byte counts
 static uint8_t n_bytes_in = 0;
@@ -257,10 +258,10 @@ void usb_set_byte(uint8_t byte) {
 void usb_queue_byte(uint8_t byte) {
 
     // Queue byte in buffer
-    data_buffer[n_bytes_in++] = byte;
+    data_queue[n_bytes_in++] = byte;
 
     // Link data to buffer
-    data_in = data_buffer;
+    data_in = data_queue;
 }
 
 /*
@@ -530,7 +531,6 @@ void usb_parse_setup_packet(void) {
             case (USB_DIRECTION_OUT):
 
                 // Link data with buffer
-                // FIXME ?
                 data_out = data_buffer;
 
                 // Set number of packets to receive
