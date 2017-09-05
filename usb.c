@@ -11,7 +11,7 @@ static uint8_t *data_in;
 static uint8_t *data_out;
 
 // Generate data buffer/queue
-static uint8_t data_queue[2] = {0};
+static uint8_t data_queue[8] = {0};
 static uint8_t data_buffer[64] = {0};
 
 // Generate byte counts
@@ -139,13 +139,13 @@ void usb_set_configuration(uint8_t value) {
     usb_set_ep(USB_EP_OUT);
     USBMAXI = 0;
     USBMAXO = USB_SIZE_EP_OUT / 8;
-    USBCSOH |= USBCSOH_OUT_DBL_BUF;
+    //USBCSOH |= USBCSOH_OUT_DBL_BUF;
 
     // Set maximum packet sizes and enable double buffering
     usb_set_ep(USB_EP_IN);
     USBMAXI = USB_SIZE_EP_IN / 8;
     USBMAXO = 0;
-    USBCSIH |= USBCSIH_IN_DBL_BUF;
+    //USBCSIH |= USBCSIH_IN_DBL_BUF;
 }
 
 /*
@@ -458,12 +458,12 @@ void usb_set_byte(uint8_t byte) {
             break;
 
         // EP4
-        case USB_EP_IN:
+        case USB_EP_OUT:
             USBF4 = byte;
             break;
 
         // EP5
-        case USB_EP_OUT:
+        case USB_EP_IN:
             USBF5 = byte;
             break;
     }
@@ -493,12 +493,12 @@ uint8_t usb_get_byte(void) {
             break;
 
         // EP4
-        case USB_EP_IN:
+        case USB_EP_OUT:
             byte = USBF4;
             break;
 
         // EP5
-        case USB_EP_OUT:
+        case USB_EP_IN:
             byte = USBF5;
             break;
     }
@@ -594,46 +594,77 @@ void usb_receive_bytes(uint8_t end) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_SEND_BYTES_BULK
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_send_bytes_bulk(void) {
+
+    // Initialize number of bytes to send as well as looping variable
+    uint8_t n = 0;
+    uint8_t i = 0;
+
+    // Wait until last bytes are picked up
+    while (USBCSIL & USBCSIL_INPKT_RDY) {
+        NOP();
+    }
+
+    // Byte count must not exceed max
+    n = min(n_bytes_in, USB_SIZE_EP_IN);
+
+    // Loop on bytes
+    for (i = 0; i < n; i++) {
+
+        // Set byte
+        usb_set_byte(*data_in++);
+    }
+
+    // Byte set
+    USBCSIL |= USBCSIL_INPKT_RDY;
+
+    // If last packet read
+    if (n_bytes_in < USB_SIZE_EP_IN) {
+
+        // Update USB state
+        usb_state = USB_STATE_IDLE;
+    }
+
+    // Diminish count of bytes remaining to send
+    n_bytes_in -= n;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_RECEIVE_BYTES_BULK
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_receive_bytes_bulk(void) {
 
-    // Read number of full buffers (max 2) and initialize number of bytes to
-    // receive as well as looping variable
-    uint8_t N = (USBCSOL & USBCSOL_FIFO_FULL) + 1;
+    // Initialize number of bytes to receive as well as looping variable
     uint8_t n = 0;
     uint8_t i = 0;
 
-    // Loop on full buffers
-    while (N--) {
+    // Byte count must not exceed max
+    n = min(n_bytes_out, USB_SIZE_EP_OUT);
 
-        // Byte count must not exceed max
-        n = min(n_bytes_out, USB_SIZE_EP_OUT);
+    // Loop on bytes
+    for (i = 0; i < n; i++) {
 
-        // Loop on bytes
-        for (i = 0; i < n; i++) {
-
-            // Get byte
-            *data_out++ = usb_get_byte();
-        }
-
-        // Byte read
-        USBCSOL &= ~USBCSOL_OUTPKT_RDY;
-
-        // If last packet read
-        if (n_bytes_out < USB_SIZE_EP_OUT) {
-
-            // Flash LED
-            led_switch();
-
-            // Update USB state
-            usb_state = USB_STATE_IDLE;
-        }
-
-        // Diminish count of bytes remaining to send
-        n_bytes_out -= n;
+        // Get byte
+        *data_out++ = usb_get_byte();
     }
+
+    // Byte read
+    USBCSOL &= ~USBCSOL_OUTPKT_RDY;
+
+    // If last packet read
+    if (n_bytes_out < USB_SIZE_EP_OUT) {
+
+        // Update USB state
+        usb_state = USB_STATE_IDLE;
+    }
+
+    // Diminish count of bytes remaining to receive
+    n_bytes_out -= n;
 }
 
 /*
@@ -717,6 +748,23 @@ void usb_in(void) {
 
     // Select EP
     usb_set_ep(USB_EP_IN);
+
+    // EP is stalled
+    if (USBCSIL & USBCSIL_SENT_STALL) {
+
+        // Reset flag
+        USBCSIL &= ~USBCSIL_SENT_STALL;
+
+        // Abort transfer
+        usb_abort();
+    }
+
+    // Data ready
+    if (usb_state == USB_STATE_SEND) {
+
+        // Send packet
+        usb_send_bytes_bulk();
+    }
 }
 
 /*
@@ -755,8 +803,24 @@ void usb_out(void) {
         // Read number of bytes waiting in FIFO
         n_bytes_out = USBCNTL | ((USBCNTH & 7) << 8);
 
+        // Update number of bytes to receive
+        n_bytes_in += n_bytes_out;
+
         // Get packet
         usb_receive_bytes_bulk();
+
+        // End of transfer
+        if (usb_state == USB_STATE_IDLE) {
+
+            // Reply with same data
+            data_in = data_buffer;
+
+            // Update USB state
+            usb_state = USB_STATE_SEND;
+
+            // Send packet
+            usb_in();
+        }
     }
 }
 

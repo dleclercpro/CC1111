@@ -83,7 +83,10 @@ def main():
     print
 
     # Write to EP IN
-    print EPs["OUT"].write('Hello');
+    print EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
+
+    # Read from EP IN
+    print EPs["IN"].read(64)
 
 
 
