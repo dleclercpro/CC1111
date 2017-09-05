@@ -82,11 +82,11 @@ def main():
     print EPs
     print
 
-    # Write to EP IN
+    # Write/read to/from EP IN
     print EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
-
-    # Read from EP IN
-    print EPs["IN"].read(64)
+    print EPs["IN"].read(48)
+    print EPs["OUT"].write("I bims <3!")
+    print EPs["IN"].read(10)
 
 
 
