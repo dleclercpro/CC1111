@@ -98,8 +98,8 @@ volatile uint8_t USBF5;
 // USB max bytes
 #define USB_SIZE_EP_CONTROL 32
 #define USB_SIZE_EP_INT     8
-#define USB_SIZE_EP_OUT     64
-#define USB_SIZE_EP_IN      64
+#define USB_SIZE_EP_OUT     64 // MAX: 256
+#define USB_SIZE_EP_IN      64 // MAX: 512
 
 // USB EPs
 #define USB_EP_CONTROL 0
