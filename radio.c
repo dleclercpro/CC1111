@@ -41,6 +41,38 @@ void radio_enable_interrupts(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_CONFIGURE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_configure(void) {
+
+	// Configure radio
+	SYNC1 = 0xFF;
+	SYNC0 = 0x00;
+	PKTLEN = 0xFF;
+	PKTCTRL1 = 0x00;
+	PKTCTRL0 = 0x00;
+	ADDR = 0x00;
+	CHANNR = ?;
+	FSCTRL1 = 0x06;
+	FSCTRL0 = 0x00;
+	FREQ2 = ?;
+	FREQ1 = ?;
+	FREQ0 = ?;
+	MDMCFG4 = 0x99;
+	MDMCFG3 = 0x66;
+	MDMCFG2 = 0x33;
+	MDMCFG1 = 0x61;
+	MDMCFG0 = 0x7E;
+	DEVIATN = 0x15;
+	MCSM2 = 0x07;
+	MCSM1 = 0x30;
+	MCSM0 = 0x18;
+	FOCCFG = 0x17;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_RFTXRX_ISR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -58,11 +90,15 @@ void radio_general_isr(void) __interrupt RF_VECTOR {
 	// TX underflow
 	if (RFIF & RFIF_IM_TXUNF) {
 
+		// Enter IDLE state
+		RFST = RFST_SIDLE;
 	}
 
 	// RX overflow
 	if (RFIF & RFIF_IM_RXOVF) {
-		
+
+		// Enter IDLE state
+		RFST = RFST_SIDLE;		
 	}
 
 	// RX timeout
