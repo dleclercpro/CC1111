@@ -38,8 +38,8 @@ static uint8_t usb_state = USB_STATE_IDLE;
 */
 void usb_init(void) {
 
-    // Enable USB
-    usb_enable();
+    // Power USB
+    usb_power();
 
     // Reset interrupts
     usb_reset_interrupts();
@@ -53,10 +53,10 @@ void usb_init(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_ENABLE
+    USB_POWER
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_enable(void) {
+void usb_power(void) {
 
     // Enable USB controller
     SLEEP |= SLEEP_USB_EN;
@@ -815,8 +815,8 @@ void usb_isr(void) __interrupt P2INT_VECTOR {
     // Check for reset flag
     if (USBCIF & USBCIF_RSTIF) {
 
-        // Enable interrupts ?
-        usb_enable_interrupts();
+        // Abort any on-going processes
+        usb_abort();
     }
 
     // Check for control EP0 flags

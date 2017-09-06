@@ -269,7 +269,7 @@ struct usb_setup_packet {
 };
 
 void usb_init(void);
-void usb_enable(void);
+void usb_power(void);
 void usb_abort(void);
 void usb_stall(void);
 void usb_reset_interrupts(void);
