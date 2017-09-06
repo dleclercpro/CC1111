@@ -5,20 +5,6 @@
 #include "lib.h"
 #include "led.h"
 
-// USB FIFO bits
-__xdata __at (0xde20)
-volatile uint8_t USBF0;
-__xdata __at (0xde22)
-volatile uint8_t USBF1;
-__xdata __at (0xde24)
-volatile uint8_t USBF2;
-__xdata __at (0xde26)
-volatile uint8_t USBF3;
-__xdata __at (0xde28)
-volatile uint8_t USBF4;
-__xdata __at (0xde2a)
-volatile uint8_t USBF5;
-
 // USB bit masks
 #define USB_INEP5IE (1 << 5)
 #define USB_INEP4IE (1 << 4)
@@ -117,8 +103,8 @@ volatile uint8_t USBF5;
 #define USB_STATE_STALL   3
 
 // USB vendor and product IDs
-#define USB_VID 0x0451
-#define USB_PID 0x16A7
+#define USB_VID 0x0451 // Texas Instruments
+#define USB_PID 0x16A7 // CC1111
 
 // USB string descriptors
 #define USB_MANUFACTURER_LENGTH (29 * 2)
@@ -286,13 +272,6 @@ void usb_init(void);
 void usb_enable(void);
 void usb_abort(void);
 void usb_stall(void);
-uint8_t usb_get_byte(void);
-void usb_set_byte(uint8_t byte);
-void usb_queue_byte(uint8_t byte);
-void usb_send_bytes(void);
-void usb_receive_bytes(uint8_t end);
-void usb_send_bytes_bulk(void);
-void usb_receive_bytes_bulk(void);
 void usb_reset_interrupts(void);
 void usb_enable_interrupts(void);
 void usb_set_configuration(uint8_t value);
@@ -302,6 +281,11 @@ void usb_get_descriptor(uint16_t value);
 void usb_get_setup_packet(void);
 void usb_parse_setup_packet(void);
 void usb_setup(void);
+void usb_queue_byte(uint8_t byte);
+void usb_set_byte(uint8_t byte);
+uint8_t usb_get_byte(void);
+void usb_send_bytes(uint8_t end);
+void usb_receive_bytes(uint8_t end);
 void usb_control(void);
 void usb_int(void);
 void usb_in(void);
