@@ -10,9 +10,11 @@ void radio_init(void) {
 	// Power radio
 	radio_power();
 
+	// Configure radio
+	radio_configure();
+
 	// Enable radio interrupts
 	radio_enable_interrupts();
-
 }
 
 /*
@@ -21,7 +23,7 @@ void radio_init(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void radio_power(void) {
-
+	NOP();
 }
 
 /*
@@ -35,8 +37,11 @@ void radio_enable_interrupts(void) {
 	RFIM = RFIM_IM_TXUNF | RFIM_IM_RXOVF | RFIM_IM_TIMEOUT | RFIM_IM_DONE |
 		   RFIM_IM_CS | RFIM_IM_PQT | RFIM_IM_CCA | RFIM_IM_SFD;
 
-	// Enable interrupts
+	// Enable RF interrupts
 	RFTXRXIE = 1;
+
+    // Enable interrupts
+    IEN2 |= IEN2_RFIE;
 }
 
 /*
@@ -47,28 +52,53 @@ void radio_enable_interrupts(void) {
 void radio_configure(void) {
 
 	// Configure radio
-	SYNC1 = 0xFF;
-	SYNC0 = 0x00;
-	PKTLEN = 0xFF;
-	PKTCTRL1 = 0x00;
-	PKTCTRL0 = 0x00;
-	ADDR = 0x00;
-	CHANNR = ?;
-	FSCTRL1 = 0x06;
-	FSCTRL0 = 0x00;
-	FREQ2 = ?;
-	FREQ1 = ?;
-	FREQ0 = ?;
-	MDMCFG4 = 0x99;
-	MDMCFG3 = 0x66;
-	MDMCFG2 = 0x33;
-	MDMCFG1 = 0x61;
-	MDMCFG0 = 0x7E;
-	DEVIATN = 0x15;
-	MCSM2 = 0x07;
-	MCSM1 = 0x30;
-	MCSM0 = 0x18;
-	FOCCFG = 0x17;
+	SYNC1 = 	0xFF;
+	SYNC0 = 	0x00;
+	PKTLEN = 	0xFF;
+	PKTCTRL1 = 	0x00;
+	PKTCTRL0 = 	0x00;
+	ADDR = 		0x00;
+	FSCTRL1 = 	0x06;
+	FSCTRL0 = 	0x00;
+	MDMCFG4 = 	0x99;
+	MDMCFG3 = 	0x66;
+	MDMCFG2 = 	0x33;
+	MDMCFG1 = 	0x61;
+	MDMCFG0 = 	0x7E;
+	DEVIATN = 	0x15;
+	MCSM2 = 	0x07;
+	MCSM1 = 	0x30;
+	MCSM0 = 	0x18;
+	FOCCFG = 	0x17;
+	FREND1 = 	0xB6;
+	FREND0 = 	0x11;
+	FSCAL3 = 	0xE9;
+	FSCAL2 = 	0x2A;
+	FSCAL1 = 	0x00;
+	FSCAL0 = 	0x1F;
+	TEST1 = 	0x31;
+	TEST0 = 	0x09;
+	PA_TABLE0 = 0x00;
+	AGCCTRL2 = 	0x07;
+	AGCCTRL1 = 	0x00;
+	AGCCTRL0 = 	0x91;
+
+	// Radio locale
+	// North America (NA)
+	#if RADIO_LOCALE == RADIO_LOCALE_NA
+		FREQ2 = 	0x26;
+		FREQ1 = 	0x30;
+		FREQ0 = 	0x70;
+		CHANNR = 	0x02;
+		PA_TABLE1 = 0xC0;
+	// Worldwide (WW)
+	#elif RADIO_LOCALE == RADIO_LOCALE_WW
+		FREQ2 = 	0x24;
+		FREQ1 = 	0x2E;
+		FREQ0 = 	0x38;
+		CHANNR = 	0x00;
+		PA_TABLE1 = 0xC2;
+	#endif
 }
 
 /*
