@@ -103,8 +103,8 @@
 #define USB_STATE_STALL   3
 
 // USB vendor and product IDs
-#define USB_VID 0x0451 // Texas Instruments
-#define USB_PID 0x16A7 // CC1111
+#define USB_VID 0x0451
+#define USB_PID 0x16A7
 
 // USB string descriptors
 #define USB_MANUFACTURER_LENGTH (29 * 2)
@@ -284,8 +284,12 @@ void usb_setup(void);
 void usb_queue_byte(uint8_t byte);
 void usb_set_byte(uint8_t byte);
 uint8_t usb_get_byte(void);
-void usb_send_bytes(uint8_t end);
-void usb_receive_bytes(uint8_t end);
+void usb_set_bytes(uint8_t n);
+void usb_get_bytes(uint8_t n);
+void usb_send_bytes_control(void);
+void usb_receive_bytes_control(uint8_t end);
+void usb_send_bytes_bulk(void);
+void usb_receive_bytes_bulk(void);
 void usb_control(void);
 void usb_int(void);
 void usb_in(void);

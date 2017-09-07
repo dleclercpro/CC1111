@@ -1,6 +1,10 @@
 #ifndef _RADIO_H_
 #define _RADIO_H_
 
+#include "cc1111.h"
+#include "lib.h"
+#include "led.h"
+
 // Radio states
 #define RADIO_STATE_IDLE        0
 #define RADIO_STATE_TRANSMIT    1

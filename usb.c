@@ -10,23 +10,13 @@ static struct usb_setup_packet usb_setup_packet;
 static uint8_t *usb_data_in = NULL;
 static uint8_t *usb_data_out = NULL;
 
-// Initialize control/configure register pointers
-static uint8_t *usb_cc_in = NULL;
-static uint8_t *usb_cc_out = NULL;
-
-// Initialize interrupt flags
-static uint8_t usb_if_in = 0;
-static uint8_t usb_if_out = 0;
-static uint8_t usb_if_eod = 0;
-
 // Generate data buffer/queue
 __xdata static uint8_t usb_data_queue[8] = {0};
 __xdata static uint8_t usb_data_buffer[64] = {0};
 
-// Initialize byte counts
-static uint8_t usb_size = 0;
-static uint8_t usb_n_bytes_in = 0;
-static uint8_t usb_n_bytes_out = 0;
+// Generate byte counts
+static uint16_t usb_n_bytes_in = 0;
+static uint16_t usb_n_bytes_out = 0;
 
 // Generate state
 static uint8_t usb_state = USB_STATE_IDLE;
@@ -58,7 +48,7 @@ void usb_init(void) {
 */
 void usb_power(void) {
 
-    // Enable USB controller
+    // Power USB controller
     SLEEP |= SLEEP_USB_EN;
 
     // Enable USB
@@ -249,7 +239,7 @@ void usb_get_setup_packet(void) {
     usb_n_bytes_out = 8;
 
     // Fill setup packet (without EOD signaling)
-    usb_receive_bytes(0);
+    usb_receive_bytes_control(0);
 }
 
 /*
@@ -431,7 +421,7 @@ void usb_setup(void) {
         usb_n_bytes_in = min(usb_n_bytes_in, usb_setup_packet.length);
 
         // Send first bytes
-        usb_send_bytes(1);
+        usb_send_bytes_control();
     }
 }
 
@@ -455,7 +445,7 @@ void usb_queue_byte(uint8_t byte) {
 void usb_set_byte(uint8_t byte) {
 
     // Set byte to active EP FIFO
-    USBFIFO[USB_INDEX << 1] = byte;
+    USBFIFO[USBINDEX << 1] = byte;
 }
 
 /*
@@ -466,27 +456,18 @@ void usb_set_byte(uint8_t byte) {
 uint8_t usb_get_byte(void) {
 
     // Read and return byte from active EP FIFO
-    return USBFIFO[USB_INDEX << 1];
+    return USBFIFO[USBINDEX << 1];
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_SEND_BYTES
+    USB_SET_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_send_bytes(uint8_t end) {
+void usb_set_bytes(uint8_t n) {
 
-    // Initialize number of bytes to send and looping variable
-    uint8_t n = 0;
+    // Initialize looping variable
     uint8_t i = 0;
-
-    // Make sure last packet was picked up
-    while (*usb_cc_in & usb_if_in) {
-        NOP();
-    }
-
-    // Byte count must not exceed max
-    n = min(usb_n_bytes_in, usb_size);
 
     // Loop on bytes
     for (i = 0; i < n; i++) {
@@ -494,19 +475,52 @@ void usb_send_bytes(uint8_t end) {
         // Set byte
         usb_set_byte(*usb_data_in++);
     }
+}
 
-    // Byte set
-    *usb_cc_in |= usb_if_in;
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_GET_BYTES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_get_bytes(uint8_t n) {
 
-    // If last packet read
-    if (usb_n_bytes_in < usb_size) {
+    // Initialize looping variable
+    uint8_t i = 0;
 
-        // If EOD signaling necessary
-        if (end) {
+    // Loop on bytes
+    for (i = 0; i < n; i++) {
 
-            // End of data
-            *usb_cc_in |= usb_if_eod;
-        }
+        // Get byte
+        *usb_data_out++ = usb_get_byte();
+    }
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_SEND_BYTES_CONTROL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_send_bytes_control(void) {
+
+    // Initialize max number of bytes to send
+    uint8_t n = min(usb_n_bytes_in, USB_SIZE_EP_CONTROL);
+
+    // Wait until last bytes are picked up
+    while (USBCS0 & USBCS0_INPKT_RDY) {
+        NOP();
+    }
+
+    // Set bytes
+    usb_set_bytes(n);
+
+    // Bytes ready
+    USBCS0 |= USBCS0_INPKT_RDY;
+
+    // If last packet sent
+    if (usb_n_bytes_in < USB_SIZE_EP_CONTROL) {
+
+        // End of data
+        USBCS0 |= USBCS0_DATA_END;
 
         // Update USB state
         usb_state = USB_STATE_IDLE;
@@ -518,42 +532,89 @@ void usb_send_bytes(uint8_t end) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_RECEIVE_BYTES
+    USB_RECEIVE_BYTES_CONTROL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_receive_bytes(uint8_t end) {
+void usb_receive_bytes_control(uint8_t end) {
 
-    // Initialize number of bytes to receive and looping variable
-    uint8_t n = 0;
-    uint8_t i = 0;
+    // Initialize max number of bytes to receive
+    uint8_t n = min(min(usb_n_bytes_out, USB_SIZE_EP_CONTROL), USBCNT0);
 
-    // Make sure packet is ready to be picked up
-    while (!(*usb_cc_out & usb_if_out)) {
-        NOP();
-    }
-
-    // Byte count must not exceed max
-    n = min(usb_n_bytes_out, usb_size);
-
-    // Loop on bytes
-    for (i = 0; i < n; i++) {
-
-        // Get byte
-        *usb_data_out++ = usb_get_byte();
-    }
+    // Get bytes
+    usb_get_bytes(n);
 
     // Byte read
-    *usb_cc_out &= ~usb_if_out;
+    USBCS0 |= USBCS0_CLR_OUTPKT_RDY;
 
     // If last packet read
-    if (usb_n_bytes_out < usb_size && usb_n_bytes_out - n == 0) {
+    if (usb_n_bytes_out < USB_SIZE_EP_CONTROL &&
+        usb_n_bytes_out - n == 0) {
 
-        // If EOD signaling necessary
+        // If EOD signaling allowed
         if (end) {
 
             // End of data
-            *usb_cc_out |= usb_if_eod;
+            USBCS0 |= USBCS0_DATA_END;
         }
+
+        // Update USB state
+        usb_state = USB_STATE_IDLE;
+    }
+
+    // Diminish count of bytes remaining to send
+    usb_n_bytes_out -= n;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_SEND_BYTES_BULK
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_send_bytes_bulk(void) {
+
+    // Initialize max number of bytes to send
+    uint16_t n = min(usb_n_bytes_in, USB_SIZE_EP_IN);
+
+    // Wait until last bytes are picked up
+    while (USBCSIL & USBCSIL_INPKT_RDY) {
+        NOP();
+    }
+
+    // Set bytes
+    usb_set_bytes(n);
+
+    // Byte set
+    USBCSIL |= USBCSIL_INPKT_RDY;
+
+    // If last packet read
+    if (usb_n_bytes_in < USB_SIZE_EP_IN) {
+
+        // Update USB state
+        usb_state = USB_STATE_IDLE;
+    }
+
+    // Diminish count of bytes remaining to send
+    usb_n_bytes_in -= n;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_RECEIVE_BYTES_BULK
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_receive_bytes_bulk(void) {
+
+    // Initialize max number of bytes to receive
+    uint16_t n = min(usb_n_bytes_out, USB_SIZE_EP_OUT);
+
+    // Get bytes
+    usb_get_bytes(n);
+
+    // Byte read
+    USBCSOL &= ~USBCSOL_OUTPKT_RDY;
+
+    // If last packet read
+    if (usb_n_bytes_out < USB_SIZE_EP_OUT) {
 
         // Update USB state
         usb_state = USB_STATE_IDLE;
@@ -598,7 +659,7 @@ void usb_control(void) {
     if (usb_state == USB_STATE_SEND) {
 
         // Send data
-        usb_send_bytes(1);
+        usb_send_bytes_control();
     }
 
     // Data ready
@@ -618,7 +679,7 @@ void usb_control(void) {
             case (USB_STATE_RECEIVE):
 
                 // Receive data
-                usb_receive_bytes(1);
+                usb_receive_bytes_control(1);
                 break;
         }
     }
@@ -659,7 +720,7 @@ void usb_in(void) {
     if (usb_state == USB_STATE_SEND) {
 
         // Send packet
-        usb_send_bytes(0);
+        usb_send_bytes_bulk();
     }
 }
 
@@ -703,7 +764,7 @@ void usb_out(void) {
         usb_n_bytes_in += usb_n_bytes_out;
 
         // Get packet
-        usb_receive_bytes(0);
+        usb_receive_bytes_bulk();
 
         // End of transfer
         if (usb_state == USB_STATE_IDLE) {
@@ -728,80 +789,8 @@ void usb_out(void) {
 */
 void usb_set_ep(uint8_t ep) {
 
-    // If new EP required
-    if (ep != USBINDEX) {
-
-        // Set EP
-        USBINDEX = ep;
-
-        // Assign EP specific bytes and pointers
-        switch (ep) {
-
-            // Control
-            case USB_EP_CONTROL:
-
-                // Define max packet size
-                usb_size = USB_SIZE_EP_CONTROL;
-
-                // Link pointers to control/configure register
-                usb_cc_in = &USBCS0;
-                usb_cc_out = &USBCS0;
-
-                // Define interrupt flags
-                usb_if_in = USBCS0_INPKT_RDY;
-                usb_if_out = USBCS0_OUTPKT_RDY;
-                usb_if_eod = USBCS0_DATA_END;
-                break;
-
-            // INT
-            case USB_EP_INT:
-
-                // Define max packet size
-                usb_size = USB_SIZE_EP_INT;
-
-                // Link pointers to control/configure register
-                usb_cc_in = &USBCSIL;
-                usb_cc_out = &USBCSOL;
-
-                // Define interrupt flags
-                usb_if_in = USBCSIL_INPKT_RDY;
-                usb_if_out = USBCSOL_OUTPKT_RDY;
-                usb_if_eod = 0;
-                break;
-
-            // IN
-            case USB_EP_IN:
-
-                // Define max packet size
-                usb_size = USB_SIZE_EP_IN;
-
-                // Link pointers to control/configure register
-                usb_cc_in = &USBCSIL;
-                usb_cc_out = 0;
-
-                // Define interrupt flags
-                usb_if_in = USBCSIL_INPKT_RDY;
-                usb_if_out = 0;
-                usb_if_eod = 0;
-                break;
-
-            // OUT
-            case USB_EP_OUT:
-
-                // Define max packet size
-                usb_size = USB_SIZE_EP_OUT;
-
-                // Link pointers to control/configure register
-                usb_cc_in = 0;
-                usb_cc_out = &USBCSOL;
-
-                // Define interrupt flags
-                usb_if_in = 0;
-                usb_if_out = USBCSOL_OUTPKT_RDY;
-                usb_if_eod = 0;
-                break;
-        }
-    }
+    // Set EP
+    USBINDEX = ep;
 }
 
 /*
@@ -815,8 +804,8 @@ void usb_isr(void) __interrupt P2INT_VECTOR {
     // Check for reset flag
     if (USBCIF & USBCIF_RSTIF) {
 
-        // Abort any on-going processes
-        usb_abort();
+        // Enable interrupts ?
+        usb_enable_interrupts();
     }
 
     // Check for control EP0 flags

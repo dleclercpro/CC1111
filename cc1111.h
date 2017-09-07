@@ -471,7 +471,7 @@ volatile uint8_t USBCNTL;
 __xdata __at (0xde17)
 volatile uint8_t USBCNTH;
 
-//__xdata __at (0xde20)
+__xdata __at (0xde20)
 volatile uint8_t USBFIFO[12];
 
 /* ADC data register, low and high */
