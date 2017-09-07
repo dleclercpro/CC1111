@@ -3,8 +3,9 @@
 
 #include "clock.h"
 #include "timer.h"
-#include "usb.h"
 #include "led.h"
+#include "usb.h"
+#include "radio.h"
 #include "interrupts.h"
 
 #endif
