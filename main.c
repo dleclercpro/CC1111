@@ -18,6 +18,7 @@ void main (void) {
     // Start timer
     timer_start();
 
-    // Initialize USB
+    // Initialize components
     usb_init();
+    radio_init();
 }

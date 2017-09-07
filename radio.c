@@ -133,31 +133,31 @@ void radio_general_isr(void) __interrupt RF_VECTOR {
 
 	// RX timeout
 	if (RFIF & RFIF_IM_TIMEOUT) {
-		
+		NOP();
 	}
 
 	// Packet received/transmitted
 	if (RFIF & RFIF_IM_DONE) {
-		
+		NOP();
 	}
 
 	// CS
 	if (RFIF & RFIF_IM_CS) {
-		
+		NOP();
 	}
 
 	// PQT reached
 	if (RFIF & RFIF_IM_PQT) {
-		
+		NOP();
 	}
 
 	// CCA
 	if (RFIF & RFIF_IM_CCA) {
-		
+		NOP();
 	}
 
 	// SFD
 	if (RFIF & RFIF_IM_SFD) {
-		
+		NOP();
 	}
 }
