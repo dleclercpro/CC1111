@@ -39,6 +39,19 @@ def getEP(configuration, direction, interface, setting = 0):
 
 
 
+def decode(bytes):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        DECODE
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Decode bytes and return corresponding string
+    return ''.join([chr(x) for x in bytes])
+
+
+
 def main():
 
     """
@@ -83,10 +96,10 @@ def main():
     print
 
     # Write/read to/from EP IN
-    print EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
-    print EPs["IN"].read(48)
-    print EPs["OUT"].write("I bims <3!")
-    print EPs["IN"].read(10)
+    EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
+    print decode(EPs["IN"].read(48))
+    EPs["OUT"].write("I bims <3!")
+    print decode(EPs["IN"].read(10))
 
 
 
