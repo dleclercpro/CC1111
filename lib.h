@@ -1,6 +1,7 @@
 #ifndef _LIB_H_
 #define _LIB_H_
 
+#include <stdio.h>
 #include <stdint.h>
 
 #define NOP() __asm nop __endasm // SDCC compiler ASM indications
