@@ -1,9 +1,7 @@
 #ifndef _RADIO_H_
 #define _RADIO_H_
 
-#include "cc1111.h"
-#include "lib.h"
-#include "led.h"
+#include "usb.h"
 
 // Radio states
 #define RADIO_STATE_IDLE        0
@@ -18,10 +16,22 @@
 #define RADIO_LOCALE_WW 1
 #define RADIO_LOCALE    RADIO_LOCALE_NA
 
+// Max packet size
+#define RADIO_MAX_PACKET_SIZE 192
+
+// Radio errors
+#define RADIO_ERROR_TIMEOUT 0xAA
+#define RADIO_ERROR_NO_DATA 0xBB
+
 void radio_init(void);
 void radio_power(void);
 void radio_enable_interrupts(void);
+void radio_state_idle(void);
+void radio_state_receive(void);
+void radio_state_transmit(void);
 void radio_configure(void);
+void radio_receive(void);
+void radio_transmit(void);
 void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
 void radio_general_isr(void) __interrupt RF_VECTOR;
 

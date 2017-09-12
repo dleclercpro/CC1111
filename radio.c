@@ -1,5 +1,16 @@
 #include "radio.h"
 
+// Generate data buffers
+__xdata static uint8_t radio_data_rx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
+__xdata static uint8_t radio_data_tx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
+
+// Initialize data buffer sizes
+static uint8_t radio_data_rx_buffer_size = 0;
+static uint8_t radio_data_tx_buffer_size = 0;
+
+// Initialize packet count
+static uint8_t radio_n_packets = 0;
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_INIT
@@ -42,6 +53,54 @@ void radio_enable_interrupts(void) {
 
     // Enable interrupts
     IEN2 |= IEN2_RFIE;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_STATE_IDLE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_state_idle(void) {
+
+	// Go in idle state
+	RFST = RFST_SIDLE;
+
+	// Wait until radio is in idle state
+	while (MARCSTATE != MARC_STATE_IDLE) {
+		NOP();
+	}
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_STATE_RECEIVE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_state_receive(void) {
+
+	// Go in receive mode
+	RFST = RFST_SRX;
+
+	// Wait until radio is in receive state
+	while (MARCSTATE != MARC_STATE_RX) {
+		NOP();
+	}
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_STATE_TRANSMIT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_state_transmit(void) {
+
+	// Go in receive mode
+	RFST = RFST_STX;
+
+	// Wait until radio is in receive state
+	while (MARCSTATE != MARC_STATE_TX) {
+		NOP();
+	}
 }
 
 /*
@@ -103,11 +162,146 @@ void radio_configure(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_RECEIVE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_receive(void) {
+
+	// Initialize read byte count, received byte, and flag to return
+	uint8_t n = 0;
+	uint8_t byte = 0;
+	uint8_t flag = 0;
+
+	// Reset buffer size
+	radio_data_rx_buffer_size = 0;
+
+	// Put radio in idle state
+	radio_state_idle();
+
+	// Put radio in receive state
+	radio_state_receive();
+
+	// Loop in parallel of RF ISRs and react when new bytes were received
+	while (1) {
+
+		// If new unread byte(s)
+		if (radio_data_rx_buffer_size > n) {
+
+			// Get new byte
+			byte = radio_data_tx_buffer[n];
+
+			// Queue it for USB transfer
+			//usb_queue_byte(byte);
+
+			// If end of packet
+			if (n >= 2 &&
+				n == radio_data_rx_buffer_size &&
+				byte == 0) {
+
+				// Check for absence of data
+				if (n == 2) {
+
+					// Assign no data flag
+					flag = RADIO_ERROR_NO_DATA;
+				}
+
+				// Exit
+				break;
+			}
+
+			// Update read byte count
+			n++;
+		}
+
+		// If timeout
+		if (1) {
+			NOP();
+		}
+	}
+
+	// Put radio in idle state
+	radio_state_idle();
+
+	// Send bytes over USB
+	//usb_send_bytes_bulk();
+
+	// Return info flag
+	return flag;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_TRANSMIT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_transmit(void) {
+
+	// Put radio in idle state
+	radio_state_idle();
+
+	// Put radio in transmit state
+	radio_state_transmit();
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_RFTXRX_ISR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
 
+	// Define byte to read/write
+	uint8_t byte = 0;
+
+	// Check MARC state
+	switch (MARCSTATE) {
+
+		// Receiving
+		case MARC_STATE_RX:
+
+			// Read byte from radio
+			byte = RFD;
+
+			// New packet
+			if (radio_data_rx_buffer_size == 0) {
+
+				// First byte: packet count
+				radio_data_rx_buffer[0] = radio_n_packets;
+
+				// Second byte: received signal strength indication (RSSI)
+				radio_data_rx_buffer[1] = RSSI;
+
+				// Update buffer size
+				radio_data_rx_buffer_size = 2;
+
+				// Update packet count
+				radio_n_packets++;
+			}
+
+			// Packet incomplete
+			if (radio_data_rx_buffer_size < RADIO_MAX_PACKET_SIZE) {
+
+				// Fill buffer and update its size
+				radio_data_rx_buffer[radio_data_rx_buffer_size++] = byte;
+			}
+
+			// Overflow
+			else {
+				NOP();
+			}
+
+			// Exit
+			break;
+
+		// Transmitting
+		case MARC_STATE_TX:
+
+			// Write byte to radio
+			RFD = byte;
+
+			// Exit
+			break;
+	}
 }
 
 /*
@@ -122,42 +316,63 @@ void radio_general_isr(void) __interrupt RF_VECTOR {
 
 		// Enter IDLE state
 		RFST = RFST_SIDLE;
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_TXUNF;
 	}
 
 	// RX overflow
 	if (RFIF & RFIF_IM_RXOVF) {
 
 		// Enter IDLE state
-		RFST = RFST_SIDLE;		
+		RFST = RFST_SIDLE;
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_RXOVF;
 	}
 
 	// RX timeout
 	if (RFIF & RFIF_IM_TIMEOUT) {
-		NOP();
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_TIMEOUT;
 	}
 
 	// Packet received/transmitted
 	if (RFIF & RFIF_IM_DONE) {
-		NOP();
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_DONE;
 	}
 
 	// CS
 	if (RFIF & RFIF_IM_CS) {
-		NOP();
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_CS;
 	}
 
 	// PQT reached
 	if (RFIF & RFIF_IM_PQT) {
-		NOP();
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_PQT;
 	}
 
 	// CCA
 	if (RFIF & RFIF_IM_CCA) {
-		NOP();
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_CCA;
 	}
 
 	// SFD
 	if (RFIF & RFIF_IM_SFD) {
-		NOP();
+
+		// Reset interrupt flag
+		RFIF &= ~RFIF_IM_SFD;
 	}
+
+	// Reset CPU interrupt flags
+	S1CON = 0;
 }

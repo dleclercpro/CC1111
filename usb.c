@@ -12,7 +12,7 @@ static uint8_t *usb_data_out = NULL;
 
 // Generate data buffer/queue
 __xdata static uint8_t usb_data_queue[8] = {0};
-__xdata static uint8_t usb_data_buffer[64] = {0};
+__xdata static uint8_t usb_data_buffer[256] = {0};
 
 // Generate byte counts
 static uint16_t usb_n_bytes_in = 0;
