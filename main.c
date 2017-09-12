@@ -21,4 +21,7 @@ void main (void) {
     // Initialize components
     usb_init();
     radio_init();
+
+    // Start radio
+    radio_receive();
 }

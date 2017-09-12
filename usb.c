@@ -10,8 +10,7 @@ static struct usb_setup_packet usb_setup_packet;
 static uint8_t *usb_data_in = NULL;
 static uint8_t *usb_data_out = NULL;
 
-// Generate data buffer/queue
-__xdata static uint8_t usb_data_queue[8] = {0};
+// Generate data buffer
 __xdata static uint8_t usb_data_buffer[256] = {0};
 
 // Generate byte counts
@@ -258,8 +257,8 @@ void usb_parse_setup_packet(void) {
             // IN
             case (USB_DIRECTION_IN):
 
-                // Link data with queue
-                usb_data_in = usb_data_queue;
+                // Link data with buffer
+                usb_data_in = usb_data_buffer;
                 
                 // Update USB state
                 usb_state = USB_STATE_SEND;
@@ -429,12 +428,11 @@ void usb_setup(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_QUEUE_BYTE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Queue IN byte for later access with IN data pointer.
 */
 void usb_queue_byte(uint8_t byte) {
 
     // Queue byte in buffer
-    usb_data_queue[usb_n_bytes_in++] = byte;
+    usb_data_buffer[usb_n_bytes_in++] = byte;
 }
 
 /*
