@@ -16,6 +16,8 @@ __xdata static uint8_t usb_data_buffer[256] = {0};
 // Generate byte counts
 static uint16_t usb_n_bytes_in = 0;
 static uint16_t usb_n_bytes_out = 0;
+uint16_t usb_n_bytes_sent = 0;
+uint16_t usb_n_bytes_read = 0;
 
 // Generate state
 static uint8_t usb_state = USB_STATE_IDLE;
@@ -63,8 +65,8 @@ void usb_power(void) {
 void usb_abort(void) {
 
     // Reset byte counts
-    usb_n_bytes_in = 0;
-    usb_n_bytes_out = 0;
+    usb_reset_bytes(USB_DIRECTION_IN);
+    usb_reset_bytes(USB_DIRECTION_OUT);
 
     // Update USB state
     usb_state = USB_STATE_IDLE;
@@ -82,6 +84,34 @@ void usb_stall(void) {
 
     // Update status
     usb_state = USB_STATE_STALL;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_RESET_BYTES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_reset_bytes(uint8_t direction) {
+
+    // Check direction
+    switch (direction) {
+
+        // IN
+        case USB_DIRECTION_IN:
+
+            // Reset byte counts
+            usb_n_bytes_in = 0;
+            usb_n_bytes_sent = 0;
+            break;
+
+        // OUT
+        case USB_DIRECTION_OUT:
+
+            // Reset byte counts
+            usb_n_bytes_out = 0;
+            usb_n_bytes_read = 0;
+            break;
+    }
 }
 
 /*
@@ -593,6 +623,9 @@ void usb_send_bytes_bulk(void) {
 
     // Diminish count of bytes remaining to send
     usb_n_bytes_in -= n;
+
+    // Update count of bytes sent
+    usb_n_bytes_sent += n;
 }
 
 /*
@@ -620,6 +653,9 @@ void usb_receive_bytes_bulk(void) {
 
     // Diminish count of bytes remaining to receive
     usb_n_bytes_out -= n;
+
+    // Update count of bytes read
+    usb_n_bytes_read += n;
 }
 
 /*
@@ -745,8 +781,11 @@ void usb_out(void) {
     // Data ready
     if (USBCSOL & USBCSOL_OUTPKT_RDY) {
 
-        // If idle
+        // If coming out of idle state (first bytes received)
         if (usb_state == USB_STATE_IDLE) {
+
+            // Reset byte counts
+            usb_reset_bytes(USB_DIRECTION_OUT);
 
             // Link data to buffer
             usb_data_out = usb_data_buffer;
@@ -758,14 +797,17 @@ void usb_out(void) {
         // Read number of bytes waiting in FIFO
         usb_n_bytes_out = USBCNTL | ((USBCNTH & 7) << 8);
 
-        // Update number of bytes to receive
-        usb_n_bytes_in += usb_n_bytes_out;
-
         // Get packet
         usb_receive_bytes_bulk();
 
         // End of transfer
         if (usb_state == USB_STATE_IDLE) {
+
+            // Reset byte counts
+            usb_reset_bytes(USB_DIRECTION_IN);
+
+            // Read number of bytes to receive
+            usb_n_bytes_in = usb_n_bytes_read;            
 
             // Reply with same data
             usb_data_in = usb_data_buffer;

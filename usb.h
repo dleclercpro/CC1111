@@ -268,10 +268,15 @@ struct usb_setup_packet {
     uint16_t length;
 };
 
+// Declare external variables
+extern uint16_t usb_n_bytes_sent;
+extern uint16_t usb_n_bytes_read;
+
 void usb_init(void);
 void usb_power(void);
 void usb_abort(void);
 void usb_stall(void);
+void usb_reset_bytes(uint8_t direction);
 void usb_reset_interrupts(void);
 void usb_enable_interrupts(void);
 void usb_set_configuration(uint8_t value);

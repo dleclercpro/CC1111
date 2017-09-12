@@ -11,16 +11,14 @@ void main (void) {
 	clock_init();
 	timer_init();
 	led_init();
+    usb_init();
+    radio_init();
 
 	// Enable interrupts
 	interrupts_enable();
 
     // Start timer
     timer_start();
-
-    // Initialize components
-    usb_init();
-    radio_init();
 
     // Start radio
     radio_receive(1000);

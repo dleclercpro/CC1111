@@ -5,6 +5,7 @@
 #include "led.h"
 #include "lib.h"
 
+// Declare external variables
 extern volatile uint32_t timer_counter;
 
 void timer_init(void);
