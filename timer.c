@@ -1,11 +1,14 @@
 #include "timer.h"
 
-#define TICKSPEED 12000000 // (Hz)
-#define PRESCALE  128      // (-)
-#define DELAY     100      // (ms)
+// Preprocessor cannot deal with floating points!
+
+#define TICKSPEED 24000000 // (Hz)
+#define PRESCALE  32       // (-)
+#define DELAY     1        // (ms)
 #define N         (TICKSPEED / PRESCALE * DELAY / 1000) // (-) MAX: 65536
 
-// Preprocessor cannot deal with floating points!
+// Define counter (ms)
+volatile uint32_t timer_counter = 0;
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,7 +46,18 @@ void timer_init(void) {
 void timer_start(void) {
 
     // Start timer in free mode with prescale divider
-    T1CTL = T1CTL_MODE_FREE | T1CTL_DIV_128;
+    T1CTL = T1CTL_MODE_FREE | T1CTL_DIV_32;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    TIMER_COUNTER_RESET
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void timer_counter_reset(void) {
+
+    // Reset counter
+    timer_counter = 0;
 }
 
 /*
@@ -57,8 +71,8 @@ void timer_isr(void) __interrupt T1_VECTOR {
     // Read current compare value and update it (leapfrogging)
     SET_WORD(T1CC0, GET_WORD(T1CC0) + N);
 
-    // Switch LED
-    //led_switch();
+    // Update counter
+    timer_counter++;
 
     // Reset interrupt flag
     T1CTL &= ~T1CTL_CH0IF;

@@ -1,12 +1,12 @@
 #include "radio.h"
 
 // Generate data buffers
-__xdata static uint8_t radio_data_rx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
-__xdata static uint8_t radio_data_tx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
+__xdata static uint8_t radio_rx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
+__xdata static uint8_t radio_tx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
 
 // Initialize data buffer sizes
-static uint8_t radio_data_rx_buffer_size = 0;
-static uint8_t radio_data_tx_buffer_size = 0;
+static uint8_t radio_rx_buffer_size = 0;
+static uint8_t radio_tx_buffer_size = 0;
 
 // Initialize packet count
 static uint8_t radio_n_packets = 0;
@@ -165,18 +165,18 @@ void radio_configure(void) {
     RADIO_RECEIVE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-uint8_t radio_receive(void) {
+uint8_t radio_receive(uint32_t timeout) {
 
     // Initialize read byte count, received byte, and flag to return
     uint8_t n = 0;
     uint8_t byte = 0;
     uint8_t flag = 0;
 
-    // Switch LED
-    led_switch();
-
     // Reset buffer size
-    radio_data_rx_buffer_size = 0;
+    radio_rx_buffer_size = 0;
+
+    // Reset timer counter
+    timer_counter_reset();
 
     // Put radio in idle state
     radio_state_idle();
@@ -188,10 +188,10 @@ uint8_t radio_receive(void) {
     while (1) {
 
         // If new unread byte(s)
-        if (radio_data_rx_buffer_size > n) {
+        if (radio_rx_buffer_size > n) {
 
             // Get new byte
-            byte = radio_data_tx_buffer[n];
+            byte = radio_tx_buffer[n];
 
             // Queue it for USB transfer
             usb_queue_byte(byte);
@@ -207,7 +207,7 @@ uint8_t radio_receive(void) {
             }
 
             // If end of packet
-            if (n > 2 && n == radio_data_rx_buffer_size && byte == 0) {
+            if (n > 2 && n == radio_rx_buffer_size && byte == 0) {
 
                 // Exit
                 break;
@@ -216,16 +216,38 @@ uint8_t radio_receive(void) {
             // Update read byte count
             n++;
         }
+
+        // If no bytes received
+        else if (radio_rx_buffer_size == 0) {
+
+            // If timeout given and expired
+            if (timeout > 0 && timer_counter > timeout) {
+
+                // Assign timeout flag
+                flag = RADIO_ERROR_TIMEOUT;
+
+                // Exit
+                break;
+            }
+        }
     }
 
     // Put radio in idle state
     radio_state_idle();
 
-    // Send packet over USB
-    usb_send_bytes_bulk();
+    // If data successfully received
+    if (flag == 0) {
 
-    // Switch LED
-    led_switch();
+        // Send packet over USB
+        usb_send_bytes_bulk();
+    }
+
+    // Otherwise
+    else {
+
+        // Switch LED
+        led_switch();
+    }
 
     // Return info flag
     return flag;
@@ -268,26 +290,26 @@ void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
             byte = RFD;
 
             // New packet
-            if (radio_data_rx_buffer_size == 0) {
+            if (radio_rx_buffer_size == 0) {
 
                 // First byte: packet count
-                radio_data_rx_buffer[0] = radio_n_packets;
+                radio_rx_buffer[0] = radio_n_packets;
 
                 // Second byte: received signal strength indication (RSSI)
-                radio_data_rx_buffer[1] = RSSI;
+                radio_rx_buffer[1] = RSSI;
 
                 // Update buffer size
-                radio_data_rx_buffer_size = 2;
+                radio_rx_buffer_size = 2;
 
                 // Update packet count
                 radio_n_packets++;
             }
 
             // Packet incomplete
-            if (radio_data_rx_buffer_size < RADIO_MAX_PACKET_SIZE) {
+            if (radio_rx_buffer_size < RADIO_MAX_PACKET_SIZE) {
 
                 // Fill buffer and update its size
-                radio_data_rx_buffer[radio_data_rx_buffer_size++] = byte;
+                radio_rx_buffer[radio_rx_buffer_size++] = byte;
             }
 
             // Overflow

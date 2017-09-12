@@ -23,5 +23,5 @@ void main (void) {
     radio_init();
 
     // Start radio
-    radio_receive();
+    radio_receive(1000);
 }

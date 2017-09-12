@@ -3,6 +3,7 @@
 
 #include "cc1111.h"
 #include "lib.h"
+#include "timer.h"
 #include "led.h"
 #include "usb.h"
 
@@ -33,7 +34,7 @@ void radio_state_idle(void);
 void radio_state_receive(void);
 void radio_state_transmit(void);
 void radio_configure(void);
-uint8_t radio_receive(void);
+uint8_t radio_receive(uint32_t timeout);
 uint8_t radio_transmit(void);
 void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
 void radio_general_isr(void) __interrupt RF_VECTOR;
