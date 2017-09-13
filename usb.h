@@ -87,14 +87,12 @@
 #define USB_TRANSFER_INTERRUPT   3
 
 // USB max bytes
-#define USB_SIZE_EP_CONTROL 32
-#define USB_SIZE_EP_INT     8
+#define USB_SIZE_EP_CONTROL 32 // MAX: 32
 #define USB_SIZE_EP_OUT     64 // MAX: 256
 #define USB_SIZE_EP_IN      64 // MAX: 512
 
 // USB EPs
 #define USB_EP_CONTROL 0
-#define USB_EP_INT     1
 #define USB_EP_OUT     4
 #define USB_EP_IN      5
 
@@ -181,36 +179,17 @@ __xdata uint8_t usb_descriptors[] = {
     // Configuration descriptor
     9,                      // Size
     USB_DESC_CONFIGURATION, // Type
-    LE_WORD(48),            // Total length (configuration, interfaces and EPs)
+    LE_WORD(32),            // Total length (configuration, interfaces and EPs)
     2,                      // Number of interfaces
     1,                      // Configuration index
     0,                      // Configuration string descriptor (none)
     192,                    // Power parameters for this configuration
     USB_MAX_POWER / 2,      // Max power in 2mA units (divided by 2)
 
-    // Interface descriptor 1 (control)
+    // Interface descriptor 0 (data)
     9,                  // Size
     USB_DESC_INTERFACE, // Type
     0,                  // Interface number (start with zero, then increment)
-    0,                  // Alternative setting
-    1,                  // Number of EP for this interface
-    2,                  // Class
-    2,                  // Subclass
-    1,                  // Protocol
-    0,                  // Interface string descriptor (none)
-
-    // Notification EP
-    7,                             // Size
-    USB_DESC_ENDPOINT,             // Type
-    USB_DIRECTION_IN | USB_EP_INT, // Direction and address
-    USB_TRANSFER_INTERRUPT,        // Transfer type
-    LE_WORD(USB_SIZE_EP_INT),      // Max packet size
-    10,                            // Polling interval in frames
-
-    // Interface descriptor 2 (data)
-    9,                  // Size
-    USB_DESC_INTERFACE, // Type
-    1,                  // Interface number
     0,                  // Alternative setting
     2,                  // Number of EP for this interface
     10,                 // Class (data)
@@ -302,7 +281,6 @@ void usb_send_bytes_bulk(void);
 void usb_receive_bytes_bulk(void);
 uint8_t usb_poll_byte(void);
 void usb_control(void);
-void usb_int(void);
 void usb_in(void);
 void usb_out(void);
 void usb_set_ep(uint8_t ep);

@@ -136,7 +136,7 @@ void usb_reset_interrupts(void) {
 void usb_enable_interrupts(void) {
 
     // Enable control and IN EP interrupts
-    USBIIE = USB_EP0IE | USB_INEP1IE | USB_INEP5IE;
+    USBIIE = USB_EP0IE | USB_INEP5IE;
 
     // Enable OUT EP interrupts
     USBOIE = USB_OUTEP4IE;
@@ -158,11 +158,6 @@ void usb_set_configuration(uint8_t value) {
 
     // Update device configuration (only one)
     usb_device.configuration = value;
-
-    // Set maximum packet sizes
-    usb_set_ep(USB_EP_INT);
-    USBMAXI = USB_SIZE_EP_INT / 8;
-    USBMAXO = USB_SIZE_EP_INT / 8;
 
     // Set maximum packet sizes and enable double buffering
     usb_set_ep(USB_EP_OUT);
@@ -759,17 +754,6 @@ void usb_control(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_INT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_int(void) {
-
-    // Select EP
-    usb_set_ep(USB_EP_INT);
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_IN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -891,13 +875,6 @@ void usb_isr(void) __interrupt P2INT_VECTOR {
 
         // Control sequence
         usb_control();
-    }
-
-    // Check for INT EP1 flags
-    if (USBIIF & USB_INEP1IF) {
-
-        // Interrupt sequence (notification?)
-        usb_int();
     }
 
     // Check for OUT EP4 flags
