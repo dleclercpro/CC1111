@@ -300,7 +300,7 @@ void usb_parse_setup_packet(void) {
                 // Link data with buffer
                 usb_data_out = usb_data_buffer;
 
-                // Set number of packets to receive
+                // Set number of bytes to receive
                 usb_n_bytes_out = usb_setup_packet.length;
 
                 // Update USB state
@@ -352,33 +352,33 @@ void usb_setup(void) {
                     // Request
                     switch (usb_setup_packet.request) {
 
-                        case USB_REQUEST_GET_STATUS:
+                        case USB_STD_REQUEST_GET_STATUS:
                             usb_queue_byte(0); // Device bus powered
                             usb_queue_byte(0); // Remote wake up disabled
                             break;
 
-                        //case USB_REQUEST_CLEAR_FEATURE:
+                        //case USB_STD_REQUEST_CLEAR_FEATURE:
                         //    break;
 
-                        //case USB_REQUEST_SET_FEATURE:
+                        //case USB_STD_REQUEST_SET_FEATURE:
                         //    break;
 
-                        case USB_REQUEST_SET_ADDRESS:
+                        case USB_STD_REQUEST_SET_ADDRESS:
                             usb_set_address(usb_setup_packet.value);
                             break;
 
-                        case USB_REQUEST_GET_DESCRIPTOR:
+                        case USB_STD_REQUEST_GET_DESCRIPTOR:
                             usb_get_descriptor(usb_setup_packet.value);
                             break;
 
-                        //case USB_REQUEST_SET_DESCRIPTOR:
+                        //case USB_STD_REQUEST_SET_DESCRIPTOR:
                         //    break;
 
-                        case USB_REQUEST_GET_CONFIGURATION:
+                        case USB_STD_REQUEST_GET_CONFIGURATION:
                             usb_get_configuration();
                             break;
 
-                        case USB_REQUEST_SET_CONFIGURATION:
+                        case USB_STD_REQUEST_SET_CONFIGURATION:
                             usb_set_configuration(usb_setup_packet.value);
                             break;
                     }
@@ -391,22 +391,22 @@ void usb_setup(void) {
                     // Request
                     switch (usb_setup_packet.request) {
 
-                        case USB_REQUEST_GET_STATUS:
+                        case USB_STD_REQUEST_GET_STATUS:
                             usb_queue_byte(0); // Reserved for future use?
                             usb_queue_byte(0); // Reserved for future use?
                             break;
 
-                        //case USB_REQUEST_CLEAR_FEATURE:
+                        //case USB_STD_REQUEST_CLEAR_FEATURE:
                         //    break;
 
-                        //case USB_REQUEST_SET_FEATURE:
+                        //case USB_STD_REQUEST_SET_FEATURE:
                         //    break;
 
-                        case USB_REQUEST_GET_INTERFACE:
+                        case USB_STD_REQUEST_GET_INTERFACE:
                             usb_queue_byte(0); // No alternative interfaces
                             break;
 
-                        //case USB_REQUEST_SET_INTERFACE:
+                        //case USB_STD_REQUEST_SET_INTERFACE:
                         //    break;
                     }
 
@@ -418,18 +418,18 @@ void usb_setup(void) {
                     // Request
                     switch (usb_setup_packet.request) {
 
-                        case USB_REQUEST_GET_STATUS:
+                        case USB_STD_REQUEST_GET_STATUS:
                             usb_queue_byte(0); // Not halted
                             usb_queue_byte(0); // Not stalled
                             break;
 
-                        //case USB_REQUEST_CLEAR_FEATURE:
+                        //case USB_STD_REQUEST_CLEAR_FEATURE:
                         //    break;
 
-                        //case USB_REQUEST_SET_FEATURE:
+                        //case USB_STD_REQUEST_SET_FEATURE:
                         //    break;
 
-                        //case USB_REQUEST_SYNCH_FRAME:
+                        //case USB_STD_REQUEST_SYNCH_FRAME:
                         //    break;
                     }
 
@@ -441,6 +441,33 @@ void usb_setup(void) {
         // Class
         //case USB_TYPE_CLASS:
         //    break;
+
+        // Vendor
+        case USB_TYPE_VENDOR:
+
+            // Recipient
+            switch(usb_setup_packet.info & USB_SETUP_RECIPIENT) {
+
+                // Device
+                case USB_RECIPIENT_DEVICE:
+
+                    // Request
+                    switch (usb_setup_packet.request) {
+
+                        case USB_VEN_REQUEST_REPEAT:
+                            break;
+
+                        case USB_VEN_REQUEST_READ_RADIO:
+                            break;
+
+                        case USB_VEN_REQUEST_WRITE_RADIO:
+                            break;
+                    }
+
+                    break;
+            }
+
+            break;
     }
 
     // If data to send
@@ -660,6 +687,17 @@ void usb_receive_bytes_bulk(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_POLL_BYTE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+uint8_t usb_poll_byte(void) {
+
+    // Return polled byte
+    return 0;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_CONTROL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -689,7 +727,7 @@ void usb_control(void) {
         usb_abort();
     }
 
-    // Data asked for
+    // Data stage: sending
     if (usb_state == USB_STATE_SEND) {
 
         // Send data
@@ -709,10 +747,10 @@ void usb_control(void) {
                 usb_setup();
                 break;
 
-            // If receive
+            // Data stage: receiving
             case (USB_STATE_RECEIVE):
 
-                // Receive data
+                // Receiving data
                 usb_receive_bytes_control(1);
                 break;
         }

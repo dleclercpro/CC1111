@@ -54,17 +54,22 @@
 #define USB_RECIPIENT_OTHER     3
 
 // USB standard requests
-#define USB_REQUEST_GET_STATUS        0
-#define USB_REQUEST_CLEAR_FEATURE     1
-#define USB_REQUEST_SET_FEATURE       3
-#define USB_REQUEST_SET_ADDRESS       5
-#define USB_REQUEST_GET_DESCRIPTOR    6
-#define USB_REQUEST_SET_DESCRIPTOR    7
-#define USB_REQUEST_GET_CONFIGURATION 8
-#define USB_REQUEST_SET_CONFIGURATION 9
-#define USB_REQUEST_GET_INTERFACE     10
-#define USB_REQUEST_SET_INTERFACE     11
-#define USB_REQUEST_SYNCH_FRAME       12
+#define USB_STD_REQUEST_GET_STATUS        0
+#define USB_STD_REQUEST_CLEAR_FEATURE     1
+#define USB_STD_REQUEST_SET_FEATURE       3
+#define USB_STD_REQUEST_SET_ADDRESS       5
+#define USB_STD_REQUEST_GET_DESCRIPTOR    6
+#define USB_STD_REQUEST_SET_DESCRIPTOR    7
+#define USB_STD_REQUEST_GET_CONFIGURATION 8
+#define USB_STD_REQUEST_SET_CONFIGURATION 9
+#define USB_STD_REQUEST_GET_INTERFACE     10
+#define USB_STD_REQUEST_SET_INTERFACE     11
+#define USB_STD_REQUEST_SYNCH_FRAME       12
+
+// USB vendor requests
+#define USB_VEN_REQUEST_REPEAT      0
+#define USB_VEN_REQUEST_READ_RADIO  1
+#define USB_VEN_REQUEST_WRITE_RADIO 2
 
 // USB descriptors
 #define USB_DESC_DEVICE           1
@@ -295,6 +300,7 @@ void usb_send_bytes_control(void);
 void usb_receive_bytes_control(uint8_t end);
 void usb_send_bytes_bulk(void);
 void usb_receive_bytes_bulk(void);
+uint8_t usb_poll_byte(void);
 void usb_control(void);
 void usb_int(void);
 void usb_in(void);
