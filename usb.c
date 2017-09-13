@@ -6,20 +6,18 @@ static struct usb_device usb_device;
 // Generate instance of USB setup
 static struct usb_setup_packet usb_setup_packet;
 
-// Generate data pointers
+// Initialize data pointers
 static uint8_t *usb_data_in = NULL;
 static uint8_t *usb_data_out = NULL;
 
-// Generate data buffer
-__xdata static uint8_t usb_data_buffer[256] = {0};
+// Initialize data buffer
+__xdata static uint8_t usb_data_buffer[USB_SIZE_DATA_BUFFER] = {0};
 
-// Generate byte counts
+// Initialize byte counts
 static uint16_t usb_n_bytes_in = 0;
 static uint16_t usb_n_bytes_out = 0;
-uint16_t usb_n_bytes_sent = 0;
-uint16_t usb_n_bytes_read = 0;
 
-// Generate state
+// Initialize state
 static uint8_t usb_state = USB_STATE_IDLE;
 
 /*
@@ -99,17 +97,15 @@ void usb_reset_bytes(uint8_t direction) {
         // IN
         case USB_DIRECTION_IN:
 
-            // Reset byte counts
+            // Reset byte count
             usb_n_bytes_in = 0;
-            usb_n_bytes_sent = 0;
             break;
 
         // OUT
         case USB_DIRECTION_OUT:
 
-            // Reset byte counts
+            // Reset byte count
             usb_n_bytes_out = 0;
-            usb_n_bytes_read = 0;
             break;
     }
 }
@@ -262,8 +258,11 @@ void usb_get_setup_packet(void) {
     // Setup packet is 8 bytes long
     usb_n_bytes_out = 8;
 
-    // Fill setup packet (without EOD signaling)
+    // Fill it (without EOD signaling)
     usb_receive_bytes_control(0);
+
+    // Parse it
+    usb_parse_setup_packet();
 }
 
 /*
@@ -273,14 +272,34 @@ void usb_get_setup_packet(void) {
 */
 void usb_parse_setup_packet(void) {
 
+    // Get direction
+    usb_setup_packet.direction = usb_setup_packet.info & USB_SETUP_DIRECTION;
+
+    // Get request type
+    usb_setup_packet.type = usb_setup_packet.info & USB_SETUP_TYPE;
+
+    // Get recipient
+    usb_setup_packet.recipient = usb_setup_packet.info & USB_SETUP_RECIPIENT;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_HANDLE_SETUP_PACKET
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_handle_setup_packet(void) {
+
     // If data stage
     if (usb_setup_packet.length) {
 
         // Determine direction of exchange
-        switch (usb_setup_packet.info & USB_SETUP_DIRECTION) {
+        switch (usb_setup_packet.direction) {
 
             // IN
             case (USB_DIRECTION_IN):
+
+                // Reset byte counts
+                usb_reset_bytes(USB_DIRECTION_IN);
 
                 // Link data with buffer
                 usb_data_in = usb_data_buffer;
@@ -291,6 +310,9 @@ void usb_parse_setup_packet(void) {
 
             // OUT
             case (USB_DIRECTION_OUT):
+
+                // Reset byte counts
+                usb_reset_bytes(USB_DIRECTION_OUT);
 
                 // Link data with buffer
                 usb_data_out = usb_data_buffer;
@@ -304,8 +326,9 @@ void usb_parse_setup_packet(void) {
         }
     }
 
-    // Otherwise
-    else {
+    // If no data stage (or vendor request, which operates on bulk EPs)
+    if (usb_setup_packet.length == 0 |
+        usb_setup_packet.type == USB_TYPE_VENDOR) {
 
         // End of data
         USBCS0 |= USBCS0_DATA_END;
@@ -329,17 +352,17 @@ void usb_setup(void) {
         return;
     }
 
-    // Parse setup packet
-    usb_parse_setup_packet();
+    // Handle setup packet
+    usb_handle_setup_packet();
 
     // Only respond to standard USB requests
-    switch (usb_setup_packet.info & USB_SETUP_TYPE) {
+    switch (usb_setup_packet.type) {
 
         // Standard
         case USB_TYPE_STANDARD:
 
             // Recipient
-            switch (usb_setup_packet.info & USB_SETUP_RECIPIENT) {
+            switch (usb_setup_packet.recipient) {
 
                 // Device
                 case USB_RECIPIENT_DEVICE:
@@ -441,7 +464,7 @@ void usb_setup(void) {
         case USB_TYPE_VENDOR:
 
             // Recipient
-            switch(usb_setup_packet.info & USB_SETUP_RECIPIENT) {
+            switch(usb_setup_packet.recipient) {
 
                 // Device
                 case USB_RECIPIENT_DEVICE:
@@ -449,14 +472,23 @@ void usb_setup(void) {
                     // Request
                     switch (usb_setup_packet.request) {
 
-                        case USB_VEN_REQUEST_REPEAT:
+                        case USB_VEN_REQUEST_USB_REPEAT:
+
+                            // Read number of bytes to receive
+                            usb_n_bytes_in = usb_n_bytes_out;            
+
+                            // Update USB state
+                            usb_state = USB_STATE_SEND;
+
+                            // Send packet
+                            usb_in();
                             break;
 
-                        case USB_VEN_REQUEST_READ_RADIO:
-                            break;
+                        //case USB_VEN_REQUEST_RADIO_RECEIVE:
+                        //    break;
 
-                        case USB_VEN_REQUEST_WRITE_RADIO:
-                            break;
+                        //case USB_VEN_REQUEST_RADIO_TRANSMIT:
+                        //    break;
                     }
 
                     break;
@@ -471,8 +503,19 @@ void usb_setup(void) {
         // If number of bytes to send is larger than asked by host
         usb_n_bytes_in = min(usb_n_bytes_in, usb_setup_packet.length);
 
-        // Send first bytes
-        usb_send_bytes_control();
+        // If vendor request, data exchange on bulk EPs
+        if (usb_setup_packet.type == USB_TYPE_VENDOR) {
+
+            // Send first bytes
+            usb_send_bytes_bulk();
+        }
+
+        // Otherwise, on control EP
+        else {
+
+            // Send first bytes
+            usb_send_bytes_control();
+        }
     }
 }
 
@@ -611,7 +654,7 @@ void usb_receive_bytes_control(uint8_t end) {
         usb_state = USB_STATE_IDLE;
     }
 
-    // Diminish count of bytes remaining to send
+    // Diminish count of bytes remaining to receive
     usb_n_bytes_out -= n;
 }
 
@@ -645,9 +688,6 @@ void usb_send_bytes_bulk(void) {
 
     // Diminish count of bytes remaining to send
     usb_n_bytes_in -= n;
-
-    // Update count of bytes sent
-    usb_n_bytes_sent += n;
 }
 
 /*
@@ -675,9 +715,6 @@ void usb_receive_bytes_bulk(void) {
 
     // Diminish count of bytes remaining to receive
     usb_n_bytes_out -= n;
-
-    // Update count of bytes read
-    usb_n_bytes_read += n;
 }
 
 /*
@@ -803,42 +840,15 @@ void usb_out(void) {
     // Data ready
     if (USBCSOL & USBCSOL_OUTPKT_RDY) {
 
-        // If coming out of idle state (first bytes received)
-        if (usb_state == USB_STATE_IDLE) {
+        // Only respond to bytes on OUT EP when corresponding USB state set in
+        // setup phase 
+        if (usb_state == USB_STATE_RECEIVE) {
 
-            // Reset byte counts
-            usb_reset_bytes(USB_DIRECTION_OUT);
+            // Read number of bytes waiting in FIFO
+            usb_n_bytes_out = USBCNTL | ((USBCNTH & 7) << 8);
 
-            // Link data to buffer
-            usb_data_out = usb_data_buffer;
-
-            // Update USB state
-            usb_state = USB_STATE_RECEIVE;
-        }
-
-        // Read number of bytes waiting in FIFO
-        usb_n_bytes_out = USBCNTL | ((USBCNTH & 7) << 8);
-
-        // Get packet
-        usb_receive_bytes_bulk();
-
-        // End of transfer
-        if (usb_state == USB_STATE_IDLE) {
-
-            // Reset byte counts
-            usb_reset_bytes(USB_DIRECTION_IN);
-
-            // Read number of bytes to receive
-            usb_n_bytes_in = usb_n_bytes_read;            
-
-            // Reply with same data
-            usb_data_in = usb_data_buffer;
-
-            // Update USB state
-            usb_state = USB_STATE_SEND;
-
-            // Send packet
-            usb_in();
+            // Get packet
+            usb_receive_bytes_bulk();
         }
     }
 }
@@ -866,7 +876,7 @@ void usb_isr(void) __interrupt P2INT_VECTOR {
     // Check for reset flag
     if (USBCIF & USBCIF_RSTIF) {
 
-        // Enable interrupts ?
+        // Enable interrupts
         usb_enable_interrupts();
     }
 

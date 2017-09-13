@@ -67,9 +67,9 @@
 #define USB_STD_REQUEST_SYNCH_FRAME       12
 
 // USB vendor requests
-#define USB_VEN_REQUEST_REPEAT      0
-#define USB_VEN_REQUEST_READ_RADIO  1
-#define USB_VEN_REQUEST_WRITE_RADIO 2
+#define USB_VEN_REQUEST_USB_REPEAT     0
+#define USB_VEN_REQUEST_RADIO_RECEIVE  1
+#define USB_VEN_REQUEST_RADIO_TRANSMIT 2
 
 // USB descriptors
 #define USB_DESC_DEVICE           1
@@ -87,9 +87,10 @@
 #define USB_TRANSFER_INTERRUPT   3
 
 // USB max bytes
-#define USB_SIZE_EP_CONTROL 32 // MAX: 32
-#define USB_SIZE_EP_OUT     64 // MAX: 256
-#define USB_SIZE_EP_IN      64 // MAX: 512
+#define USB_SIZE_EP_CONTROL  32 // MAX: 32
+#define USB_SIZE_EP_OUT      64 // MAX: 256
+#define USB_SIZE_EP_IN       64 // MAX: 512
+#define USB_SIZE_DATA_BUFFER 256
 
 // USB EPs
 #define USB_EP_CONTROL 0
@@ -250,11 +251,10 @@ struct usb_setup_packet {
     uint16_t value;
     uint16_t index;
     uint16_t length;
+    uint8_t direction;
+    uint8_t type;
+    uint8_t recipient;
 };
-
-// Declare external variables
-extern uint16_t usb_n_bytes_sent;
-extern uint16_t usb_n_bytes_read;
 
 void usb_init(void);
 void usb_power(void);
@@ -269,6 +269,7 @@ void usb_set_address(uint8_t address);
 void usb_get_descriptor(uint16_t value);
 void usb_get_setup_packet(void);
 void usb_parse_setup_packet(void);
+void usb_handle_setup_packet(void);
 void usb_setup(void);
 void usb_queue_byte(uint8_t byte);
 void usb_set_byte(uint8_t byte);
