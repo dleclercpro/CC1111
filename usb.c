@@ -30,11 +30,11 @@ volatile uint8_t usb_if_out = 0;
 */
 void usb_init(void) {
 
-	// Enable USB
-	usb_enable();
+    // Enable USB
+    usb_enable();
 
-	// Reset USB
-	usb_reset();
+    // Reset USB
+    usb_reset();
 
     // Start USB
     usb_on();
@@ -76,8 +76,8 @@ void usb_on(void) {
 */
 void usb_off(void) {
 
-	// Power down controller
-	SLEEP &= ~SLEEP_USB_EN;
+    // Power down controller
+    SLEEP &= ~SLEEP_USB_EN;
 }
 
 /*
@@ -118,10 +118,10 @@ void usb_reset(void) {
 */
 void usb_reset_state(void) {
 
-	// Reset USB state
-	usb_state.ep0 = USB_STATE_IDLE;
-	usb_state.ep_in = USB_STATE_IDLE;
-	usb_state.ep_out = USB_STATE_IDLE;
+    // Reset USB state
+    usb_state.ep0 = USB_STATE_IDLE;
+    usb_state.ep_in = USB_STATE_IDLE;
+    usb_state.ep_out = USB_STATE_IDLE;
 }
 
 /*
@@ -131,12 +131,12 @@ void usb_reset_state(void) {
 */
 void usb_reset_counters(void) {
 
-	// Reset USB byte counters
-	usb_n_bytes.ep0_in = 0;
-	usb_n_bytes.ep0_out = 0;
-	usb_n_bytes.ep_in = 0;
-	usb_n_bytes.ep_out = 0;
-	usb_n_bytes.ep_in_last = 0;
+    // Reset USB byte counters
+    usb_n_bytes.ep0_in = 0;
+    usb_n_bytes.ep0_out = 0;
+    usb_n_bytes.ep_in = 0;
+    usb_n_bytes.ep_out = 0;
+    usb_n_bytes.ep_in_last = 0;
 }
 
 /*
@@ -310,9 +310,9 @@ void usb_ep0_send_bytes(void) {
 */
 void usb_ep0_receive_bytes(uint8_t end) {
 
-	// Get number of bytes to receive
+    // Get number of bytes to receive
     // FIXME: why USBCNT0?
-	uint8_t n = min(min(usb_n_bytes.ep0_out, USBCNT0), USB_SIZE_EP_CONTROL);
+    uint8_t n = min(min(usb_n_bytes.ep0_out, USBCNT0), USB_SIZE_EP_CONTROL);
 
     // Read bytes
     usb_fill_bytes_out(n);
@@ -836,23 +836,23 @@ void usb_control(void) {
     // If packet received
     if (USBCS0 & USBCS0_OUTPKT_RDY) {
 
-    	// EP0 state
-    	switch (usb_state.ep0) {
+        // EP0 state
+        switch (usb_state.ep0) {
 
-    		// Idle
-    		case (USB_STATE_IDLE):
+            // Idle
+            case (USB_STATE_IDLE):
 
                 // Setup stage
                 usb_setup();
-    			break;
+                break;
 
-			// Transfer stage
-    		case (USB_STATE_RECEIVE):
+            // Transfer stage
+            case (USB_STATE_RECEIVE):
 
-    			// Receive data
-    			usb_ep0_receive_bytes(1);
-    			break;
-    	}
+                // Receive data
+                usb_ep0_receive_bytes(1);
+                break;
+        }
     }
 }
 
@@ -924,45 +924,45 @@ void usb(void) {
         usb_reset();
     }
 
-	// If control EP0 flag raised
-	if (usb_if_in & USB_IF_CONTROL) {
+    // If control EP0 flag raised
+    if (usb_if_in & USB_IF_CONTROL) {
 
-		// Reset flag
-		usb_if_in &= ~USB_IF_CONTROL;
+        // Reset flag
+        usb_if_in &= ~USB_IF_CONTROL;
 
-	    // Control sequence
-	    usb_control();
-	}
+        // Control sequence
+        usb_control();
+    }
 
-	// If INT EP1 flag raised
-	if (usb_if_in & USB_IF_INT) {
+    // If INT EP1 flag raised
+    if (usb_if_in & USB_IF_INT) {
 
-		// Reset flag
-		usb_if_in &= ~USB_IF_INT;
+        // Reset flag
+        usb_if_in &= ~USB_IF_INT;
 
-	    // Interrupt sequence
-	    usb_int();
-	}
+        // Interrupt sequence
+        usb_int();
+    }
 
-	// If OUT EP4 flag raised
-	if (usb_if_out & USB_IF_OUT) {
+    // If OUT EP4 flag raised
+    if (usb_if_out & USB_IF_OUT) {
 
-		// Reset flag
-		usb_if_out &= ~USB_IF_OUT;
+        // Reset flag
+        usb_if_out &= ~USB_IF_OUT;
 
-	    // Data to device sequence
-	    usb_out();
-	}
+        // Data to device sequence
+        usb_out();
+    }
 
-	// If IN EP5 flag raised
-	if (usb_if_in & USB_IF_IN) {
+    // If IN EP5 flag raised
+    if (usb_if_in & USB_IF_IN) {
 
-		// Reset flag
-		usb_if_in &= ~USB_IF_IN;
+        // Reset flag
+        usb_if_in &= ~USB_IF_IN;
 
-	    // Data to host sequence
-	    usb_in();
-	}
+        // Data to host sequence
+        usb_in();
+    }
 }
 
 /*
