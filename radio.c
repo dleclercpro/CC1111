@@ -194,7 +194,7 @@ uint8_t radio_receive(uint32_t timeout) {
             byte = radio_tx_buffer[n];
 
             // Queue it for USB transfer
-            usb_queue_byte(byte);
+            usb_ep0_queue_byte(byte);
 
             // Check for absence of data
             if (n == 2 && byte == 0) {
@@ -239,7 +239,7 @@ uint8_t radio_receive(uint32_t timeout) {
     if (flag == 0) {
 
         // Send packet over USB
-        usb_send_bytes_bulk();
+        usb_send_bytes();
     }
 
     // Otherwise

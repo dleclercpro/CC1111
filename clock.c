@@ -13,28 +13,26 @@ void clock_init(void) {
 	const uint8_t speed_mask = CLKCON_TICKSPD_MASK | CLKCON_CLKSPD_MASK;
 	const uint8_t speed_value = CLKCON_TICKSPD_1 | CLKCON_CLKSPD_1;
 	
-	// Power up both oscillators (force oscillator bit to 0 and let the rest
-	// like it is)
+	// Power up both oscillators
 	SLEEP &= ~SLEEP_OSC_PD;
 
-	// Set system clock to crystal oscillator
+	// Use crystal oscillator as system clock 
 	CLKCON &= ~CLKCON_OSC_MASK;
 
-	// Wait until clock is switched (use mask to have all zeros when bit is set)
+	// Wait until system clock is set
 	while (CLKCON & CLKCON_OSC_MASK) {
 		NOP();
 	}
 
-	// Set system clock speed (reset it, then set new value)
+	// Set system clock speed
 	CLKCON = (CLKCON & ~speed_mask) | speed_value;
 
-	// Wait until speed is set (isolate speeds with mask and compare to value)
+	// Wait until speed is set
 	while ((CLKCON & speed_mask) != speed_value) {
 		NOP();
 	}
 
-	// Wait until crystal oscillator is stable (for RF operation and before
-	// powering other unused oscillator)
+	// Wait until crystal oscillator is stable
 	while ((SLEEP & SLEEP_XOSC_STB) != SLEEP_XOSC_STB) {
 		NOP();
 	}

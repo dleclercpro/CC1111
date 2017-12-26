@@ -12,7 +12,7 @@ void main (void) {
 	timer_init();
 	led_init();
     usb_init();
-    radio_init();
+    //radio_init();
 
 	// Enable interrupts
 	interrupts_enable();
@@ -20,6 +20,10 @@ void main (void) {
     // Start timer
     timer_start();
 
-    // Start radio
-    radio_receive(1000);
+    // Loop
+    while (1) {
+
+        // USB state machine
+        usb();
+    }
 }
