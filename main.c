@@ -5,17 +5,17 @@
     MAIN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void main (void) {
+void main(void) {
 
     // Initialize stuff
-	clock_init();
-	timer_init();
-	led_init();
+    clock_init();
+    timer_init();
+    led_init();
     usb_init();
     //radio_init();
 
-	// Enable interrupts
-	interrupts_enable();
+    // Enable interrupts
+    interrupts_enable();
 
     // Start timer
     timer_start();
@@ -23,7 +23,7 @@ void main (void) {
     // Loop
     while (1) {
 
-        // USB state machine
-        usb();
+        // Wait for commands
+        command_get();
     }
 }

@@ -261,8 +261,9 @@ __xdata uint8_t usb_descriptors[] = {
 // USB state
 struct usb_state {
     uint8_t ep0;
-    uint8_t ep_in;
+    uint8_t ep_int;
     uint8_t ep_out;
+    uint8_t ep_in;
 };
 
 // USB device
@@ -282,10 +283,12 @@ struct usb_setup_packet {
 
 // USB byte counters
 struct usb_n_bytes {
-    uint8_t ep0_in;
     uint8_t ep0_out;
-    uint16_t ep_in;
+    uint8_t ep0_in;
+    uint8_t ep_int_out;
+    uint8_t ep_int_in;
     uint16_t ep_out;
+    uint16_t ep_in;
     uint16_t ep_in_last;
 };
 
@@ -294,28 +297,28 @@ void usb_enable(void);
 void usb_on(void);
 void usb_off(void);
 void usb_stall(void);
-void usb_reset(void);
-void usb_reset_state(void);
-void usb_reset_counters(void);
-void usb_reset_interrupts(void);
+void usb_reset_flags(void);
+void usb_reset_ep(int ep);
+void usb_reset_state(int ep);
+void usb_reset_counters(int ep);
 void usb_enable_interrupts(void);
+void usb_reset_interrupts(void);
 void usb_set_ep(uint8_t ep);
-void usb_set_address(uint8_t addr);
+uint8_t usb_get_ep(void);
 void usb_write_byte(uint8_t byte);
 uint8_t usb_read_byte(void);
 void usb_ep0_queue_byte(uint8_t byte);
-void usb_fill_bytes_in(uint8_t n);
-void usb_fill_bytes_out(uint8_t n);
+void usb_ep0_write_bytes(uint8_t n);
+void usb_ep0_read_bytes(uint8_t n);
 void usb_ep0_send_bytes(void);
 void usb_ep0_receive_bytes(uint8_t end);
 void usb_send_bytes(void);
-void usb_receive_bytes(void);
-uint8_t usb_ready_in(void);
 void usb_wait_in(void);
 void usb_put_byte(uint8_t byte);
 void usb_flush_bytes(void);
 int usb_poll_byte(void);
 uint8_t usb_get_byte(void);
+void usb_set_address(uint8_t addr);
 void usb_set_configuration(uint8_t value);
 void usb_get_configuration(void);
 void usb_get_descriptor(uint16_t value);
@@ -324,8 +327,8 @@ void usb_parse_setup_packet(void);
 void usb_setup(void);
 void usb_control(void);
 void usb_int(void);
-void usb_in(void);
 void usb_out(void);
+void usb_in(void);
 void usb(void);
 void usb_isr(void) __interrupt P2INT_VECTOR;
 

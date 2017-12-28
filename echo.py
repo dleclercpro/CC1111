@@ -4,6 +4,7 @@
 # LIBRARIES
 import usb.core
 import usb.util
+import time
 
 
 
@@ -95,11 +96,19 @@ def main():
     print EPs
     print
 
+    # Test command 1
+    alpha = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
+    
+    for i in alpha:
+        EPs["OUT"].write(i)
+        print i + ": " + decode(EPs["IN"].read(12))
+        time.sleep(0.1)
+
     # Write/read to/from EP IN
-    EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
-    print decode(EPs["IN"].read(48))
-    EPs["OUT"].write("I bims <3!")
-    print decode(EPs["IN"].read(10))
+    #EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
+    #print decode(EPs["IN"].read(48))
+    #EPs["OUT"].write("I bims <3!")
+    #print decode(EPs["IN"].read(10))
 
 
 

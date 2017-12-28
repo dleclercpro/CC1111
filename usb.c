@@ -17,11 +17,11 @@ static uint8_t *usb_data_in;
 static uint8_t *usb_data_out;
 
 // Generate data buffer
-static uint8_t usb_data_buffer[2];
+__xdata static uint8_t usb_data_buffer[64];
 
 // Initialize interrupt flags
-volatile uint8_t usb_if_in = 0;
-volatile uint8_t usb_if_out = 0;
+volatile static uint8_t usb_if_in = 0;
+volatile static uint8_t usb_if_out = 0;
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,9 +33,6 @@ void usb_init(void) {
     // Enable USB
     usb_enable();
 
-    // Reset USB
-    usb_reset();
-
     // Start USB
     usb_on();
 
@@ -44,6 +41,9 @@ void usb_init(void) {
 
     // Enable interrupts
     usb_enable_interrupts();
+
+    // Reset interrupts
+    usb_reset_interrupts();
 }
 
 /*
@@ -90,25 +90,32 @@ void usb_stall(void) {
     // Send stall packet
     USBCS0 |= USBCS0_SEND_STALL;
 
-    // Reset USB controller
-    usb_reset();
+    // Reset all EPs
+    usb_reset_ep(-1);
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_RESET
+    USB_RESET_FLAGS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_reset(void) {
+void usb_reset_flags(void) {
 
-    // Reset state
-    usb_reset_state();
+    // Reset interrupt flags
+    usb_if_in = 0;
+    usb_if_out = 0;
+}
 
-    // Reset byte counters
-    usb_reset_counters();
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_RESET_EP
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_reset_ep(int ep) {
 
-    // Reset interrupts
-    usb_reset_interrupts();
+    // Reset state and counters
+    usb_reset_state(ep);
+    usb_reset_counters(ep);
 }
 
 /*
@@ -116,12 +123,49 @@ void usb_reset(void) {
     USB_RESET_STATE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_reset_state(void) {
+void usb_reset_state(int ep) {
 
-    // Reset USB state
-    usb_state.ep0 = USB_STATE_IDLE;
-    usb_state.ep_in = USB_STATE_IDLE;
-    usb_state.ep_out = USB_STATE_IDLE;
+    // EP
+    switch (ep) {
+
+        // EP0 control
+        case USB_EP_CONTROL:
+
+            // Reset state
+            usb_state.ep0 = USB_STATE_IDLE;
+            break;
+
+        // EP Int
+        case USB_EP_INT:
+
+            // Reset state
+            usb_state.ep_int = USB_STATE_IDLE;
+            break;
+
+        // EP OUT
+        case USB_EP_OUT:
+
+            // Reset state
+            usb_state.ep_out = USB_STATE_IDLE;
+            break;
+
+        // EP IN
+        case USB_EP_IN:
+
+            // Reset state
+            usb_state.ep_in = USB_STATE_IDLE;
+            break;
+
+        // Default: all EPs
+        default:
+
+            // Reset states
+            usb_state.ep0 = USB_STATE_IDLE;
+            usb_state.ep_int = USB_STATE_IDLE;
+            usb_state.ep_out = USB_STATE_IDLE;
+            usb_state.ep_in = USB_STATE_IDLE;
+            break;
+    }
 }
 
 /*
@@ -129,30 +173,55 @@ void usb_reset_state(void) {
     USB_RESET_COUNTERS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_reset_counters(void) {
+void usb_reset_counters(int ep) {
 
-    // Reset USB byte counters
-    usb_n_bytes.ep0_in = 0;
-    usb_n_bytes.ep0_out = 0;
-    usb_n_bytes.ep_in = 0;
-    usb_n_bytes.ep_out = 0;
-    usb_n_bytes.ep_in_last = 0;
-}
+    // EP
+    switch (ep) {
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_RESET_INTERRUPTS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_reset_interrupts(void) {
+        // EP0 control
+        case USB_EP_CONTROL:
 
-    // Reset any pending interrupts
-    USBCIF = 0;
-    USBIIF = 0;
-    USBOIF = 0;
+            // Reset byte counters
+            usb_n_bytes.ep0_out = 0;
+            usb_n_bytes.ep0_in = 0;
+            break;
 
-    // Re-enable interrupts
-    USBIF = 0;
+        // EP Int
+        case USB_EP_INT:
+
+            // Reset byte counters
+            usb_n_bytes.ep_int_out = 0;
+            usb_n_bytes.ep_int_in = 0;
+            break;
+
+        // EP OUT
+        case USB_EP_OUT:
+
+            // Reset byte counter
+            usb_n_bytes.ep_out = 0;
+            break;
+
+        // EP IN
+        case USB_EP_IN:
+
+            // Reset byte counters
+            usb_n_bytes.ep_in = 0;
+            usb_n_bytes.ep_in_last = 0;
+            break;
+
+        // Default: all EPs
+        default:
+
+            // Reset byte counters
+            usb_n_bytes.ep0_out = 0;
+            usb_n_bytes.ep0_in = 0;
+            usb_n_bytes.ep_int_out = 0;
+            usb_n_bytes.ep_int_in = 0;
+            usb_n_bytes.ep_out = 0;
+            usb_n_bytes.ep_in = 0;
+            usb_n_bytes.ep_in_last = 0;
+            break;
+    }
 }
 
 /*
@@ -177,6 +246,22 @@ void usb_enable_interrupts(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_RESET_INTERRUPTS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_reset_interrupts(void) {
+
+    // Reset any pending interrupts
+    USBCIF = 0;
+    USBIIF = 0;
+    USBOIF = 0;
+
+    // Re-enable interrupts
+    USBIF = 0;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_SET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Note: EP range given by [0, 5].
@@ -189,19 +274,13 @@ void usb_set_ep(uint8_t ep) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_SET_ADDRESS
+    USB_GET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Note: address given by bits [0, 6].
 */
-void usb_set_address(uint8_t addr) {
+uint8_t usb_get_ep(void) {
 
-    // Set address
-    USBADDR = addr;
-
-    // Wait until address is set
-    while (USBADDR != addr) {
-        NOP();
-    }
+    // Get EP
+    return USBINDEX;
 }
 
 /*
@@ -212,7 +291,7 @@ void usb_set_address(uint8_t addr) {
 void usb_write_byte(uint8_t byte) {
 
     // Set byte to active EP FIFO
-    USBFIFO[USBINDEX << 1] = byte;
+    USBFIFO[usb_get_ep() << 1] = byte;
 }
 
 /*
@@ -223,7 +302,7 @@ void usb_write_byte(uint8_t byte) {
 uint8_t usb_read_byte(void) {
 
     // Read and return byte from active EP FIFO
-    return USBFIFO[USBINDEX << 1];
+    return USBFIFO[usb_get_ep() << 1];
 }
 
 /*
@@ -239,37 +318,31 @@ void usb_ep0_queue_byte(uint8_t byte) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_FILL_BYTES_IN
+    USB_EP0_WRITE_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_fill_bytes_in(uint8_t n) {
+void usb_ep0_write_bytes(uint8_t n) {
 
     // Loop on bytes
-    while (n) {
+    while (n--) {
 
         // Write byte
         usb_write_byte(*usb_data_in++);
-
-        // Update byte count
-        n--;
     }
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_FILL_BYTES_OUT
+    USB_EP0_READ_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_fill_bytes_out(uint8_t n) {
+void usb_ep0_read_bytes(uint8_t n) {
 
     // Loop on bytes
-    while (n) {
+    while (n--) {
 
         // Read byte
         *usb_data_out++ = usb_read_byte();
-
-        // Update byte count
-        n--;
     }
 }
 
@@ -284,13 +357,16 @@ void usb_ep0_send_bytes(void) {
     uint8_t n = min(usb_n_bytes.ep0_in, USB_SIZE_EP_CONTROL);
 
     // Write bytes
-    usb_fill_bytes_in(n);
+    usb_ep0_write_bytes(n);
 
     // Bytes ready
     USBCS0 |= USBCS0_INPKT_RDY;
 
+    // Update expected number of bytes remaining
+    usb_n_bytes.ep0_in -= n;
+
     // If last packet sent
-    if (usb_n_bytes.ep0_in < USB_SIZE_EP_CONTROL) {
+    if (n < USB_SIZE_EP_CONTROL) {
 
         // End of data
         USBCS0 |= USBCS0_DATA_END;
@@ -298,9 +374,6 @@ void usb_ep0_send_bytes(void) {
         // Update EP state
         usb_state.ep0 = USB_STATE_IDLE;
     }
-
-    // Update expected number of bytes remaining
-    usb_n_bytes.ep0_in -= n;
 }
 
 /*
@@ -311,17 +384,19 @@ void usb_ep0_send_bytes(void) {
 void usb_ep0_receive_bytes(uint8_t end) {
 
     // Get number of bytes to receive
-    // FIXME: why USBCNT0?
     uint8_t n = min(min(usb_n_bytes.ep0_out, USBCNT0), USB_SIZE_EP_CONTROL);
 
     // Read bytes
-    usb_fill_bytes_out(n);
+    usb_ep0_read_bytes(n);
 
     // Byte read
     USBCS0 |= USBCS0_CLR_OUTPKT_RDY;
 
+    // Update expected number of bytes remaining
+    usb_n_bytes.ep0_out -= n;
+
     // If last packet read
-    if (usb_n_bytes.ep0_out < USB_SIZE_EP_CONTROL) {
+    if (usb_n_bytes.ep0_out == 0) {
 
         // If EOD signaling allowed
         if (end) {
@@ -333,9 +408,6 @@ void usb_ep0_receive_bytes(uint8_t end) {
         // Update EP state
         usb_state.ep0 = USB_STATE_IDLE;
     }
-
-    // Update expected number of bytes remaining
-    usb_n_bytes.ep0_out -= n;
 }
 
 /*
@@ -360,41 +432,16 @@ void usb_send_bytes(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_RECEIVE_BYTES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_receive_bytes(void) {
-
-    // Select EP
-    usb_set_ep(USB_EP_OUT);
-
-    // Packet fully read from FIFO
-    USBCSOL &= ~USBCSOL_OUTPKT_RDY;
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_READY_IN
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-uint8_t usb_ready_in(void) {
-
-    // Select EP
-    usb_set_ep(USB_EP_IN);
-
-    // Return whether last data packet was sent or not
-    return !(USBCSIL & USBCSIL_INPKT_RDY);
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_WAIT_IN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_wait_in(void) {
 
+    // Select EP
+    usb_set_ep(USB_EP_IN);
+
     // Wait until new data can be written to FIFO
-    while (usb_ready_in() == 0) {
+    while (USBCSIL & USBCSIL_INPKT_RDY) {
         NOP();
     }
 }
@@ -455,7 +502,7 @@ int usb_poll_byte(void) {
         usb_set_ep(USB_EP_OUT);
 
         // If packet not ready
-        if (USBCSOL & USBCSOL_OUTPKT_RDY == 0) {
+        if ((USBCSOL & USBCSOL_OUTPKT_RDY) == 0) {
 
             // Keep trying
             return -1;
@@ -467,8 +514,8 @@ int usb_poll_byte(void) {
         // If still no byte to read
         if (usb_n_bytes.ep_out == 0) {
 
-            // Done reading
-            usb_receive_bytes();
+            // Packet fully read from FIFO
+            USBCSOL &= ~USBCSOL_OUTPKT_RDY;
 
             // Keep trying
             return -1;
@@ -481,8 +528,8 @@ int usb_poll_byte(void) {
     // If no more bytes to read
     if (--usb_n_bytes.ep_out == 0) {
 
-        // Done reading
-        usb_receive_bytes();
+        // Packet fully read from FIFO
+        USBCSOL &= ~USBCSOL_OUTPKT_RDY;
     }
 
     // Return polled byte
@@ -499,13 +546,33 @@ uint8_t usb_get_byte(void) {
     // Initialize byte
     int byte;
 
-    // Poll
+    // Poll it
     while ((byte = usb_poll_byte()) == -1) {
         NOP();
     }
 
     // Return it
-    return byte;
+    return (uint8_t) byte;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_SET_ADDRESS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Note: address given by bits [0, 6].
+*/
+void usb_set_address(uint8_t addr) {
+
+    // Set address
+    USBADDR = addr;
+
+    // Wait until address is set
+    while (USBADDR != addr) {
+        NOP();
+    }
+
+    // Test LED
+    led_switch();
 }
 
 /*
@@ -812,8 +879,8 @@ void usb_control(void) {
         // Reset flag
         USBCS0 |= USBCS0_CLR_SETUP_END;
 
-        // Abort and reset
-        usb_reset();
+        // Reset EP
+        usb_reset_ep(USB_EP_CONTROL);
     }
 
     // EP is stalled
@@ -822,8 +889,8 @@ void usb_control(void) {
         // Reset flag
         USBCS0 &= ~USBCS0_SENT_STALL;
 
-        // Abort and reset
-        usb_reset();
+        // Reset EP
+        usb_reset_ep(USB_EP_CONTROL);
     }
 
     // If packet requested
@@ -839,18 +906,18 @@ void usb_control(void) {
         // EP0 state
         switch (usb_state.ep0) {
 
-            // Idle
-            case (USB_STATE_IDLE):
-
-                // Setup stage
-                usb_setup();
-                break;
-
             // Transfer stage
             case (USB_STATE_RECEIVE):
 
                 // Receive data
                 usb_ep0_receive_bytes(1);
+                break;
+
+            // Idle
+            case (USB_STATE_IDLE):
+
+                // Setup stage
+                usb_setup();
                 break;
         }
     }
@@ -865,26 +932,25 @@ void usb_int(void) {
 
     // Select EP
     usb_set_ep(USB_EP_INT);
-}
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_IN
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_in(void) {
-
-    // Select EP
-    usb_set_ep(USB_EP_IN);
-
-    // EP is stalled
+    // EP IN is stalled
     if (USBCSIL & USBCSIL_SENT_STALL) {
 
         // Reset flag
         USBCSIL &= ~USBCSIL_SENT_STALL;
 
-        // Abort and reset
-        usb_reset();
+        // Reset EP
+        usb_reset_ep(USB_EP_INT);
+    }
+
+    // EP OUT is stalled
+    if (USBCSOL & USBCSOL_SENT_STALL) {
+
+        // Reset flag
+        USBCSOL &= ~USBCSOL_SENT_STALL;
+
+        // Reset EP
+        usb_reset_ep(USB_EP_INT);
     }
 }
 
@@ -904,8 +970,29 @@ void usb_out(void) {
         // Reset flag
         USBCSOL &= ~USBCSOL_SENT_STALL;
 
-        // Abort and reset
-        usb_reset();
+        // Reset EP
+        usb_reset_ep(USB_EP_OUT);
+    }
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_IN
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_in(void) {
+
+    // Select EP
+    usb_set_ep(USB_EP_IN);
+
+    // EP is stalled
+    if (USBCSIL & USBCSIL_SENT_STALL) {
+
+        // Reset flag
+        USBCSIL &= ~USBCSIL_SENT_STALL;
+
+        // Reset EP
+        usb_reset_ep(USB_EP_IN);
     }
 }
 
@@ -917,18 +1004,21 @@ void usb_out(void) {
 */
 void usb(void) {
 
+    // Store current EP
+    uint8_t ep = usb_get_ep();
+
     // If reset flag raised
     if (USBCIF & USBCIF_RSTIF) {
 
-        // Abort and reset
-        usb_reset();
+        // Re-enable interrupts
+        usb_enable_interrupts();
+
+        // Reset all EPs
+        usb_reset_ep(-1);
     }
 
     // If control EP0 flag raised
     if (usb_if_in & USB_IF_CONTROL) {
-
-        // Reset flag
-        usb_if_in &= ~USB_IF_CONTROL;
 
         // Control sequence
         usb_control();
@@ -937,18 +1027,12 @@ void usb(void) {
     // If INT EP1 flag raised
     if (usb_if_in & USB_IF_INT) {
 
-        // Reset flag
-        usb_if_in &= ~USB_IF_INT;
-
         // Interrupt sequence
         usb_int();
     }
 
     // If OUT EP4 flag raised
     if (usb_if_out & USB_IF_OUT) {
-
-        // Reset flag
-        usb_if_out &= ~USB_IF_OUT;
 
         // Data to device sequence
         usb_out();
@@ -957,12 +1041,15 @@ void usb(void) {
     // If IN EP5 flag raised
     if (usb_if_in & USB_IF_IN) {
 
-        // Reset flag
-        usb_if_in &= ~USB_IF_IN;
-
         // Data to host sequence
         usb_in();
     }
+
+    // Reset interrupt flags
+    usb_reset_flags();
+
+    // Restore last EP
+    usb_set_ep(ep);
 }
 
 /*
@@ -973,10 +1060,13 @@ void usb(void) {
 */
 void usb_isr(void) __interrupt P2INT_VECTOR {
 
-    // Store IN/OUT interrupt flags (cleared upon reading)
+    // Store interrupt flags (cleared upon reading)
     usb_if_in |= USBIIF;
     usb_if_out |= USBOIF;
 
     // Re-enable interrupts
     USBIF = 0;
+
+    // Run USB state machine
+    usb();
 }
