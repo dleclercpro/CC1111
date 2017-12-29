@@ -116,15 +116,11 @@ void usb_reset_ep(int ep) {
     // Reset counters
     usb_reset_counters(ep);
 
-    // EP
-    switch (ep) {
+    // EP0
+    if (ep == USB_EP_CONTROL) {
 
-        // EP0
-        case USB_EP_CONTROL:
-
-            // Reset state
-            usb_ep0_state = USB_STATE_IDLE;
-            break;
+        // Reset state
+        usb_ep0_state = USB_STATE_IDLE;
     }
 }
 
@@ -377,6 +373,9 @@ void usb_ep0_receive_bytes(uint8_t end) {
 */
 void usb_send_bytes(void) {
 
+    // Select EP
+    usb_set_ep(USB_EP_IN);
+
     // Data in FIFO is ready
     USBCSIL |= USBCSIL_INPKT_RDY;
 
@@ -393,6 +392,9 @@ void usb_send_bytes(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_received_bytes(void) {
+
+    // Select EP
+    usb_set_ep(USB_EP_OUT);
 
     // Packet fully read from FIFO
     USBCSOL &= ~USBCSOL_OUTPKT_RDY;
@@ -466,6 +468,9 @@ int usb_poll_byte(void) {
     // If first byte
     if (usb_n_bytes.ep_out == 0) {
 
+        // Select EP
+        usb_set_ep(USB_EP_OUT);
+
         // If packet not ready
         if ((USBCSOL & USBCSOL_OUTPKT_RDY) == 0) {
 
@@ -510,9 +515,6 @@ uint8_t usb_get_byte(void) {
 
     // Initialize byte
     int byte;
-
-    // Select EP
-    usb_set_ep(USB_EP_OUT);
 
     // Poll it
     while ((byte = usb_poll_byte()) == -1) {
