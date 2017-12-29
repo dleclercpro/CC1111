@@ -258,14 +258,6 @@ __xdata uint8_t usb_descriptors[] = {
     0
 };
 
-// USB state
-struct usb_state {
-    uint8_t ep0;
-    uint8_t ep_int;
-    uint8_t ep_out;
-    uint8_t ep_in;
-};
-
 // USB device
 struct usb_device {
     uint8_t configuration;
@@ -299,7 +291,6 @@ void usb_off(void);
 void usb_stall(void);
 void usb_reset_flags(void);
 void usb_reset_ep(int ep);
-void usb_reset_state(int ep);
 void usb_reset_counters(int ep);
 void usb_enable_interrupts(void);
 void usb_reset_interrupts(void);
