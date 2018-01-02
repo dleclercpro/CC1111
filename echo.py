@@ -4,7 +4,6 @@
 # LIBRARIES
 import usb.core
 import usb.util
-import time
 
 
 
@@ -68,14 +67,13 @@ def main():
     if stick is None:
 
         # Raise error
-        raise ValueError("No stick found.")
+        raise IOError("No stick found.")
 
     # Otherwise
     else:
 
         # Show stick
         print stick
-        print
 
     # Set configuration
     stick.set_configuration()
@@ -83,32 +81,25 @@ def main():
     # Get configuration
     config = stick.get_active_configuration()
 
-    # Show it
-    print config
-    print
-
     # Get EPs
-    EPs = {"Notification": getEP(config, "IN", 0),
-           "IN": getEP(config, "IN", 1),
-           "OUT": getEP(config, "OUT", 1)}
+    EPs = {"IN": getEP(config, "IN", 0),
+           "OUT": getEP(config, "OUT", 0)}
 
-    # Show it
-    print EPs
-    print
-
-    # Test command 1
-    alpha = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
+    # Test bytes
+    testBytes = ["0", "1", "2", "3", "4", "5", "6", "7",
+                 "8", "9", "a", "b", "c", "d", "e", "f",
+                 "g", "h", "i", "j", "k", "l", "m", "n",
+                 "o", "p", "q", "r", "s", "t", "u", "v",
+                 "w", "x", "y", "z"]
     
-    for i in alpha:
-        EPs["OUT"].write(i)
-        print i + ": " + decode(EPs["IN"].read(12))
-        time.sleep(0.1)
+    # Test data EPs
+    for i in testBytes:
 
-    # Write/read to/from EP IN
-    #EPs["OUT"].write("Heeeeey there! My name is David. I love to code!")
-    #print decode(EPs["IN"].read(48))
-    #EPs["OUT"].write("I bims <3!")
-    #print decode(EPs["IN"].read(10))
+        # Write byte
+        EPs["OUT"].write(i)
+
+        # Read byte
+        print i + ": " + decode(EPs["IN"].read(12))
 
 
 

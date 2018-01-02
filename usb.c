@@ -142,14 +142,6 @@ void usb_reset_counters(int ep) {
             usb_n_bytes.ep0_in = 0;
             break;
 
-        // EP Int
-        case USB_EP_INT:
-
-            // Reset byte counters
-            usb_n_bytes.ep_int_out = 0;
-            usb_n_bytes.ep_int_in = 0;
-            break;
-
         // EP OUT
         case USB_EP_OUT:
 
@@ -171,8 +163,6 @@ void usb_reset_counters(int ep) {
             // Reset byte counters
             usb_n_bytes.ep0_out = 0;
             usb_n_bytes.ep0_in = 0;
-            usb_n_bytes.ep_int_out = 0;
-            usb_n_bytes.ep_int_in = 0;
             usb_n_bytes.ep_out = 0;
             usb_n_bytes.ep_in = 0;
             usb_n_bytes.ep_in_last = 0;
@@ -188,7 +178,7 @@ void usb_reset_counters(int ep) {
 void usb_enable_interrupts(void) {
 
     // Enable control and IN EP interrupts
-    USBIIE = USB_EP0IE | USB_INEP1IE | USB_INEP5IE;
+    USBIIE = USB_EP0IE | USB_INEP5IE;
 
     // Enable OUT EP interrupts
     USBOIE = USB_OUTEP4IE;
@@ -557,11 +547,6 @@ void usb_set_configuration(uint8_t value) {
     usb_device.configuration = value;
 
     // Set maximum packet sizes
-    usb_set_ep(USB_EP_INT);
-    USBMAXI = USB_SIZE_EP_INT / 8;
-    USBMAXO = USB_SIZE_EP_INT / 8;
-
-    // Set maximum packet sizes
     usb_set_ep(USB_EP_OUT);
     USBMAXI = 0;
     USBMAXO = USB_SIZE_EP_OUT / 8;
@@ -895,37 +880,6 @@ void usb_control(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_INT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void usb_int(void) {
-
-    // Select EP
-    usb_set_ep(USB_EP_INT);
-
-    // EP IN is stalled
-    if (USBCSIL & USBCSIL_SENT_STALL) {
-
-        // Reset flag
-        USBCSIL &= ~USBCSIL_SENT_STALL;
-
-        // Reset EP
-        usb_reset_ep(USB_EP_INT);
-    }
-
-    // EP OUT is stalled
-    if (USBCSOL & USBCSOL_SENT_STALL) {
-
-        // Reset flag
-        USBCSOL &= ~USBCSOL_SENT_STALL;
-
-        // Reset EP
-        usb_reset_ep(USB_EP_INT);
-    }
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_OUT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -992,13 +946,6 @@ void usb(void) {
 
         // Control sequence
         usb_control();
-    }
-
-    // If INT EP1 flag raised
-    if (usb_if_in & USB_IF_INT) {
-
-        // Interrupt sequence
-        usb_int();
     }
 
     // If OUT EP4 flag raised
