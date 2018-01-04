@@ -429,6 +429,27 @@ void usb_put_byte(uint8_t byte) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_PUT_BYTES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void usb_put_bytes(uint8_t *bytes) {
+
+    // Write byte until last byte is reached
+    while (bytes[0] != 0) {
+
+        // Put current byte
+        usb_put_byte(bytes[0]);
+
+        // Update pointer
+        bytes++;
+    }
+
+    // Flush bytes
+    usb_flush_bytes();
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_FLUSH_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
