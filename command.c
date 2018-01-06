@@ -18,7 +18,4 @@ void command_get(void) {
 			usb_put_bytes("N/A\x00");
 			break;
 	}
-
-	// LED test
-	led_switch();
 }

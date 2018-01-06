@@ -280,6 +280,7 @@ void usb_ep0_read_bytes(uint8_t n);
 void usb_ep0_send_bytes(void);
 void usb_ep0_receive_bytes(uint8_t end);
 void usb_send_bytes(void);
+void usb_received_bytes(void);
 void usb_wait_in(void);
 void usb_put_byte(uint8_t byte);
 void usb_put_bytes(uint8_t *bytes);

@@ -10,21 +10,21 @@ import usb.util
 # FUNCTIONS
 def getEP(configuration, direction, interface, setting = 0):
 
-    '''
+    """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         GETEP
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    '''
+    """
 
     # Get direction
     # IN
-    if direction == 'IN':
+    if direction == "IN":
 
         # Reassign it
         direction = usb.util.ENDPOINT_IN
 
     # OUT
-    elif direction == 'OUT':
+    elif direction == "OUT":
 
         # Reassign it
         direction = usb.util.ENDPOINT_OUT
@@ -41,24 +41,55 @@ def getEP(configuration, direction, interface, setting = 0):
 
 def decode(bytes):
 
-    '''
+    """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         DECODE
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    '''
+    """
 
     # Decode bytes and return corresponding string
-    return ''.join([chr(x) for x in bytes])
+    return "".join([chr(x) for x in bytes])
+
+
+
+def read(EP):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        READ
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Initialize bytes
+    bytes = []
+
+    # Number of bytes to read on EP
+    n = 64
+
+    # Read bytes
+    while True:
+
+        # Read bytes until last one
+        bytes.append(EP.read(n))
+
+        # Exit condition
+        if bytes[-1] == "\x00":
+
+            # Exit
+            break
+
+    # Return them
+    return bytes
 
 
 
 def main():
 
-    '''
+    """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         MAIN
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    '''
+    """
 
     # Find stick
     stick = usb.core.find(idVendor = 0x0451, idProduct = 0x16A7)
@@ -67,7 +98,7 @@ def main():
     if stick is None:
 
         # Raise error
-        raise IOError('No stick found.')
+        raise IOError("No stick found.")
 
     # Otherwise
     else:
@@ -82,27 +113,27 @@ def main():
     config = stick.get_active_configuration()
 
     # Get EPs
-    EPs = {'IN': getEP(config, 'IN', 0),
-           'OUT': getEP(config, 'OUT', 0)}
+    EPs = {"IN": getEP(config, "IN", 0),
+           "OUT": getEP(config, "OUT", 0)}
 
     # Test bytes
-    testBytes = ['0', '1', '2', '3', '4', '5', '6', '7',
-                 '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-                 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-                 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-                 'w', 'x', 'y', 'z']
+    testBytes = ["0", "1", "2", "3", "4", "5", "6", "7",
+                 "8", "9", "a", "b", "c", "d", "e", "f",
+                 "g", "h", "i", "j", "k", "l", "m", "n",
+                 "o", "p", "q", "r", "s", "t", "u", "v",
+                 "w", "x", "y", "z"]
     
     # Test data EPs
     for i in testBytes:
 
         # Write byte
-        EPs['OUT'].write(i)
+        EPs["OUT"].write(i)
 
         # Read byte
-        print i + ': ' + decode(EPs['IN'].read(12))
+        print i + ": " + decode(read(EPs["IN"]))
 
 
 
 # Run this when script is called from terminal
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

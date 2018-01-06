@@ -9,12 +9,13 @@ static struct usb_setup_packet usb_setup_packet;
 // Generate instance of USB byte counters
 static struct usb_n_bytes usb_n_bytes;
 
-// Generate data pointers
-static uint8_t *usb_data_in;
-static uint8_t *usb_data_out;
+// Generate data pointers for EP0
+static uint8_t *usb_ep0_data_in;
+static uint8_t *usb_ep0_data_out;
 
-// Generate data buffer
-__xdata static uint8_t usb_data_buffer[64];
+// Generate data buffers for EP0
+__xdata static uint8_t usb_ep0_buffer_in[2];
+__xdata static uint8_t usb_ep0_buffer_out[64];
 
 // Initialize interrupt flags
 volatile static uint8_t usb_if_in = 0;
@@ -259,7 +260,7 @@ uint8_t usb_read_byte(void) {
 void usb_ep0_queue_byte(uint8_t byte) {
 
     // Queue byte in buffer
-    usb_data_buffer[usb_n_bytes.ep0_in++] = byte;
+    usb_ep0_buffer_in[usb_n_bytes.ep0_in++] = byte;
 }
 
 /*
@@ -273,7 +274,7 @@ void usb_ep0_write_bytes(uint8_t n) {
     while (n--) {
 
         // Write byte
-        usb_write_byte(*usb_data_in++);
+        usb_write_byte(*usb_ep0_data_in++);
     }
 }
 
@@ -288,7 +289,7 @@ void usb_ep0_read_bytes(uint8_t n) {
     while (n--) {
 
         // Read byte
-        *usb_data_out++ = usb_read_byte();
+        *usb_ep0_data_out++ = usb_read_byte();
     }
 }
 
@@ -444,7 +445,10 @@ void usb_put_bytes(uint8_t *bytes) {
         bytes++;
     }
 
-    // Flush bytes
+    // Put last byte
+    //usb_put_byte(0);
+
+    // Flush bytes (make sure last bytes are sent)
     usb_flush_bytes();
 }
 
@@ -623,8 +627,8 @@ void usb_get_descriptor(uint16_t value) {
                 usb_n_bytes.ep0_in = descriptor[0];
             }
 
-            // Link data to descriptor
-            usb_data_in = descriptor;
+            // Overwrite data pointer for descriptor
+            usb_ep0_data_in = descriptor;
 
             // Exit
             return;
@@ -646,7 +650,7 @@ void usb_get_descriptor(uint16_t value) {
 void usb_get_setup_packet(void) {
 
     // Link data with USB setup
-    usb_data_out = (uint8_t *) &usb_setup_packet;
+    usb_ep0_data_out = (uint8_t *) &usb_setup_packet;
 
     // Setup packet is always 8 bytes long
     usb_n_bytes.ep0_out = 8;
@@ -671,8 +675,8 @@ void usb_parse_setup_packet(void) {
             // IN
             case (USB_DIRECTION_IN):
 
-                // Link data with buffer
-                usb_data_in = usb_data_buffer;
+                // Link data with IN buffer (storing on buffer by default)
+                usb_ep0_data_in = usb_ep0_buffer_in;
                 
                 // Update EP state
                 usb_ep0_state = USB_STATE_SEND;
@@ -681,8 +685,8 @@ void usb_parse_setup_packet(void) {
             // OUT
             case (USB_DIRECTION_OUT):
 
-                // Link data with buffer
-                usb_data_out = usb_data_buffer;
+                // Link data with OUT buffer (storing on buffer by default)
+                usb_ep0_data_out = usb_ep0_buffer_out;
 
                 // Set number of packets to receive
                 usb_n_bytes.ep0_out = usb_setup_packet.length;
