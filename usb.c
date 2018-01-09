@@ -111,6 +111,7 @@ void usb_reset_flags(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_RESET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Reset given EP (counters and state, if applicable).
 */
 void usb_reset_ep(int ep) {
 
@@ -129,6 +130,7 @@ void usb_reset_ep(int ep) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_RESET_COUNTERS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Reset byte counters associated with given EP.
 */
 void usb_reset_counters(int ep) {
 
@@ -211,6 +213,8 @@ void usb_reset_interrupts(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_SET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Set current active EP.
+
     Note: EP range given by [0, 5].
 */
 void usb_set_ep(uint8_t ep) {
@@ -223,6 +227,7 @@ void usb_set_ep(uint8_t ep) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_GET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Get current active EP.
 */
 uint8_t usb_get_ep(void) {
 
@@ -265,30 +270,30 @@ void usb_ep0_queue_byte(uint8_t byte) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_EP0_WRITE_BYTES
+    USB_EP0_EMPTY_BUFFER
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_ep0_write_bytes(uint8_t n) {
+void usb_ep0_empty_buffer(uint8_t n) {
 
     // Loop on bytes
     while (n--) {
 
-        // Write byte
+        // Read current byte in buffer and write it in FIFO
         usb_write_byte(*usb_ep0_data_in++);
     }
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_EP0_READ_BYTES
+    USB_EP0_FILL_BUFFER
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void usb_ep0_read_bytes(uint8_t n) {
+void usb_ep0_fill_buffer(uint8_t n) {
 
     // Loop on bytes
     while (n--) {
 
-        // Read byte
+        // Read current byte from FIFO and store it in buffer
         *usb_ep0_data_out++ = usb_read_byte();
     }
 }
@@ -303,8 +308,8 @@ void usb_ep0_send_bytes(void) {
     // Initialize number of bytes to send
     uint8_t n = min(usb_n_bytes.ep0_in, USB_SIZE_EP_CONTROL);
 
-    // Write bytes
-    usb_ep0_write_bytes(n);
+    // Empty buffer from bytes
+    usb_ep0_empty_buffer(n);
 
     // Bytes ready
     USBCS0 |= USBCS0_INPKT_RDY;
@@ -327,14 +332,15 @@ void usb_ep0_send_bytes(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_EP0_RECEIVE_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 */
 void usb_ep0_receive_bytes(uint8_t end) {
 
     // Get number of bytes to receive
     uint8_t n = min(min(usb_n_bytes.ep0_out, USBCNT0), USB_SIZE_EP_CONTROL);
 
-    // Read bytes
-    usb_ep0_read_bytes(n);
+    // Fill buffer with bytes
+    usb_ep0_fill_buffer(n);
 
     // Byte read
     USBCS0 |= USBCS0_CLR_OUTPKT_RDY;
@@ -361,6 +367,7 @@ void usb_ep0_receive_bytes(uint8_t end) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_SEND_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Tell master that a packet is ready to be picked up on EP IN.
 */
 void usb_send_bytes(void) {
 
@@ -381,6 +388,7 @@ void usb_send_bytes(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_RECEIVED_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Confirm to master that current packet on EP OUT was fully read.
 */
 void usb_received_bytes(void) {
 
@@ -395,6 +403,8 @@ void usb_received_bytes(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_WAIT_IN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Wait until packet to send was picked up by master and corresponding flag
+    clear.
 */
 void usb_wait_in(void) {
 
@@ -411,6 +421,8 @@ void usb_wait_in(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_PUT_BYTE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Write a single byte to send to the master on EP IN in the corresponding
+    FIFO.
 */
 void usb_put_byte(uint8_t byte) {
 
@@ -432,6 +444,8 @@ void usb_put_byte(uint8_t byte) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_PUT_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Write a series of bytes to send to the master on EP IN in the corresponding
+    FIFO.
 */
 void usb_put_bytes(uint8_t *bytes) {
 
@@ -445,8 +459,8 @@ void usb_put_bytes(uint8_t *bytes) {
         bytes++;
     }
 
-    // Put last byte
-    //usb_put_byte(0);
+    // Put last byte to tell master bytes end here
+    usb_put_byte(0);
 
     // Flush bytes (make sure last bytes are sent)
     usb_flush_bytes();
@@ -456,6 +470,7 @@ void usb_put_bytes(uint8_t *bytes) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_FLUSH_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Send the last bytes of packet to master on EP IN.
 */
 void usb_flush_bytes(void) {
 
@@ -474,6 +489,7 @@ void usb_flush_bytes(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_POLL_BYTE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Poll byte from master on EP OUT. Return -1 if failure to read byte.
 */
 int usb_poll_byte(void) {
 
@@ -525,6 +541,7 @@ int usb_poll_byte(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_GET_BYTE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Force read a byte from master on EP OUT. Polls until a byte is found.
 */
 uint8_t usb_get_byte(void) {
 
@@ -597,6 +614,7 @@ void usb_get_configuration(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_GET_DESCRIPTOR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB descriptor reading function.
 */
 void usb_get_descriptor(uint16_t value) {
 
@@ -646,6 +664,7 @@ void usb_get_descriptor(uint16_t value) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_GET_SETUP_PACKET
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Retrieve setup packet.
 */
 void usb_get_setup_packet(void) {
 
@@ -663,6 +682,7 @@ void usb_get_setup_packet(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_PARSE_SETUP_PACKET
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Parse setup packet and store information in designated structure.
 */
 void usb_parse_setup_packet(void) {
 
@@ -709,6 +729,7 @@ void usb_parse_setup_packet(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_SETUP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Setup sequence of USB controller.
 */
 void usb_setup(void) {
 
@@ -846,6 +867,7 @@ void usb_setup(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_CONTROL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Control sequence to go through when interrupts generated by EP0.
 */
 void usb_control(void) {
 
@@ -949,7 +971,9 @@ void usb_in(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB state machine
+    Go through switched interrupt flags and react accordingly. EP0 sequence
+    included here, so that control messages have priority over other commands
+    running inside firmware's main loop.
 */
 void usb(void) {
 
@@ -998,17 +1022,21 @@ void usb(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_ISR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Interrupt service routine for USB controller. Will be vectored to in many
+    cases, which are all handled in the USB function. Interrupt flags are stored
+    in global variables to allow later treatment.
+
     Warning: interrupts shared with port 2!
 */
 void usb_isr(void) __interrupt P2INT_VECTOR {
 
-    // Store interrupt flags (cleared upon reading)
+    // Store interrupt flags (cleared upon reading by hardware)
     usb_if_in |= USBIIF;
     usb_if_out |= USBOIF;
 
     // Re-enable interrupts
     USBIF = 0;
 
-    // Run USB state machine
+    // Run USB function
     usb();
 }
