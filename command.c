@@ -9,13 +9,18 @@ void command_get(void) {
 	switch (cmd) {
 
 		// Get version
-		case 57:
-			usb_put_bytes("Hello World!\x00");
+		case 48:
+			usb_put_bytes("Hello World!");
+			break;
+
+		// Get state
+		case 49:
+			usb_put_bytes("I <3 you! :)");
 			break;
 
 		// Test
 		default:
-			usb_put_bytes("N/A\x00");
+			usb_put_bytes("N/A");
 			break;
 	}
 }

@@ -4,6 +4,7 @@
 # LIBRARIES
 import usb.core
 import usb.util
+import time
 
 
 
@@ -47,7 +48,7 @@ def decode(bytes):
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    # Decode bytes and return corresponding string
+    # Decode bytes
     return "".join([chr(x) for x in bytes])
 
 
@@ -66,14 +67,23 @@ def read(EP):
     # Number of bytes to read on EP
     n = 64
 
+    # Initialize counter
+    i = 1
+
     # Read bytes
     while True:
 
-        # Read bytes until last one
-        bytes.append(EP.read(n))
+        # Read, decode, and append new bytes
+        bytes += EP.read(n)
+
+        # Update counter
+        i += 1
 
         # Exit condition
-        if bytes[-1] == "\x00":
+        if bytes[-1] == 0:
+
+            # Remove end byte
+            bytes.pop(-1)
 
             # Exit
             break
@@ -101,10 +111,10 @@ def main():
         raise IOError("No stick found.")
 
     # Otherwise
-    else:
+    #else:
 
         # Show stick
-        print stick
+        #print stick
 
     # Set configuration
     stick.set_configuration()
@@ -117,11 +127,7 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test bytes
-    testBytes = ["0", "1", "2", "3", "4", "5", "6", "7",
-                 "8", "9", "a", "b", "c", "d", "e", "f",
-                 "g", "h", "i", "j", "k", "l", "m", "n",
-                 "o", "p", "q", "r", "s", "t", "u", "v",
-                 "w", "x", "y", "z"]
+    testBytes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     
     # Test data EPs
     for i in testBytes:
@@ -129,8 +135,11 @@ def main():
         # Write byte
         EPs["OUT"].write(i)
 
-        # Read byte
-        print i + ": " + decode(read(EPs["IN"]))
+        # Read bytes
+        bytes = read(EPs["IN"])
+
+        # Convert to string and print
+        print i + ": " + decode(bytes)
 
 
 
