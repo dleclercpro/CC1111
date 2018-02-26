@@ -111,15 +111,27 @@ void usb_reset_flags(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_RESET_EP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Reset given EP (counters and state, if applicable).
+    Reset given EP (states and counters, if applicable).
 */
 void usb_reset_ep(int ep) {
 
+    // Reset states
+    usb_reset_states(ep);
+
     // Reset counters
     usb_reset_counters(ep);
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_RESET_STATES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Reset state associated with given EP.
+*/
+void usb_reset_states(int ep) {
 
     // EP0
-    if (ep == USB_EP_CONTROL) {
+    if (ep == USB_EP_CONTROL || ep == -1) {
 
         // Reset state
         usb_ep0_state = USB_STATE_IDLE;
@@ -134,42 +146,27 @@ void usb_reset_ep(int ep) {
 */
 void usb_reset_counters(int ep) {
 
-    // EP
-    switch (ep) {
+    // EP0
+    if (ep == USB_EP_CONTROL || ep == -1) {
 
-        // EP0
-        case USB_EP_CONTROL:
+        // Reset byte counters
+        usb_n_bytes.ep0_out = 0;
+        usb_n_bytes.ep0_in = 0;
+    }
 
-            // Reset byte counters
-            usb_n_bytes.ep0_out = 0;
-            usb_n_bytes.ep0_in = 0;
-            break;
+    // EP OUT
+    if (ep == USB_EP_OUT || ep == -1) {
 
-        // EP OUT
-        case USB_EP_OUT:
+        // Reset byte counter
+        usb_n_bytes.ep_out = 0;
+    }
 
-            // Reset byte counter
-            usb_n_bytes.ep_out = 0;
-            break;
+    // EP IN
+    if (ep == USB_EP_IN || ep == -1) {
 
-        // EP IN
-        case USB_EP_IN:
-
-            // Reset byte counters
-            usb_n_bytes.ep_in = 0;
-            usb_n_bytes.ep_in_last = 0;
-            break;
-
-        // Default: all EPs
-        default:
-
-            // Reset byte counters
-            usb_n_bytes.ep0_out = 0;
-            usb_n_bytes.ep0_in = 0;
-            usb_n_bytes.ep_out = 0;
-            usb_n_bytes.ep_in = 0;
-            usb_n_bytes.ep_in_last = 0;
-            break;
+        // Reset byte counters
+        usb_n_bytes.ep_in = 0;
+        usb_n_bytes.ep_in_last = 0;        
     }
 }
 
@@ -323,8 +320,8 @@ void usb_ep0_send_bytes(void) {
         // End of data
         USBCS0 |= USBCS0_DATA_END;
 
-        // Update EP state
-        usb_ep0_state = USB_STATE_IDLE;
+        // Reset EP state
+        usb_reset_states(USB_EP_CONTROL);
     }
 }
 
@@ -358,8 +355,8 @@ void usb_ep0_receive_bytes(uint8_t end) {
             USBCS0 |= USBCS0_DATA_END;
         }
 
-        // Update EP state
-        usb_ep0_state = USB_STATE_IDLE;
+        // Reset EP state
+        usb_reset_states(USB_EP_CONTROL);
     }
 }
 
@@ -977,9 +974,6 @@ void usb_in(void) {
 */
 void usb(void) {
 
-    // Store current EP
-    uint8_t ep = usb_get_ep();
-
     // If reset flag raised
     if (USBCIF & USBCIF_RSTIF) {
 
@@ -1013,9 +1007,6 @@ void usb(void) {
 
     // Reset interrupt flags
     usb_reset_flags();
-
-    // Restore last EP
-    usb_set_ep(ep);
 }
 
 /*

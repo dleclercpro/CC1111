@@ -267,6 +267,7 @@ void usb_off(void);
 void usb_stall(void);
 void usb_reset_flags(void);
 void usb_reset_ep(int ep);
+void usb_reset_states(int ep);
 void usb_reset_counters(int ep);
 void usb_enable_interrupts(void);
 void usb_reset_interrupts(void);
