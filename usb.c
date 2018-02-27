@@ -439,12 +439,48 @@ void usb_put_byte(uint8_t byte) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_PUT_BYTES
+    USB_FLUSH_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Write a series of bytes to send to the master on EP IN in the corresponding
-    FIFO.
+    Send the last bytes of packet to master on EP IN.
 */
-void usb_put_bytes(uint8_t *bytes) {
+void usb_flush_bytes(void) {
+
+    // Put last byte to tell master bytes end here
+    usb_put_byte(0);
+
+    // If bytes remaining or last packet was full
+    if (usb_n_bytes.ep_in || usb_n_bytes.ep_in_last == USB_SIZE_EP_IN) {
+
+        // Wait until FIFO is ready
+        usb_wait_in();
+
+        // Send bytes
+        usb_send_bytes();
+    }
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_TX_BYTE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Send a single byte to master.
+*/
+void usb_tx_byte(uint8_t byte) {
+
+    // Put byte
+    usb_put_byte(byte);
+
+    // Flush it
+    usb_flush_bytes();
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    USB_TX_BYTES
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Send a series of bytes to master.
+*/
+void usb_tx_bytes(uint8_t *bytes) {
 
     // Write byte until last byte is reached
     while (bytes[0] != 0) {
@@ -456,30 +492,8 @@ void usb_put_bytes(uint8_t *bytes) {
         bytes++;
     }
 
-    // Put last byte to tell master bytes end here
-    usb_put_byte(0);
-
-    // Flush bytes (make sure last bytes are sent)
+    // Flush them
     usb_flush_bytes();
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    USB_FLUSH_BYTES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Send the last bytes of packet to master on EP IN.
-*/
-void usb_flush_bytes(void) {
-
-    // If bytes remaining or last packet was full
-    if (usb_n_bytes.ep_in || usb_n_bytes.ep_in_last == USB_SIZE_EP_IN) {
-
-        // Wait until FIFO is ready
-        usb_wait_in();
-
-        // Send bytes
-        usb_send_bytes();
-    }
 }
 
 /*
