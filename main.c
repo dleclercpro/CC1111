@@ -12,7 +12,7 @@ void main(void) {
     timer_init();
     led_init();
     usb_init();
-    //radio_init();
+    radio_init();
 
     // Enable interrupts
     interrupts_enable();

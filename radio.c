@@ -18,23 +18,11 @@ static uint8_t radio_n_packets = 0;
 */
 void radio_init(void) {
 
-    // Power radio
-    radio_power();
-
     // Configure radio
     radio_configure();
 
     // Enable radio interrupts
     radio_enable_interrupts();
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    RADIO_POWER
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void radio_power(void) {
-    NOP();
 }
 
 /*
@@ -81,7 +69,7 @@ void radio_state_receive(void) {
     // Go in receive mode
     RFST = RFST_SRX;
 
-    // Wait until radio is in receive state
+    // Wait until radio is in receive mode
     while (RF_MARCSTATE != RF_MARCSTATE_RX) {
         NOP();
     }
@@ -94,10 +82,10 @@ void radio_state_receive(void) {
 */
 void radio_state_transmit(void) {
 
-    // Go in receive mode
+    // Go in transmit mode
     RFST = RFST_STX;
 
-    // Wait until radio is in receive state
+    // Wait until radio is in transmit mode
     while (RF_MARCSTATE != RF_MARCSTATE_TX) {
         NOP();
     }
@@ -107,79 +95,90 @@ void radio_state_transmit(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_CONFIGURE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Configuration of radio.
+    Reference frequency of CC1111: F = 24 MHz
+    Base frequency: f = F / 2**16 * (FREQ2 << 8*2 + FREQ1 << 8*1 + FREQ0 << 8*0)
+    Channel bandwidth: df = F / 2**18 * (256 + MDMCFG0) * 2**(MDMCFG1 & 0x03)
+    Effective frequency: f' = f + df
 */
 void radio_configure(void) {
 
     // Configure radio
-    SYNC1 =     0xFF;
-    SYNC0 =     0x00;
-    PKTLEN =    0xFF;
-    PKTCTRL1 =  0x00;
-    PKTCTRL0 =  0x00;
-    ADDR =      0x00;
-    FSCTRL1 =   0x06;
-    FSCTRL0 =   0x00;
-    MDMCFG4 =   0x99;
-    MDMCFG3 =   0x66;
-    MDMCFG2 =   0x33;
-    MDMCFG1 =   0x61;
-    MDMCFG0 =   0x7E;
-    DEVIATN =   0x15;
-    MCSM2 =     0x07;
-    MCSM1 =     0x30;
-    MCSM0 =     0x18;
-    FOCCFG =    0x17;
-    FREND1 =    0xB6;
-    FREND0 =    0x11;
-    FSCAL3 =    0xE9;
-    FSCAL2 =    0x2A;
-    FSCAL1 =    0x00;
-    FSCAL0 =    0x1F;
-    TEST1 =     0x31;
-    TEST0 =     0x09;
+    SYNC1     = 0xFF;
+    SYNC0     = 0x00;
+    PKTLEN    = 0xFF;
+    PKTCTRL1  = 0x00;
+    PKTCTRL0  = 0x00;
+    ADDR      = 0x00;
+    FSCTRL1   = 0x06;
+    FSCTRL0   = 0x00;
+    MDMCFG4   = 0x99;
+    MDMCFG3   = 0x66;
+    MDMCFG2   = 0x33;
+    MDMCFG1   = 0x61;
+    MDMCFG0   = 0x7E; // Channel bandwidth: 69.946 kHz
+    DEVIATN   = 0x15;
+    MCSM2     = 0x07;
+    MCSM1     = 0x30;
+    MCSM0     = 0x18;
+    FOCCFG    = 0x17;
+    FREND1    = 0xB6;
+    FREND0    = 0x11;
+    FSCAL3    = 0xE9;
+    FSCAL2    = 0x2A;
+    FSCAL1    = 0x00;
+    FSCAL0    = 0x1F;
+    TEST1     = 0x31;
+    TEST0     = 0x09;
     PA_TABLE0 = 0x00;
-    AGCCTRL2 =  0x07;
-    AGCCTRL1 =  0x00;
-    AGCCTRL0 =  0x91;
+    AGCCTRL2  = 0x07;
+    AGCCTRL1  = 0x00;
+    AGCCTRL0  = 0x91;
 
     // Radio locale
     // North America (NA)
+    // Base frequency: 916.541 MHz
     #if RADIO_LOCALE == RADIO_LOCALE_NA
-        FREQ2 =     0x26;
-        FREQ1 =     0x30;
-        FREQ0 =     0x70;
-        CHANNR =    0x02;
+        FREQ2     = 0x26;
+        FREQ1     = 0x30;
+        FREQ0     = 0x70;
+        CHANNR    = 0x02;
         PA_TABLE1 = 0xC0;
+
     // Worldwide (WW)
+    // Base frequency: 868.333 MHz
     #elif RADIO_LOCALE == RADIO_LOCALE_WW
-        FREQ2 =     0x24;
-        FREQ1 =     0x2E;
-        FREQ0 =     0x38;
-        CHANNR =    0x00;
+        FREQ2     = 0x24;
+        FREQ1     = 0x2E;
+        FREQ0     = 0x38;
+        CHANNR    = 0x00;
         PA_TABLE1 = 0xC2;
     #endif
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    RADIO_RECEIVE
+    RADIO_READ
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-uint8_t radio_receive(uint32_t timeout) {
+uint8_t radio_read(uint8_t channel, uint32_t timeout) {
 
     // Initialize read byte count, received byte, and flag to return
     uint8_t n = 0;
     uint8_t byte = 0;
     uint8_t flag = 0;
 
-    // Reset buffer size
-    radio_rx_buffer_size = 0;
-
     // Reset timer counter
     timer_counter_reset();
 
     // Put radio in idle state
     radio_state_idle();
+
+    // Set channel
+    CHANNR = channel;
+
+    // Reset buffer size
+    radio_rx_buffer_size = 0;
 
     // Put radio in receive state
     radio_state_receive();
@@ -190,14 +189,8 @@ uint8_t radio_receive(uint32_t timeout) {
         // If new unread byte(s)
         if (radio_rx_buffer_size > n) {
 
-            // Get new byte
-            byte = radio_tx_buffer[n];
-
-            // Queue it for USB transfer
-            usb_ep0_queue_byte(byte);
-
             // Check for absence of data
-            if (n == 2 && byte == 0) {
+            if (n == 0 && radio_rx_buffer_size > 2 && radio_rx_buffer[2] == 0) {
 
                 // Assign no data flag
                 flag = RADIO_ERROR_NO_DATA;
@@ -206,15 +199,21 @@ uint8_t radio_receive(uint32_t timeout) {
                 break;
             }
 
+            // Get new byte and update count
+            byte = radio_rx_buffer[n++];
+
+            // Queue it for USB transfer
+            usb_tx_byte(byte);
+
+            // Switch LED
+            led_switch();
+
             // If end of packet
             if (n > 2 && n == radio_rx_buffer_size && byte == 0) {
 
                 // Exit
                 break;
             }
-
-            // Update read byte count
-            n++;
         }
 
         // If no bytes received
@@ -232,33 +231,19 @@ uint8_t radio_receive(uint32_t timeout) {
         }
     }
 
-    // Put radio in idle state
+    // Put radio back in idle state
     radio_state_idle();
 
-    // If data successfully received
-    if (flag == 0) {
-
-        // Send packet over USB
-        usb_send_bytes();
-    }
-
-    // Otherwise
-    else {
-
-        // Switch LED
-        led_switch();
-    }
-
-    // Return info flag
+    // Return flag
     return flag;
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    RADIO_TRANSMIT
+    RADIO_WRITE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-uint8_t radio_transmit(void) {
+uint8_t radio_write(void) {
 
     // Put radio in idle state
     radio_state_idle();
