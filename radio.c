@@ -96,9 +96,15 @@ void radio_state_transmit(void) {
     RADIO_CONFIGURE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Configuration of radio.
-    Reference frequency of CC1111: F = 24 MHz
+
+    Reference frequency: F = 24 MHz
+
     Base frequency: f = F / 2**16 * (FREQ2 << 8*2 + FREQ1 << 8*1 + FREQ0 << 8*0)
+    Resolution: 0.366 kHz
+    
     Channel bandwidth: df = F / 2**18 * (256 + MDMCFG0) * 2**(MDMCFG1 & 0x03)
+    Resolution: 23.438 kHz
+    
     Effective frequency: f' = f + df
 */
 void radio_configure(void) {
@@ -137,7 +143,8 @@ void radio_configure(void) {
 
     // Radio locale
     // North America (NA)
-    // Base frequency: 916.541 MHz
+    // Base frequency: f = 916.541 MHz
+    // Effective frequency: f' = 916.681 MHz
     #if RADIO_LOCALE == RADIO_LOCALE_NA
         FREQ2     = 0x26;
         FREQ1     = 0x30;
@@ -146,7 +153,8 @@ void radio_configure(void) {
         PA_TABLE1 = 0xC0;
 
     // Worldwide (WW)
-    // Base frequency: 868.333 MHz
+    // Base frequency: f = 868.333 MHz
+    // Effective frequency: f' = 868.333 MHz
     #elif RADIO_LOCALE == RADIO_LOCALE_WW
         FREQ2     = 0x24;
         FREQ1     = 0x2E;
