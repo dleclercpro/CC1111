@@ -67,17 +67,11 @@ def read(EP):
     # Number of bytes to read on EP
     n = 64
 
-    # Initialize counter
-    i = 1
-
     # Read bytes
     while True:
 
         # Read, decode, and append new bytes
-        bytes += EP.read(n)
-
-        # Update counter
-        i += 1
+        bytes += EP.read(n, timeout = 500)
 
         # Exit condition
         if bytes[-1] == 0:
@@ -90,6 +84,64 @@ def read(EP):
 
     # Return them
     return bytes
+
+
+
+def radio(EPs):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        RADIO
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Test data EPs
+    #for i in range(256):
+    for i in range(1):
+
+        # Write byte
+        #EPs["OUT"].write(chr(50))
+        EPs["OUT"].write(chr(2))
+
+        # Give channel
+        #EPs["OUT"].write(chr(i))
+        EPs["OUT"].write(chr(0))
+
+        # Read bytes
+        bytes = read(EPs["IN"])
+
+        # Convert to string and print
+        #print "Reading [" + str(i) + "]: " + decode(bytes)
+        print "Reading: " + str(bytes)
+
+
+
+def test(EPs):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        TEST
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Read register
+    EPs["OUT"].write(chr(2))
+    EPs["OUT"].write(chr(0))
+
+    # Read bytes
+    print "Reading: " + str(read(EPs["IN"]))
+
+    # Write to register
+    EPs["OUT"].write(chr(3))
+    EPs["OUT"].write(chr(0))
+    EPs["OUT"].write(chr(0xFF))
+
+    # Read register
+    EPs["OUT"].write(chr(2))
+    EPs["OUT"].write(chr(0))
+
+    # Read bytes
+    print "Reading: " + str(read(EPs["IN"]))
 
 
 
@@ -126,20 +178,26 @@ def main():
     EPs = {"IN": getEP(config, "IN", 0),
            "OUT": getEP(config, "OUT", 0)}
 
+    # Test radio
+    #radio(EPs)
+
+    # Test register
+    test(EPs)
+
     # Test bytes
-    testBytes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    #testBytes = ["0", "1", "3", "4", "5", "6", "7", "8", "9"]
     
     # Test data EPs
-    for i in testBytes:
+    #for i in testBytes:
 
         # Write byte
-        EPs["OUT"].write(i)
+        #EPs["OUT"].write(i)
 
         # Read bytes
-        bytes = read(EPs["IN"])
+        #bytes = read(EPs["IN"])
 
         # Convert to string and print
-        print i + ": " + decode(bytes)
+        #print i + ": " + decode(bytes)
 
 
 
