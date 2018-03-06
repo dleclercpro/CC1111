@@ -10,6 +10,9 @@ void command_get(void) {
 	// Read command
 	uint8_t cmd = usb_get_byte();
 
+	// Switch LED
+	//led_switch();
+
 	// Identify command
 	switch (cmd) {
 
@@ -111,21 +114,10 @@ void command_register_write(void) {
 */
 void command_radio_read(void) {
 
-	// Initialize flag
-	uint8_t flag = 0;
+	// Initialize channel and timeout (s)
 	uint8_t channel = usb_get_byte();
+	uint8_t timeout = usb_get_byte();
 
 	// Read radio
-	flag = radio_read(channel, 250);
-
-	// If no response (error flag)
-	if (flag != 0) {
-
-		// Send flag to master
-		usb_tx_byte(flag);
-	}
-
-	else {
-		usb_tx_byte(0);
-	}
+	radio_read(channel, timeout);
 }

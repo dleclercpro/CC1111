@@ -71,7 +71,7 @@ def read(EP):
     while True:
 
         # Read, decode, and append new bytes
-        bytes += EP.read(n, timeout = 500)
+        bytes += EP.read(n, timeout = 2000)
 
         # Exit condition
         if bytes[-1] == 0:
@@ -96,23 +96,37 @@ def radio(EPs):
     """
 
     # Test data EPs
-    #for i in range(256):
-    for i in range(1):
-
+    while True:
+    
         # Write byte
-        #EPs["OUT"].write(chr(50))
-        EPs["OUT"].write(chr(2))
+        EPs["OUT"].write(chr(50))
 
         # Give channel
-        #EPs["OUT"].write(chr(i))
         EPs["OUT"].write(chr(0))
 
-        # Read bytes
+        # Give timeout
+        EPs["OUT"].write(chr(1))
+
+        # Read them
         bytes = read(EPs["IN"])
 
-        # Convert to string and print
-        #print "Reading [" + str(i) + "]: " + decode(bytes)
-        print "Reading: " + str(bytes)
+        # If timeout error
+        if bytes[-1] == 0xAA:
+
+            # Convert to string and print
+            print "Timeout."
+
+        # If no data error
+        elif bytes[-1] == 0xBB:
+
+            # Convert to string and print
+            print "No data."
+
+        # Otherwise
+        else:
+
+            # Convert to string and print
+            print bytes
 
 
 
@@ -179,10 +193,10 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test radio
-    #radio(EPs)
+    radio(EPs)
 
     # Test register
-    test(EPs)
+    #test(EPs)
 
     # Test bytes
     #testBytes = ["0", "1", "3", "4", "5", "6", "7", "8", "9"]

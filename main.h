@@ -5,7 +5,7 @@
 #include "timer.h"
 #include "led.h"
 #include "usb.h"
-//#include "radio.h"
+#include "radio.h"
 #include "command.h"
 #include "interrupts.h"
 

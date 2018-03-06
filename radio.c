@@ -9,7 +9,7 @@ static uint8_t radio_rx_buffer_size = 0;
 static uint8_t radio_tx_buffer_size = 0;
 
 // Initialize packet count
-static uint8_t radio_n_packets = 0;
+static uint8_t radio_packet_count = 0;
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,13 +168,17 @@ void radio_configure(void) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_READ
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Timeout input given in s.
 */
-uint8_t radio_read(uint8_t channel, uint32_t timeout) {
+void radio_read(uint8_t channel, uint32_t timeout) {
 
-    // Initialize read byte count, received byte, and flag to return
+    // Initialize byte count, current byte, and error
     uint8_t n = 0;
     uint8_t byte = 0;
-    uint8_t flag = 0;
+    uint8_t error = 0;
+
+    // Convert timeout from s to ms
+    timeout *= 1000;
 
     // Reset timer counter
     timer_counter_reset();
@@ -191,7 +195,7 @@ uint8_t radio_read(uint8_t channel, uint32_t timeout) {
     // Put radio in receive state
     radio_state_receive();
 
-    // Loop in parallel of RF ISRs and react when new bytes are received
+    // Loop parallel to RF ISRs and react when new bytes are received
     while (1) {
 
         // If new unread byte(s)
@@ -200,21 +204,18 @@ uint8_t radio_read(uint8_t channel, uint32_t timeout) {
             // Check for absence of data
             if (n == 0 && radio_rx_buffer_size > 2 && radio_rx_buffer[2] == 0) {
 
-                // Assign no data flag
-                flag = RADIO_ERROR_NO_DATA;
+                // Assign no data error
+                error = RADIO_ERROR_NO_DATA;
 
                 // Exit
                 break;
             }
 
-            // Get new byte and update count
-            byte = radio_rx_buffer[n++];
+            // Read current byte
+            byte = radio_rx_buffer[n];
 
-            // Queue it for USB transfer
-            usb_tx_byte(byte);
-
-            // Switch LED
-            led_switch();
+            // Update byte count
+            n++;
 
             // If end of packet
             if (n > 2 && n == radio_rx_buffer_size && byte == 0) {
@@ -230,8 +231,8 @@ uint8_t radio_read(uint8_t channel, uint32_t timeout) {
             // If timeout given and expired
             if (timeout > 0 && timer_counter > timeout) {
 
-                // Assign timeout flag
-                flag = RADIO_ERROR_TIMEOUT;
+                // Assign timeout error
+                error = RADIO_ERROR_TIMEOUT;
 
                 // Exit
                 break;
@@ -242,8 +243,19 @@ uint8_t radio_read(uint8_t channel, uint32_t timeout) {
     // Put radio back in idle state
     radio_state_idle();
 
-    // Return flag
-    return flag;
+    // If no error
+    if (error == 0) {
+
+        // Send bytes to master
+        usb_tx_bytes(radio_rx_buffer);
+    }
+
+    // Otherwise
+    else {
+
+        // Send error to master
+        usb_tx_byte(error);
+    }
 }
 
 /*
@@ -259,7 +271,7 @@ uint8_t radio_write(void) {
     // Put radio in transmit state
     radio_state_transmit();
 
-    // Return info flag
+    // Return error
     return 0;
 }
 
@@ -285,17 +297,19 @@ void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
             // New packet
             if (radio_rx_buffer_size == 0) {
 
+                // New packet: update count and avoid end-of-packet due to byte
+                // overflow
+                radio_packet_count = max(radio_packet_count + 1, 1);
+
                 // First byte: packet count
-                radio_rx_buffer[0] = radio_n_packets;
+                radio_rx_buffer[0] = radio_packet_count;
 
                 // Second byte: received signal strength indication (RSSI)
-                radio_rx_buffer[1] = RSSI;
+                // Minimum set to 1 to avoid end-of-packet zero
+                radio_rx_buffer[1] = max(RF_RSSI, 1);
 
                 // Update buffer size
                 radio_rx_buffer_size = 2;
-
-                // Update packet count
-                radio_n_packets++;
             }
 
             // Packet incomplete

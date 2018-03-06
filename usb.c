@@ -24,6 +24,86 @@ volatile static uint8_t usb_if_out = 0;
 // Initialize EP0 state
 static uint8_t usb_ep0_state = USB_STATE_IDLE;
 
+// USB descriptors
+__xdata uint8_t usb_descriptors[] = {
+
+    // Device descriptor
+    18,                  // Size
+    USB_DESC_DEVICE,     // Type
+    LE_WORD(0x0200),     // USB specification number
+    2,                   // Class
+    0,                   // Subclass
+    0,                   // Protocol
+    USB_SIZE_EP_CONTROL, // Max packet size for EP0
+    LE_WORD(USB_VID),    // Vendor
+    LE_WORD(USB_PID),    // Product
+    LE_WORD(0x0100),     // Release number
+    1,                   // Manufacturer string descriptor index
+    2,                   // Product string descriptor index
+    3,                   // Serial number string descriptor index
+    1,                   // Number of configurations
+
+    // Configuration descriptor
+    9,                      // Size
+    USB_DESC_CONFIGURATION, // Type
+    LE_WORD(32),            // Total length (configuration, interfaces and EPs)
+    2,                      // Number of interfaces
+    1,                      // Configuration index
+    0,                      // Configuration string descriptor (none)
+    192,                    // Power parameters for this configuration
+    USB_MAX_POWER / 2,      // Max power in 2mA units (divided by 2)
+
+    // Interface descriptor 1 (data)
+    9,                  // Size
+    USB_DESC_INTERFACE, // Type
+    0,                  // Interface number (start with zero, then increment)
+    0,                  // Alternative setting
+    2,                  // Number of EP for this interface
+    10,                 // Class (data)
+    0,                  // Subclass
+    0,                  // Protocol
+    0,                  // Interface string descriptor (none)
+
+    // Data EP OUT
+    7,                              // Size
+    USB_DESC_ENDPOINT,              // Type
+    USB_DIRECTION_OUT | USB_EP_OUT, // Direction and address
+    USB_TRANSFER_BULK,              // Transfer type
+    LE_WORD(USB_SIZE_EP_OUT),       // Max packet size
+    0,                              // Polling interval in frames (none)
+
+    // Data EP IN
+    7,                            // Size
+    USB_DESC_ENDPOINT,            // Type
+    USB_DIRECTION_IN | USB_EP_IN, // Direction and address
+    USB_TRANSFER_BULK,            // Transfer type
+    LE_WORD(USB_SIZE_EP_IN),      // Max packet size
+    0,                            // Polling interval in frames (none)
+
+    // String descriptors
+    4,               // Size
+    USB_DESC_STRING, // Type
+    LE_WORD(0x1009), // Language (EN-CA)
+
+    // String descriptor (manufacturer)
+    USB_MANUFACTURER_LENGTH + 2,
+    USB_DESC_STRING,
+    USB_MANUFACTURER,
+
+    // String descriptor (product)
+    USB_PRODUCT_LENGTH + 2,
+    USB_DESC_STRING,
+    USB_PRODUCT,
+
+    // String descriptor (serial)
+    USB_SERIAL_LENGTH + 2,
+    USB_DESC_STRING,
+    USB_SERIAL,
+
+    // EOD
+    0
+};
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_INIT
@@ -482,14 +562,29 @@ void usb_tx_byte(uint8_t byte) {
 */
 void usb_tx_bytes(uint8_t *bytes) {
 
-    // Write byte until last byte is reached
-    while (bytes[0] != 0) {
+    // Initialize byte count and current byte
+    uint8_t n = 0;
+    uint8_t byte = 0;
 
-        // Put current byte
-        usb_put_byte(bytes[0]);
+    // Write bytes
+    while (1) {
 
-        // Update pointer
-        bytes++;
+        // Read current byte and update count
+        byte = bytes[n++];
+
+        // If end-of-bytes
+        if (byte == 0) {
+
+            // Exit
+            break;
+        }
+
+        // Otherwise
+        else {
+
+            // Put current byte
+            usb_put_byte(byte);
+        }
     }
 
     // Flush them
@@ -583,9 +678,6 @@ void usb_set_address(uint8_t addr) {
     while (USBADDR != addr) {
         NOP();
     }
-
-    // Test LED
-    led_switch();
 }
 
 /*
