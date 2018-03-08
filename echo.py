@@ -218,13 +218,13 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test radio
-    #radio(EPs)
+    radio(EPs)
 
     # Test register
     #register(EPs)
 
     # Test commands
-    commands(EPs)
+    #commands(EPs)
 
 
 

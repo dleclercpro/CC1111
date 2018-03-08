@@ -38,7 +38,7 @@ void command_get(void) {
 
 		// Receive radio packets
 		case 50:
-			command_radio_read();
+			command_radio_receive();
 			break;
 
 		// Default (no command)
@@ -80,15 +80,31 @@ void command_register_write(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    COMMAND_RADIO_READ
+    COMMAND_RADIO_RECEIVE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void command_radio_read(void) {
+void command_radio_receive(void) {
 
-	// Initialize channel and timeout (s)
+	// Get channel and timeout (s)
 	uint8_t channel = usb_get_byte();
 	uint8_t timeout = usb_get_byte();
 
-	// Read radio
-	radio_read(channel, timeout);
+	// Read bytes from radio
+	radio_receive(channel, timeout);
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    COMMAND_RADIO_SEND
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void command_radio_send(void) {
+
+	// Get channel, repeat and delay (s)
+	uint8_t channel = usb_get_byte();
+	uint8_t repeat = usb_get_byte();
+	uint8_t delay = usb_get_byte();
+
+	// Send bytes to radio
+	radio_send(channel, repeat, delay);
 }

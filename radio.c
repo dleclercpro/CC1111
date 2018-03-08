@@ -8,6 +8,12 @@ __xdata static uint8_t radio_tx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
 static uint8_t radio_rx_buffer_size = 0;
 static uint8_t radio_tx_buffer_size = 0;
 
+// Initialize data buffer index
+static uint8_t radio_tx_buffer_index = 0;
+
+// Initialize writing underflow count
+static uint8_t radio_tx_underflow_count = 0;
+
 // Initialize packet count
 static uint8_t radio_packet_count = 0;
 
@@ -45,6 +51,19 @@ void radio_enable_interrupts(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_STATE_WAIT_IDLE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_state_wait_idle(void) {
+
+    // Wait until radio is in idle state
+    while (RF_MARCSTATE != RF_MARCSTATE_IDLE) {
+        NOP();
+    }
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_STATE_IDLE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -54,9 +73,7 @@ void radio_state_idle(void) {
     RFST = RFST_SIDLE;
 
     // Wait until radio is in idle state
-    while (RF_MARCSTATE != RF_MARCSTATE_IDLE) {
-        NOP();
-    }
+    radio_state_wait_idle();
 }
 
 /*
@@ -292,11 +309,11 @@ uint8_t * radio_register(uint8_t addr) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    RADIO_READ
+    RADIO_RECEIVE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Timeout input given in s.
 */
-void radio_read(uint8_t channel, uint32_t timeout) {
+void radio_receive(uint8_t channel, uint32_t timeout) {
 
     // Initialize byte count, current byte, and error
     uint8_t n = 0;
@@ -386,25 +403,89 @@ void radio_read(uint8_t channel, uint32_t timeout) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    RADIO_WRITE
+    RADIO_SEND
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-uint8_t radio_write(void) {
+void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
+
+    // Initialize byte to send
+    uint8_t byte = 0;
+
+    // Reset buffer size and index as well as underflow count
+    radio_tx_buffer_size = 0;
+    radio_tx_buffer_index = 0;
+    radio_tx_underflow_count = 0;
+
+    // Convert delay from s to ms
+    delay *= 1000;
 
     // Put radio in idle state
     radio_state_idle();
 
+    // Set channel
+    CHANNR = channel;
+
+    // Fill buffer
+    while (1) {
+
+        // If byte is not exceeding max packet length
+        if (radio_tx_buffer_size <= RADIO_MAX_PACKET_SIZE) {
+
+            // Get byte
+            byte = usb_get_byte();
+        }
+
+        // Write byte in buffer and update its size
+        radio_tx_buffer[radio_tx_buffer_size++] = byte;
+
+        // If end-of-packet byte
+        if (byte == 0) {
+
+            // Exit
+            break;
+        }
+
+    }
+
     // Put radio in transmit state
     radio_state_transmit();
 
-    // Return error
-    return 0;
+    // Wait until packet is transmitted
+    radio_state_wait_idle();
+
+    // If repeat
+    while (repeat--) {
+
+        // If delay
+        if (delay > 0) {
+
+            // Reset timer counter
+            timer_counter_reset();
+
+            // Delay
+            while (timer_counter < delay) {
+                NOP();
+            }
+        }
+
+        // Reset buffer index and underflow count
+        radio_tx_buffer_index = 0;
+        radio_tx_underflow_count = 0;
+
+        // Put radio in transmit state
+        radio_state_transmit();
+
+        // Wait until packet is transmitted
+        radio_state_wait_idle();
+    }
 }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_RFTXRX_ISR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ISRs either when a new byte is ready to be read from RFD (RX) or when a new
+    one can be written to it (TX).
 */
 void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
 
@@ -456,8 +537,32 @@ void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
         // Transmitting
         case RF_MARCSTATE_TX:
 
-            // Write byte to radio
-            RFD = byte;
+            // If new byte is ready to be sent
+            if (radio_tx_buffer_size > radio_tx_buffer_index) {
+
+                // Get byte and update index
+                byte = radio_tx_buffer[radio_tx_buffer_index++];
+
+                // Give to radio
+                RFD = byte;
+            }
+
+            // Otherwise: underflow
+            else {
+
+                // Tell radio no more bytes to send
+                RFD = 0;
+
+                // Update underflow count
+                radio_tx_underflow_count++;
+
+                // If underflow twice, radio should have sent all bytes
+                if (radio_tx_underflow_count == 2) {
+
+                    // Put radio back in idle state
+                    radio_state_idle();
+                }
+            }
 
             // Exit
             break;

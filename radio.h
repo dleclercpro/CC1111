@@ -29,13 +29,14 @@
 
 void radio_init(void);
 void radio_enable_interrupts(void);
+void radio_state_wait_idle(void);
 void radio_state_idle(void);
 void radio_state_receive(void);
 void radio_state_transmit(void);
 void radio_configure(void);
 uint8_t * radio_register(uint8_t addr);
-void radio_read(uint8_t channel, uint32_t timeout);
-uint8_t radio_write(void);
+void radio_receive(uint8_t channel, uint32_t timeout);
+void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay);
 void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
 void radio_general_isr(void) __interrupt RF_VECTOR;
 
