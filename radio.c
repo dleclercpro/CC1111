@@ -435,6 +435,13 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
             byte = usb_get_byte();
         }
 
+        // Overflow
+        else {
+
+            // End byte
+            byte = 0;
+        }
+
         // Write byte in buffer and update its size
         radio_tx_buffer[radio_tx_buffer_size++] = byte;
 
