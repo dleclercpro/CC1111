@@ -159,6 +159,31 @@ def register(EPs):
 
 
 
+def commands(EPs):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        COMMANDS
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Test commands
+    commands = [0, 1]
+    
+    # Do commands
+    for i in commands:
+
+        # Write byte
+        EPs["OUT"].write(chr(i))
+
+        # Read bytes
+        bytes = read(EPs["IN"])
+
+        # Convert to string and print
+        print "{" + str(i) + "}: " + decode(bytes)
+
+
+
 def main():
 
     """
@@ -196,22 +221,10 @@ def main():
     #radio(EPs)
 
     # Test register
-    register(EPs)
+    #register(EPs)
 
-    # Test bytes
-    #testBytes = ["0", "1", "3", "4", "5", "6", "7", "8", "9"]
-    
-    # Test data EPs
-    #for i in testBytes:
-
-        # Write byte
-        #EPs["OUT"].write(i)
-
-        # Read bytes
-        #bytes = read(EPs["IN"])
-
-        # Convert to string and print
-        #print i + ": " + decode(bytes)
+    # Test commands
+    commands(EPs)
 
 
 
