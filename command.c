@@ -57,7 +57,7 @@ void command_register_read(void) {
 
 	// Read register address and value
 	uint8_t addr = usb_get_byte();
-	uint8_t value = *radio_register_link(addr);
+	uint8_t value = *radio_register(addr);
 
 	// Send register value to master
 	usb_tx_byte(value);
@@ -75,7 +75,7 @@ void command_register_write(void) {
 	uint8_t value = usb_get_byte();
 
 	// Write register value
-	*radio_register_link(addr) = value;
+	*radio_register(addr) = value;
 }
 
 /*

@@ -166,10 +166,10 @@ void radio_configure(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    RADIO_REGISTER_LINK
+    RADIO_REGISTER
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-uint8_t * radio_register_link(uint8_t addr) {
+uint8_t * radio_register(uint8_t addr) {
 
     // Initialize register pointer
     uint8_t *reg = 0;
