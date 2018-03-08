@@ -166,6 +166,132 @@ void radio_configure(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_REGISTER_LINK
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+uint8_t * radio_register_link(uint8_t addr) {
+
+    // Initialize register pointer
+    uint8_t *reg = 0;
+
+    // Assign pointer
+    switch (addr) {
+        case 0:
+            reg = &SYNC1;
+            break;
+        case 1:
+            reg = &SYNC0;
+            break;
+        case 2:
+            reg = &PKTLEN;
+            break;
+        case 3:
+            reg = &PKTCTRL1;
+            break;
+        case 4:
+            reg = &PKTCTRL0;
+            break;
+        case 5:
+            reg = &ADDR;
+            break;
+        case 6:
+            reg = &FSCTRL1;
+            break;
+        case 7:
+            reg = &FSCTRL0;
+            break;
+        case 8:
+            reg = &MDMCFG4;
+            break;
+        case 9:
+            reg = &MDMCFG3;
+            break;
+        case 10:
+            reg = &MDMCFG2;
+            break;
+        case 11:
+            reg = &MDMCFG1;
+            break;
+        case 12:
+            reg = &MDMCFG0;
+            break;
+        case 13:
+            reg = &DEVIATN;
+            break;
+        case 14:
+            reg = &MCSM2;
+            break;
+        case 15:
+            reg = &MCSM1;
+            break;
+        case 16:
+            reg = &MCSM0;
+            break;
+        case 17:
+            reg = &BSCFG;
+            break;
+        case 18:
+            reg = &FOCCFG;
+            break;
+        case 19:
+            reg = &FREND1;
+            break;
+        case 20:
+            reg = &FREND0;
+            break;
+        case 21:
+            reg = &FSCAL3;
+            break;
+        case 22:
+            reg = &FSCAL2;
+            break;
+        case 23:
+            reg = &FSCAL1;
+            break;
+        case 24:
+            reg = &FSCAL0;
+            break;
+        case 25:
+            reg = &TEST1;
+            break;
+        case 26:
+            reg = &TEST0;
+            break;
+        case 27:
+            reg = &PA_TABLE1;
+            break;
+        case 28:
+            reg = &PA_TABLE0;
+            break;
+        case 29:
+            reg = &AGCCTRL2;
+            break;
+        case 30:
+            reg = &AGCCTRL1;
+            break;
+        case 31:
+            reg = &AGCCTRL0;
+            break;
+        case 32:
+            reg = &FREQ2;
+            break;
+        case 33:
+            reg = &FREQ1;
+            break;
+        case 34:
+            reg = &FREQ0;
+            break;
+        case 35:
+            reg = &CHANNR;
+            break;
+    }
+
+    // Return register pointer
+    return reg;
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RADIO_READ
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Timeout input given in s.

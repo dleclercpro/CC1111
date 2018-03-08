@@ -130,11 +130,11 @@ def radio(EPs):
 
 
 
-def test(EPs):
+def register(EPs):
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        TEST
+        REGISTER
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
@@ -148,7 +148,7 @@ def test(EPs):
     # Write to register
     EPs["OUT"].write(chr(3))
     EPs["OUT"].write(chr(0))
-    EPs["OUT"].write(chr(0xFF))
+    EPs["OUT"].write(chr(100))
 
     # Read register
     EPs["OUT"].write(chr(2))
@@ -193,10 +193,10 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test radio
-    radio(EPs)
+    #radio(EPs)
 
     # Test register
-    #test(EPs)
+    register(EPs)
 
     # Test bytes
     #testBytes = ["0", "1", "3", "4", "5", "6", "7", "8", "9"]
