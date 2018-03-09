@@ -53,6 +53,147 @@ def decode(bytes):
 
 
 
+def decode4x6(bytes):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        DECODE4X6
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Define conversion table
+    TABLE = ["010101", "110001", "110010", "100011", "110100", "100101",
+             "100110", "010110", "011010", "011001", "101010", "001011",
+             "101100", "001101", "001110", "011100"]
+
+    # Initialize packet
+    packet = []
+
+    # Convert bytes to bits
+    bits = ["{:08b}".format(x) for x in bytes]
+
+    # Join them all together
+    bits = "".join(bits)
+
+    # Scan bits
+    while bits:
+
+        # Get 6-bits word and shorten rest of bits
+        word, bits = bits[:6], bits[6:]
+
+        # End-of-packet
+        if word == "000000":
+
+            # Exit
+            break
+
+        # Try converting
+        try:
+
+            # Convert word using conversion table
+            word = hex(TABLE.index(word))[-1].upper()
+
+            # Store word
+            packet.append(word)
+
+        # If error
+        except ValueError:
+
+            # Skip
+            print "Error while converting bytes."
+
+    # Stringify packet
+    packet = "".join(packet)
+
+    # Return packet
+    return packet
+
+
+
+def encode4x6(packet):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ENCODE4X6
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Define conversion table
+    TABLE = ["010101", "110001", "110010", "100011", "110100", "100101",
+             "100110", "010110", "011010", "011001", "101010", "001011",
+             "101100", "001101", "001110", "011100"]
+
+    # Initialize bits and bytes
+    bits = bytes = []
+
+    # Scan packet
+    for p in packet:
+
+        # Try converting
+        try:
+
+            # Build new bits
+            new = [TABLE[p >> 4], TABLE[p & 15]]
+
+            # Convert them
+            bits.extend(["{:06b}".format(x) for x in new])
+
+        # If error
+        except ValueError:
+
+            # Skip
+            print "Error while converting packet."
+
+    # Join them all together and pad them with extra zeros
+    bits = "".join(bits) + 12 * "0"
+
+    # Retrieve bytes
+    while len(bits) >= 8:
+
+        # Get byte and shorten rest of bits
+        byte, bits = bits[:8], bits[8:]
+
+        # Convert byte to decimal value
+        byte = int(byte, 2)
+
+        # Store byte
+        bytes.append(byte)
+
+    # Return bytes
+    return bytes
+
+    # # Try converting
+    # try:
+
+    #     # Convert packet to bits
+    #     bits = [TABLE[int(x, 16)] for x in packet]
+
+    # # If error
+    # except ValueError:
+
+    #     # Skip
+    #     print "Error while converting packet."
+
+    # # Join them all together
+    # bits = "".join(bits)
+
+    # # Scan bits
+    # while bits:
+
+    #     # Get byte and shorten bits
+    #     byte, bits = bits[:8], bits[8:]
+
+    #     # Convert byte to decimal value
+    #     byte = int(byte, 2)
+
+    #     # Store byte
+    #     bytes.append(byte)
+
+    # # Return bytes
+    # return bytes
+
+
+
 def read(EP):
 
     """
@@ -71,7 +212,7 @@ def read(EP):
     while True:
 
         # Read, decode, and append new bytes
-        bytes += EP.read(n, timeout = 2000)
+        bytes += EP.read(n, timeout = 1500)
 
         # Exit condition
         if bytes[-1] == 0:
@@ -104,8 +245,14 @@ def radio(EPs):
         # Give channel
         EPs["OUT"].write(chr(0))
 
+        # Convert timeout to long word (32 bits)
+        bytes = toBytes(1000, 4)
+
         # Give timeout
-        EPs["OUT"].write(chr(1))
+        for b in bytes:
+
+            # Compute bits
+            EPs["OUT"].write(chr(b))
 
         # Read them
         bytes = read(EPs["IN"])
@@ -127,6 +274,7 @@ def radio(EPs):
 
             # Convert to string and print
             print bytes
+            print "".join(decode4x6(bytes[2:]))
 
 
 
@@ -184,6 +332,98 @@ def commands(EPs):
 
 
 
+def test():
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        TEST
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Test encoding 4x6
+    print encode4x6("A77991635D00C6")
+
+    # Test decoding 4x6
+    print decode4x6([169, 101, 153, 103, 25, 163, 148, 213, 85, 178, 101])
+
+
+
+def toBytes(x, n = None, sort = ">"):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        TOBYTES
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Only natural numbers
+    if x < 0 or int(x) != x:
+
+        # Raise error
+        raise ArithmeticError("Only natural numbers allowed.")
+
+    # Compute minimum number of bytes required (no byte would not make sense)
+    N = 1
+
+    # Loop until number is covered
+    while x >= 8 ** N:
+
+        # Increase it
+        N += 1
+
+    # If number of wanted bytes not given
+    if n is None:
+
+        # Assign it minimum required
+        n = N
+
+    # If it is too small though
+    elif n < N:
+
+        # Raise error
+        raise ArithmeticError("Minimum number of bytes required to represent " +
+                              str(x) + ": " + str(N))
+
+    # Print number in bytes
+    print "Number: " + str(bin(x))
+    print "Number of bytes: " + str(n)
+
+    # Initialize bytes
+    bytes = []
+
+    # Build bytes
+    for i in range(n):
+
+        # Compute ith byte
+        bytes.insert(0, (x & (0xFF << (8 * i))) >> (8 * i))
+
+    # Sort them
+    # From MSB to LSB
+    if sort == ">":
+
+        # Already sorted
+        pass
+
+    # From LSB to MSB
+    elif sort == "<":
+
+        # Sort
+        bytes.reverse()
+
+    # Otherwise
+    else:
+
+        # Raise error
+        raise NotImplementedError("Unknown sorting pattern.")
+
+    # Show them
+    print [bin(i) for i in bytes]
+
+    # Return them
+    return bytes
+
+
+
 def main():
 
     """
@@ -218,13 +458,19 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test radio
-    radio(EPs)
+    #radio(EPs)
 
     # Test register
     #register(EPs)
 
     # Test commands
     #commands(EPs)
+
+    # Test functions
+    #test()
+
+    # Test bytes function
+    toBytes(1000, 3)
 
 
 
