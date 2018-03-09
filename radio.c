@@ -320,9 +320,6 @@ void radio_receive(uint8_t channel, uint32_t timeout) {
     uint8_t byte = 0;
     uint8_t error = 0;
 
-    // Convert timeout from s to ms
-    timeout *= 1000;
-
     // Reset timer counter
     timer_counter_reset();
 
@@ -416,9 +413,6 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
     radio_tx_buffer_index = 0;
     radio_tx_underflow_count = 0;
 
-    // Convert delay from s to ms
-    delay *= 1000;
-
     // Put radio in idle state
     radio_state_idle();
 
@@ -432,7 +426,7 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
         if (radio_tx_buffer_size <= RADIO_MAX_PACKET_SIZE) {
 
             // Get byte
-            byte = usb_get_byte();
+            byte = usb_rx_byte();
         }
 
         // Overflow

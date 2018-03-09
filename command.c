@@ -8,7 +8,7 @@
 void command_get(void) {
 
 	// Read command
-	uint8_t cmd = usb_get_byte();
+	uint8_t cmd = usb_rx_byte();
 
 	// Switch LED
 	//led_switch();
@@ -56,7 +56,7 @@ void command_get(void) {
 void command_register_read(void) {
 
 	// Read register address and value
-	uint8_t addr = usb_get_byte();
+	uint8_t addr = usb_rx_byte();
 	uint8_t value = *radio_register(addr);
 
 	// Send register value to master
@@ -71,8 +71,8 @@ void command_register_read(void) {
 void command_register_write(void) {
 
 	// Read register address and value
-	uint8_t addr = usb_get_byte();
-	uint8_t value = usb_get_byte();
+	uint8_t addr = usb_rx_byte();
+	uint8_t value = usb_rx_byte();
 
 	// Write register value
 	*radio_register(addr) = value;
@@ -85,9 +85,9 @@ void command_register_write(void) {
 */
 void command_radio_receive(void) {
 
-	// Get channel and timeout (s)
-	uint8_t channel = usb_get_byte();
-	uint8_t timeout = usb_get_byte();
+	// Get channel and timeout (ms)
+	uint8_t channel = usb_rx_byte();
+	uint8_t timeout = usb_rx_long();
 
 	// Read bytes from radio
 	radio_receive(channel, timeout);
@@ -100,10 +100,10 @@ void command_radio_receive(void) {
 */
 void command_radio_send(void) {
 
-	// Get channel, repeat and delay (s)
-	uint8_t channel = usb_get_byte();
-	uint8_t repeat = usb_get_byte();
-	uint8_t delay = usb_get_byte();
+	// Get channel, repeat and delay (ms)
+	uint8_t channel = usb_rx_byte();
+	uint8_t repeat = usb_rx_byte();
+	uint8_t delay = usb_rx_long();
 
 	// Send bytes to radio
 	radio_send(channel, repeat, delay);
