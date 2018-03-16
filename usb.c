@@ -672,7 +672,7 @@ uint8_t usb_rx_byte(void) {
 uint16_t usb_rx_word(void) {
 
     // Build and return 2 bytes as word
-    return (usb_rx_byte() << 8) + usb_rx_byte();
+    return ((uint16_t) usb_rx_byte() << 8) + usb_rx_byte();
 }
 
 /*
@@ -684,7 +684,7 @@ uint16_t usb_rx_word(void) {
 uint32_t usb_rx_long(void) {
 
     // Build and return 4 bytes as long
-    return (usb_rx_word() << 16) + usb_rx_word();
+    return ((uint32_t) usb_rx_word() << 16) + usb_rx_word();
 }
 
 /*

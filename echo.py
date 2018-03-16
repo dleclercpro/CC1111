@@ -40,6 +40,82 @@ def getEP(configuration, direction, interface, setting = 0):
 
 
 
+def toBytes(x, n = None, sort = ">"):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        TOBYTES
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Only natural numbers
+    if x < 0 or int(x) != x:
+
+        # Raise error
+        raise ArithmeticError("Only natural numbers allowed.")
+
+    # Compute minimum number of bytes required (no byte would not make sense)
+    N = 1
+
+    # Loop until number is covered
+    while x >= 8 ** N:
+
+        # Increase it
+        N += 1
+
+    # If number of wanted bytes not given
+    if n is None:
+
+        # Assign it minimum required
+        n = N
+
+    # If it is too small though
+    elif n < N:
+
+        # Raise error
+        raise ArithmeticError("Minimum number of bytes required to represent " +
+                              str(x) + ": " + str(N))
+
+    # Print number in bytes
+    print "Number: " + str(bin(x))
+    print "Number of bytes: " + str(n)
+
+    # Initialize bytes
+    bytes = []
+
+    # Build bytes
+    for i in range(n):
+
+        # Compute ith byte
+        bytes.insert(0, (x & (0xFF << (8 * i))) >> (8 * i))
+
+    # Sort them
+    # From MSB to LSB
+    if sort == ">":
+
+        # Already sorted
+        pass
+
+    # From LSB to MSB
+    elif sort == "<":
+
+        # Sort
+        bytes.reverse()
+
+    # Otherwise
+    else:
+
+        # Raise error
+        raise NotImplementedError("Unknown sorting pattern.")
+
+    # Show them
+    print [bin(i) for i in bytes]
+
+    # Return them
+    return bytes
+
+
+
 def decode(bytes):
 
     """
@@ -332,11 +408,11 @@ def commands(EPs):
 
 
 
-def test():
+def test4by6():
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        TEST
+        TEST4BY6
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
@@ -348,79 +424,28 @@ def test():
 
 
 
-def toBytes(x, n = None, sort = ">"):
+def test(EPs):
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        TOBYTES
+        TEST
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
-    # Only natural numbers
-    if x < 0 or int(x) != x:
+    # Test command
+    EPs["OUT"].write(chr(99))
 
-        # Raise error
-        raise ArithmeticError("Only natural numbers allowed.")
+    # Write long word (32 bits)
+    EPs["OUT"].write(chr(4))
+    EPs["OUT"].write(chr(5))
+    EPs["OUT"].write(chr(6))
+    EPs["OUT"].write(chr(7))
 
-    # Compute minimum number of bytes required (no byte would not make sense)
-    N = 1
-
-    # Loop until number is covered
-    while x >= 8 ** N:
-
-        # Increase it
-        N += 1
-
-    # If number of wanted bytes not given
-    if n is None:
-
-        # Assign it minimum required
-        n = N
-
-    # If it is too small though
-    elif n < N:
-
-        # Raise error
-        raise ArithmeticError("Minimum number of bytes required to represent " +
-                              str(x) + ": " + str(N))
-
-    # Print number in bytes
-    print "Number: " + str(bin(x))
-    print "Number of bytes: " + str(n)
-
-    # Initialize bytes
-    bytes = []
-
-    # Build bytes
-    for i in range(n):
-
-        # Compute ith byte
-        bytes.insert(0, (x & (0xFF << (8 * i))) >> (8 * i))
-
-    # Sort them
-    # From MSB to LSB
-    if sort == ">":
-
-        # Already sorted
-        pass
-
-    # From LSB to MSB
-    elif sort == "<":
-
-        # Sort
-        bytes.reverse()
-
-    # Otherwise
-    else:
-
-        # Raise error
-        raise NotImplementedError("Unknown sorting pattern.")
-
-    # Show them
-    print [bin(i) for i in bytes]
-
-    # Return them
-    return bytes
+    # Read bytes
+    print "Reading: " + str(read(EPs["IN"]))
+    print "Reading: " + str(read(EPs["IN"]))
+    print "Reading: " + str(read(EPs["IN"]))
+    print "Reading: " + str(read(EPs["IN"]))
 
 
 
@@ -467,10 +492,10 @@ def main():
     #commands(EPs)
 
     # Test functions
-    #test()
+    test(EPs)
 
     # Test bytes function
-    toBytes(1000, 3)
+    #toBytes(1000, 3)
 
 
 
