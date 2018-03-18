@@ -211,21 +211,22 @@ def encode4x6(packet):
     """
 
     # Define conversion table
-    TABLE = ["010101", "110001", "110010", "100011", "110100", "100101",
-             "100110", "010110", "011010", "011001", "101010", "001011",
-             "101100", "001101", "001110", "011100"]
+    TABLE = [0b010101, 0b110001, 0b110010, 0b100011, 0b110100, 0b100101,
+             0b100110, 0b010110, 0b011010, 0b011001, 0b101010, 0b001011,
+             0b101100, 0b001101, 0b001110, 0b011100]
 
     # Initialize bits and bytes
-    bits = bytes = []
+    bits = []
+    bytes = []
 
     # Scan packet
-    for p in packet:
+    for b in [ord(p) for p in packet]:
 
         # Try converting
         try:
 
             # Build new bits
-            new = [TABLE[p >> 4], TABLE[p & 15]]
+            new = [TABLE[b >> 4], TABLE[b & 15]]
 
             # Convert them
             bits.extend(["{:06b}".format(x) for x in new])
