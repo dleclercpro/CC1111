@@ -77,11 +77,12 @@ def toBytes(x, n = None, sort = ">"):
                               str(x) + ": " + str(N))
 
     # Print number in bytes
-    print "Number: " + str(bin(x))
+    print "Number: " + str(x) + " (" + str(bin(x)) + ")"
     print "Number of bytes: " + str(n)
 
-    # Initialize bytes
+    # Initialize bytes and their string representation
     bytes = []
+    bytes_ = []
 
     # Build bytes
     for i in range(n):
@@ -108,8 +109,23 @@ def toBytes(x, n = None, sort = ">"):
         # Raise error
         raise NotImplementedError("Unknown sorting pattern.")
 
+    # Build their string representation
+    for b in bytes:
+
+        # Convert byte to string
+        byte = bin(b)[2:]
+
+        # Fill with zeros
+        while len(byte) != 8:
+
+            # Add zero upfront
+            byte = "0" + byte
+
+        # Append byte
+        bytes_.append(byte)
+
     # Show them
-    print [bin(i) for i in bytes]
+    print bytes_
 
     # Return them
     return bytes
@@ -238,39 +254,9 @@ def encode4x6(packet):
     # Return bytes
     return bytes
 
-    # # Try converting
-    # try:
-
-    #     # Convert packet to bits
-    #     bits = [TABLE[int(x, 16)] for x in packet]
-
-    # # If error
-    # except ValueError:
-
-    #     # Skip
-    #     print "Error while converting packet."
-
-    # # Join them all together
-    # bits = "".join(bits)
-
-    # # Scan bits
-    # while bits:
-
-    #     # Get byte and shorten bits
-    #     byte, bits = bits[:8], bits[8:]
-
-    #     # Convert byte to decimal value
-    #     byte = int(byte, 2)
-
-    #     # Store byte
-    #     bytes.append(byte)
-
-    # # Return bytes
-    # return bytes
 
 
-
-def read(EP):
+def read(EP, timeout = 1500):
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -288,7 +274,7 @@ def read(EP):
     while True:
 
         # Read, decode, and append new bytes
-        bytes += EP.read(n, timeout = 1500)
+        bytes += EP.read(n, timeout = timeout)
 
         # Exit condition
         if bytes[-1] == 0:
@@ -304,7 +290,20 @@ def read(EP):
 
 
 
-def radio(EPs):
+def write(EP, byte):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        WRITE
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Write byte to EP
+    EP.write(chr(byte))
+
+
+
+def radio(EPs, timeout = 1000):
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -312,26 +311,29 @@ def radio(EPs):
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
+    # Convert timeout to bytes
+    timeout_ = toBytes(timeout, 4)
+
+    # Increase timeout (1s) at EP to make sure radio is done
+    timeout += 1000
+
     # Test data EPs
     while True:
     
         # Write byte
-        EPs["OUT"].write(chr(50))
+        write(EPs["OUT"], 50)
 
         # Give channel
-        EPs["OUT"].write(chr(0))
+        write(EPs["OUT"], 0)
 
-        # Convert timeout to long word (32 bits)
-        bytes = toBytes(1000, 4)
-
-        # Give timeout
-        for b in bytes:
+        # Give timeout as long word (32 bits)
+        for t in timeout_:
 
             # Compute bits
-            EPs["OUT"].write(chr(b))
+            write(EPs["OUT"], t)
 
-        # Read them
-        bytes = read(EPs["IN"])
+        # Read response
+        bytes = read(EPs["IN"], timeout)
 
         # If timeout error
         if bytes[-1] == 0xAA:
@@ -363,20 +365,20 @@ def register(EPs):
     """
 
     # Read register
-    EPs["OUT"].write(chr(2))
-    EPs["OUT"].write(chr(0))
+    write(EPs["OUT"], 2)
+    write(EPs["OUT"], 0)
 
     # Read bytes
     print "Reading: " + str(read(EPs["IN"]))
 
     # Write to register
-    EPs["OUT"].write(chr(3))
-    EPs["OUT"].write(chr(0))
-    EPs["OUT"].write(chr(100))
+    write(EPs["OUT"], 3)
+    write(EPs["OUT"], 0)
+    write(EPs["OUT"], 100)
 
     # Read register
-    EPs["OUT"].write(chr(2))
-    EPs["OUT"].write(chr(0))
+    write(EPs["OUT"], 2)
+    write(EPs["OUT"], 0)
 
     # Read bytes
     print "Reading: " + str(read(EPs["IN"]))
@@ -398,7 +400,7 @@ def commands(EPs):
     for i in commands:
 
         # Write byte
-        EPs["OUT"].write(chr(i))
+        write(EPs["OUT"], i)
 
         # Read bytes
         bytes = read(EPs["IN"])
@@ -408,11 +410,11 @@ def commands(EPs):
 
 
 
-def test4by6():
+def test4x6():
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        TEST4BY6
+        TEST4X6
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
 
@@ -433,19 +435,25 @@ def test(EPs):
     """
 
     # Test command
-    EPs["OUT"].write(chr(99))
+    write(EPs["OUT"], 99)
 
-    # Write long word (32 bits)
-    EPs["OUT"].write(chr(4))
-    EPs["OUT"].write(chr(5))
-    EPs["OUT"].write(chr(6))
-    EPs["OUT"].write(chr(7))
+    # Write long word (32 bits) from MSB to LSB
+    for t in [255, 155, 60, 75]:
+
+        # Compute bits
+        write(EPs["OUT"], t)
+
+    # Initialize them
+    bytes = []
 
     # Read bytes
-    print "Reading: " + str(read(EPs["IN"]))
-    print "Reading: " + str(read(EPs["IN"]))
-    print "Reading: " + str(read(EPs["IN"]))
-    print "Reading: " + str(read(EPs["IN"]))
+    for i in range(4):
+
+        # Append current byte
+        bytes.extend(read(EPs["IN"]))
+
+    # Show them
+    print "Read: " + str(bytes)
 
 
 
@@ -483,7 +491,7 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test radio
-    #radio(EPs)
+    #radio(EPs, 200)
 
     # Test register
     #register(EPs)
@@ -492,10 +500,10 @@ def main():
     #commands(EPs)
 
     # Test functions
-    test(EPs)
+    #test(EPs)
 
-    # Test bytes function
-    #toBytes(1000, 3)
+    # Test encoding
+    test4x6()
 
 
 

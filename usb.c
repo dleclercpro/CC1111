@@ -558,33 +558,18 @@ void usb_tx_byte(uint8_t byte) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     USB_TX_BYTES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Send a series of bytes to master.
+    Send a series of bytes to master. Won't work if more than 256 bytes!
 */
-void usb_tx_bytes(uint8_t *bytes) {
+void usb_tx_bytes(uint8_t *bytes, uint8_t size) {
 
-    // Initialize byte count and current byte
+    // Initialize byte count
     uint8_t n = 0;
-    uint8_t byte = 0;
 
     // Write bytes
-    while (1) {
+    while (size--) {
 
-        // Read current byte and update count
-        byte = bytes[n++];
-
-        // If end-of-bytes
-        if (byte == 0) {
-
-            // Exit
-            break;
-        }
-
-        // Otherwise
-        else {
-
-            // Put current byte
-            usb_put_byte(byte);
-        }
+        // Send current byte and update count
+        usb_put_byte(bytes[n++]);
     }
 
     // Flush them

@@ -15,12 +15,12 @@ void command_get(void) {
 
 		// Get product
 		case 0:
-			usb_tx_bytes("CC1111");
+			usb_tx_bytes("CC1111", 6);
 			break;
 
 		// Get author
 		case 1:
-			usb_tx_bytes("keinechterdeutscher@gmail.com");
+			usb_tx_bytes("keinechterdeutscher@gmail.com", 29);
 			break;
 
 		// Get register
@@ -45,7 +45,7 @@ void command_get(void) {
 
 		// Default (no command)
 		default:
-			usb_tx_bytes("N/A");
+			usb_tx_bytes("N/A", 3);
 			break;
 	}
 }

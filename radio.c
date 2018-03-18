@@ -320,9 +320,6 @@ void radio_receive(uint8_t channel, uint32_t timeout) {
     uint8_t byte = 0;
     uint8_t error = 0;
 
-    // Reset timer counter
-    timer_counter_reset();
-
     // Put radio in idle state
     radio_state_idle();
 
@@ -334,6 +331,9 @@ void radio_receive(uint8_t channel, uint32_t timeout) {
 
     // Put radio in receive state
     radio_state_receive();
+
+    // Reset timer counter
+    timer_counter_reset();
 
     // Loop parallel to RF ISRs and react when new bytes are received
     while (1) {
@@ -387,7 +387,7 @@ void radio_receive(uint8_t channel, uint32_t timeout) {
     if (error == 0) {
 
         // Send bytes to master
-        usb_tx_bytes(radio_rx_buffer);
+        usb_tx_bytes(radio_rx_buffer, radio_rx_buffer_size);
     }
 
     // Otherwise
