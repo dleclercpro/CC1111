@@ -339,14 +339,20 @@ def radio(EPs, timeout = 1000):
         # If timeout error
         if bytes[-1] == 0xAA:
 
-            # Convert to string and print
+            # Show error
             print "Timeout."
 
         # If no data error
         elif bytes[-1] == 0xBB:
 
-            # Convert to string and print
+            # Show error
             print "No data."
+
+        # If reading overflow
+        elif bytes[-1] == 0xCC:
+
+            # Show error
+            print "RX overflow."
 
         # Otherwise
         else:
