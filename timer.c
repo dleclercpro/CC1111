@@ -62,6 +62,23 @@ void timer_counter_reset(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    TIMER_WAIT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Wait for given delay (ms).
+*/
+void timer_wait(uint32_t delay) {
+
+    // Reset timer counter
+    timer_counter_reset();
+
+    // Delay
+    while (timer_counter < delay) {
+        NOP();
+    }
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     TIMER_ISR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Note: CPU interrupt flag automatically cleared by hardware on ISR entry.

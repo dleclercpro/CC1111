@@ -465,13 +465,8 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
         // If delay
         if (delay > 0) {
 
-            // Reset timer counter
-            timer_counter_reset();
-
-            // Delay
-            while (timer_counter < delay) {
-                NOP();
-            }
+            // Wait
+            timer_wait(delay);
         }
 
         // Reset buffer index and underflow count
