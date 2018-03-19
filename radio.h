@@ -26,7 +26,6 @@
 // Radio errors
 #define RADIO_ERROR_TIMEOUT  0xAA
 #define RADIO_ERROR_NO_DATA  0xBB
-#define RADIO_ERROR_OVERFLOW 0xCC
 
 void radio_init(void);
 void radio_enable_interrupts(void);

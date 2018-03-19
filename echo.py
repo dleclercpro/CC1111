@@ -77,8 +77,8 @@ def toBytes(x, n = None, sort = ">"):
                               str(x) + ": " + str(N))
 
     # Print number in bytes
-    print "Number: " + str(x) + " (" + str(bin(x)) + ")"
-    print "Number of bytes: " + str(n)
+    #print "Number: " + str(x) + " (" + str(bin(x)) + ")"
+    #print "Number of bytes: " + str(n)
 
     # Initialize bytes and their string representation
     bytes = []
@@ -125,7 +125,7 @@ def toBytes(x, n = None, sort = ">"):
         bytes_.append(byte)
 
     # Show them
-    print bytes_
+    #print bytes_
 
     # Return them
     return bytes
@@ -348,18 +348,12 @@ def radio(EPs, timeout = 1000):
             # Show error
             print "No data."
 
-        # If reading overflow
-        elif bytes[-1] == 0xCC:
-
-            # Show error
-            print "RX overflow."
-
         # Otherwise
         else:
 
             # Convert to string and print
             print bytes
-            print "".join(decode4x6(bytes[2:]))
+            #print "".join(decode4x6(bytes[2:]))
 
 
 
@@ -498,7 +492,7 @@ def main():
            "OUT": getEP(config, "OUT", 0)}
 
     # Test radio
-    #radio(EPs, 200)
+    radio(EPs, 1000)
 
     # Test register
     #register(EPs)
@@ -510,7 +504,7 @@ def main():
     #test(EPs)
 
     # Test encoding
-    test4x6()
+    #test4x6()
 
 
 

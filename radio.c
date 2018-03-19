@@ -8,9 +8,6 @@ __xdata static uint8_t radio_tx_buffer[RADIO_MAX_PACKET_SIZE] = {0};
 static uint8_t radio_rx_buffer_size = 0;
 static uint8_t radio_tx_buffer_size = 0;
 
-// Initialize reading error
-static uint8_t radio_rx_error = 0;
-
 // Initialize data buffer index
 static uint8_t radio_tx_buffer_index = 0;
 
@@ -318,9 +315,10 @@ uint8_t * radio_register(uint8_t addr) {
 */
 uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
 
-    // Initialize byte count and current byte
+    // Initialize byte count, current byte, and error
     uint8_t n = 0;
     uint8_t byte = 0;
+    uint8_t error = 0;
 
     // Put radio in idle state
     radio_state_idle();
@@ -340,21 +338,14 @@ uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
     // Loop parallel to RF ISRs and react when new bytes are received
     while (1) {
 
-        // If overflow
-        if (radio_rx_error == RADIO_ERROR_OVERFLOW) {
-
-            // Exit
-            break;
-        }
-
         // If new unread byte(s)
-        else if (radio_rx_buffer_size > n) {
+        if (radio_rx_buffer_size > n) {
 
             // Check for absence of data
             if (n == 0 && radio_rx_buffer_size > 2 && radio_rx_buffer[2] == 0) {
 
                 // Assign no data error
-                radio_rx_error = RADIO_ERROR_NO_DATA;
+                error = RADIO_ERROR_NO_DATA;
 
                 // Exit
                 break;
@@ -381,7 +372,7 @@ uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
             if (timeout > 0 && timer_counter > timeout) {
 
                 // Assign timeout error
-                radio_rx_error = RADIO_ERROR_TIMEOUT;
+                error = RADIO_ERROR_TIMEOUT;
 
                 // Exit
                 break;
@@ -393,14 +384,14 @@ uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
     radio_state_idle();
 
     // If no error
-    if (radio_rx_error == 0) {
+    if (error == 0) {
 
         // Send bytes to master
         usb_tx_bytes(radio_rx_buffer, radio_rx_buffer_size);
     }
 
     // Return error
-    return radio_rx_error;
+    return error;
 }
 
 /*
@@ -550,9 +541,7 @@ void radio_rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
 
             // Overflow
             else {
-                
-                // Assign error
-                radio_rx_error = RADIO_ERROR_OVERFLOW;
+                NOP();
             }
 
             // Exit
