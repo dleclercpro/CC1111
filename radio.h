@@ -21,7 +21,7 @@
 #define RADIO_LOCALE    RADIO_LOCALE_NA
 
 // Max packet size
-#define RADIO_MAX_PACKET_SIZE 192
+#define RADIO_MAX_PACKET_SIZE 248
 
 // Radio errors
 #define RADIO_ERROR_TIMEOUT 0xAA
