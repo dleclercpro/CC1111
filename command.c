@@ -87,12 +87,22 @@ void command_register_write(void) {
 */
 void command_radio_receive(void) {
 
+	// Initialize radio error
+	uint8_t error = 0;
+
 	// Get channel and timeout (ms)
 	uint8_t channel = usb_rx_byte();
 	uint32_t timeout = usb_rx_long();
 
-	// Read bytes from radio
-	radio_receive(channel, timeout);
+	// Read bytes from radio and get error if there is one
+	error = radio_receive(channel, timeout);
+
+	// If error
+	if (error != 0) {
+
+        // Send error to master
+        usb_tx_byte(error);
+	}
 }
 
 /*
@@ -127,9 +137,35 @@ void command_radio_send_receive(void) {
 	uint8_t rx_channel = usb_rx_byte();
 	uint32_t rx_timeout = usb_rx_long();
 
+	// Initialize radio error and retry count
+	uint8_t error = 0;
+	uint8_t retry = usb_rx_byte();
+
 	// Send bytes to then receive some from radio
 	radio_send(tx_channel, tx_repeat, tx_delay);
-	radio_receive(rx_channel, rx_timeout);
+
+	// Read bytes from radio and get error if there is one
+	error = radio_receive(rx_channel, rx_timeout);
+
+	// Retry until no timeout and no retries left
+	while (error == RADIO_ERROR_TIMEOUT && retry > 0) {
+
+		// Resend packet in TX buffer
+		radio_resend();
+
+		// Read bytes from radio and get error if there is one
+		error = radio_receive(rx_channel, rx_timeout);
+
+		// Decrease retry count
+		retry--;
+	}
+
+	// If error
+	if (error != 0) {
+
+        // Send error to master
+        usb_tx_byte(error);
+	}
 }
 
 /*

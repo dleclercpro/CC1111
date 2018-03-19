@@ -313,7 +313,7 @@ uint8_t * radio_register(uint8_t addr) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Timeout input given in s.
 */
-void radio_receive(uint8_t channel, uint32_t timeout) {
+uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
 
     // Initialize byte count, current byte, and error
     uint8_t n = 0;
@@ -390,12 +390,8 @@ void radio_receive(uint8_t channel, uint32_t timeout) {
         usb_tx_bytes(radio_rx_buffer, radio_rx_buffer_size);
     }
 
-    // Otherwise
-    else {
-
-        // Send error to master
-        usb_tx_byte(error);
-    }
+    // Return error
+    return error;
 }
 
 /*
@@ -408,16 +404,16 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
     // Initialize byte to send
     uint8_t byte = 0;
 
-    // Reset buffer size and index as well as underflow count
-    radio_tx_buffer_size = 0;
-    radio_tx_buffer_index = 0;
-    radio_tx_underflow_count = 0;
-
     // Put radio in idle state
     radio_state_idle();
 
     // Set channel
     CHANNR = channel;
+
+    // Reset buffer size and index as well as underflow count
+    radio_tx_buffer_size = 0;
+    radio_tx_buffer_index = 0;
+    radio_tx_underflow_count = 0;
 
     // Fill buffer
     while (1) {
@@ -479,6 +475,27 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
         // Wait until packet is transmitted
         radio_state_wait_idle();
     }
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    RADIO_RESEND
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void radio_resend(void) {
+
+    // Put radio in idle state
+    radio_state_idle();
+
+    // Reset buffer index as well as underflow count
+    radio_tx_buffer_index = 0;
+    radio_tx_underflow_count = 0;
+
+    // Put radio in transmit state
+    radio_state_transmit();
+
+    // Wait until packet is transmitted
+    radio_state_wait_idle();
 }
 
 /*
