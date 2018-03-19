@@ -10,6 +10,7 @@ void command_register_read(void);
 void command_register_write(void);
 void command_radio_receive(void);
 void command_radio_send(void);
+void command_radio_send_receive(void);
 void command_test(void);
 
 #endif

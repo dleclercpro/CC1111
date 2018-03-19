@@ -113,6 +113,27 @@ void command_radio_send(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    COMMAND_RADIO_SEND_RECEIVE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void command_radio_send_receive(void) {
+
+	// Get channel, repeat and delay (ms) for sending part
+	uint8_t tx_channel = usb_rx_byte();
+	uint8_t tx_repeat = usb_rx_byte();
+	uint32_t tx_delay = usb_rx_long();
+
+	// Get channel and timeout (ms) for receiving part
+	uint8_t rx_channel = usb_rx_byte();
+	uint32_t rx_timeout = usb_rx_long();
+
+	// Send bytes to then receive some from radio
+	radio_send(tx_channel, tx_repeat, tx_delay);
+	radio_receive(rx_channel, rx_timeout);
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     COMMAND_TEST
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
