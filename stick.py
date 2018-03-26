@@ -62,7 +62,7 @@ class Stick(object):
         self.link = None
 
         # Initialize configuration
-        self.cfg = None
+        self.config = None
 
         # Initialize endpoints
         self.EPs = {"EP0": None,
@@ -119,11 +119,11 @@ class Stick(object):
         self.link.set_configuration()
 
         # Get configuration
-        self.cfg = self.link.get_active_configuration()
+        self.config = self.link.get_active_configuration()
 
         # Get EPs
-        self.EPs["OUT"] = lib.getEP(self.cfg, "OUT")
-        self.EPs["IN"] = lib.getEP(self.cfg, "IN")
+        self.EPs["OUT"] = lib.getEP(self.config, "OUT")
+        self.EPs["IN"] = lib.getEP(self.config, "IN")
 
 
 
