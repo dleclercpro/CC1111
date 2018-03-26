@@ -4,7 +4,7 @@
 """
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Title:    stick
+    Title:    lib
 
     Author:   David Leclerc
 
@@ -15,11 +15,8 @@
     License:  GNU General Public License, Version 3
               (http://www.gnu.org/licenses/gpl.html)
 
-    Overview: This is a script that allows the creation of a Stick instance,
-              which can be used to communicate with a Medtronic MiniMed insulin
-              pump using a Texas Instruments CC1111 USB stick. It uses the PyUSB
-              library and is based on the reverse-engineering of Carelink USB
-              from Medtronic.
+    Overview: This is a script that contains user-defined functions that come in
+              handy when dealing with the PyUSB library, bits, and bytes.
 
     Notes:    ...
 
