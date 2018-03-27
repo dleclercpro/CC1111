@@ -114,8 +114,7 @@ def getByte(x, n):
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         GETBYTE
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        This is a function that extracts the nth byte of a number x (1 byte =
-        8 bits = 256 states).
+        This is a function that extracts the byte in position n of a integer x.
     """
 
     return (x >> (8 * n)) & 0xFF

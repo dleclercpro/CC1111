@@ -164,6 +164,94 @@ class Stick(object):
 
 
 
+    def readRadioRegister(self, register):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            READRADIOREGISTER
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Command
+        self.write(2)
+
+        # Define register address
+        self.write(register)
+
+        # Read value
+        value = self.read()[0]
+
+        # Update its value
+        print "Register " + str(register) + ": " + str(value)
+
+        # Return value
+        return value
+
+
+
+    def writeRadioRegister(self, register, value):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            WRITERADIOREGISTER
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Command
+        self.write(3)
+
+        # Define register address
+        self.write(register)
+
+        # Update its value
+        self.write(value)
+
+
+
+    def tune(self, f):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            TUNE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Tune radio to given frequency in MHz.
+        """
+
+        # Info
+        print "Tuning radio to: " + str(f) + " MHz"
+
+        # Define reference frequency for CC1111 (MHz)
+        F = 24.0
+
+        # Convert frequency to corresponding value (according to datasheet)
+        f = int(round(f * (2 ** 16) / F))
+
+        # Convert to set of 3 bytes
+        bytes = [lib.getByte(f, x) for x in reversed(range(3))]
+
+        # Define corresponding registers
+        registers = [32, 33, 34]
+
+        # Update registers
+        for i in range(3):
+
+            # Write to register
+            self.writeRadioRegister(registers[i], bytes[i])
+
+        # Double check registers
+        for i in range(3):
+
+            # If mismatch
+            if self.readRadioRegister(registers[i]) != bytes[i]:
+
+                # Raise error
+                raise IOError("Registers not updated correctly.")
+
+        # Info
+        print "Radio tuned."
+
+
+
     def listen(self, timeout = 1000):
 
         """
@@ -174,7 +262,7 @@ class Stick(object):
         """
 
         # Convert timeout to bytes
-        timeoutReceive = lib.pack(timeout, 4)
+        timeoutRX = lib.pack(timeout, 4)
 
         # Increase timeout (1s) at EP to make sure radio is done
         timeout += 1000
@@ -189,7 +277,7 @@ class Stick(object):
             self.write(0)
 
             # Give timeout as long word (32 bits)
-            for t in timeoutReceive:
+            for t in timeoutRX:
 
                 # Compute bits
                 self.write(t)
@@ -211,25 +299,26 @@ class Stick(object):
 
 
 
-    def sendAndListen(self, bytes, timeout = 1000):
+    def sendListen(self, bytes, timeout = 1000):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            SENDANDLISTEN
+            SENDLISTEN
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             Listen to incoming packets on radio, using a given timeout.
         """
 
         # Define arguments
         command = 6
-        channelSend = 0
-        channelReceive = 0
-        repeatSend = 0
-        repeatDelay = lib.pack(0, 4)
-        timeoutReceive = lib.pack(timeout, 4)
-        retry = 5
+        channelTX = 0
+        channelRX = 0
+        timeoutRX = lib.pack(timeout, 4)
+        repeatTXDelay = lib.pack(0, 4)
+        repeatTX = 1
+        retry = 2
 
-        # Increase timeout (1s) at EP to make sure radio is done
+        # Adjust timeout based on number of trials and give some slack (1s) at
+        # EP to make sure radio is done
         timeout *= 1 + retry
         timeout += 1000
 
@@ -237,20 +326,20 @@ class Stick(object):
         self.write(command)
 
         # Give TX channel and repeat
-        self.write(channelSend)
-        self.write(repeatSend)
+        self.write(channelTX)
+        self.write(repeatTX)
 
         # Give delay as long word (32 bits)
-        for d in repeatDelay:
+        for d in repeatTXDelay:
 
             # Write byte
             self.write(d)
 
         # Give RX channel
-        self.write(channelReceive)
+        self.write(channelRX)
 
         # Give timeout as long word (32 bits)
-        for t in timeoutReceive:
+        for t in timeoutRX:
 
             # Write byte
             self.write(t)
@@ -258,17 +347,25 @@ class Stick(object):
         # Give retry count
         self.write(retry)
 
-        # Send bytes
+        # Info
         print "Sending bytes..."
+
+        # Send bytes
         for b in bytes:
 
             # Write byte
             self.write(b)
+        
+        # Info
         print "Bytes sent."
 
-        # Read response
+        # Info
         print "Waiting for response..."
+
+        # Read response
         bytes = self.read(timeout = timeout)
+        
+        # Info
         print "Response received."
 
         # Look for possible error
@@ -302,11 +399,14 @@ def main():
     # Configure it
     stick.configure()
 
+    # Tune radio
+    stick.tune(916.660)
+
     # Listen to radio
     #stick.listen()
 
     # Send and listen to radio
-    stick.sendAndListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 160, 0])
+    #stick.sendListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 160, 0])
 
 
 

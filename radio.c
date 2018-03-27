@@ -166,7 +166,7 @@ void radio_configure(void) {
         FREQ2     = 0x26;
         FREQ1     = 0x30;
         FREQ0     = 0x70;
-        CHANNR    = 0x02;
+        CHANNR    = 0x00;
         PA_TABLE1 = 0xC0;
 
     // Worldwide (WW)
