@@ -195,7 +195,7 @@ class Packet(object):
         R = self.length["Encoded"] / n + int(N != 0)
 
         # Info
-        print "-- Bytes [Encoded] --"
+        print "Encoded bytes:"
 
         # Print formatted response
         for r in range(R):
@@ -233,7 +233,7 @@ class Packet(object):
         self.format()
 
         # Info
-        print "-- Bytes [Decoded] --"
+        print "Decoded bytes:"
 
         # Print formatted response
         for r in range(R):
@@ -273,8 +273,7 @@ class Packet(object):
         """
 
         # Info
-        print "-- PACKET --"
-        print "-- Characteristics --"
+        print "Characteristics:"
 
         # Show characteristics
         print "Type: " + str(self.type)

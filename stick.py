@@ -33,6 +33,7 @@ import usb
 
 # USER LIBRARIES
 import lib
+import errors
 import packets
 
 
@@ -349,25 +350,28 @@ class Stick(object):
         self.write(retry)
 
         # Info
-        print "Sending bytes..."
+        #print "Sending bytes..."
 
         # Send bytes
         for b in bytes:
 
             # Write byte
             self.write(b)
+
+        # Send last byte
+        self.write(0)
         
         # Info
-        print "Bytes sent."
+        #print "Bytes sent."
 
         # Info
-        print "Waiting for response..."
+        #print "Waiting for response..."
 
         # Read response
         bytes = self.read(timeout = timeout)
         
         # Info
-        print "Response received."
+        #print "Response received."
 
         # Look for possible error
         if bytes[-1] in self.errors["Radio"]:
@@ -379,13 +383,63 @@ class Stick(object):
         else:
 
             # Parse packet (remove EOP zero)
-            index, signal, bytes = bytes[0], bytes[1], bytes[2:-1]
+            index = bytes[0]
+            signal = bytes[1]
+            content = bytes[2:-1]
 
             # Create packet
-            packet = packets.Packet(bytes)
+            packet = packets.Packet(content)
 
             # Show content
             packet.show()
+
+            # Update content with decoded version
+            content = packet.bytes["Decoded"]["Int"]
+
+            # Get op code
+            code = content[4]
+
+            # Compute CRC
+            expectedCRC = lib.computeCRC8(content[:-1])
+
+            # Get CRC
+            CRC = content[-1]
+
+            # Verify CRC
+            if CRC != expectedCRC:
+
+                # Raise error
+                raise errors.InvalidPacketBadCRC(expectedCRC, CRC)
+
+            # Get payload
+            payload = []
+
+            # Initialize index
+            i = 5
+
+            # Go through content
+            while True:
+
+                # Current byte
+                byte = content[i]
+
+                # No zero allowed
+                if byte == 0:
+
+                    # Exit
+                    break
+
+                # Add byte to payload
+                payload.append(byte)
+
+                # Increment
+                i += 1
+
+            # Show
+            print "Code: " + str(code)
+            print "CRC: " + str(CRC)
+            print "Expected CRC: " + str(expectedCRC)
+            print "Payload: " + str(payload)
 
 
 
@@ -412,8 +466,33 @@ def main():
     # Listen to radio
     #stick.listen()
 
-    # Send and listen to radio
-    stick.sendListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 160, 0])
+    # Define operation packets
+    pkts = {
+        "Time": packets.Packet(["A7", "79", "91", "63", "70", "00", "55"]),
+        "Model": packets.Packet(["A7", "79", "91", "63", "8D", "00", "C8"]),
+        "Firmware": packets.Packet(["A7", "79", "91", "63", "74", "00", "0D"]),
+        "Battery": packets.Packet(["A7", "79", "91", "63", "72", "00", "79"]),
+        "Reservoir": packets.Packet(["A7", "79", "91", "63", "73", "00", "6F"]),
+        "Status": packets.Packet(["A7", "79", "91", "63", "CE", "00", "28"]),
+    }
+
+    # Go through them
+    for name, pkt in sorted(pkts.iteritems()):
+
+        # Info
+        print "-- " + name + " --"
+
+        # Try
+        try:
+
+            # Send and listen to radio
+            stick.sendListen(pkt.bytes["Encoded"])
+
+        # Except
+        except errors.InvalidPacketUnmatchedBits:
+
+            # Info
+            print "Corrupt packet."
 
 
 

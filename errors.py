@@ -150,3 +150,19 @@ class InvalidPacketMissingBits(StickError):
         # Define error info
         self.info = ("Impossible to encode number of bytes which isn't a " +
                      "multiple of 8: " + self.args[0])
+
+
+
+class InvalidPacketBadCRC(StickError):
+
+    def prepare(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PREPARE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Define error info
+        self.info = ("Bad CRC (corrupted packet): expected " + self.args[0] +
+                     ", got " + self.args[1])
