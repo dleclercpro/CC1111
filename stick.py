@@ -26,16 +26,6 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
-# NOTES
-# Packet example: power down
-#  A7: RF type (pump comms)
-#  79 91 63: pump serial number
-#  5D: op code
-#  00: parameters
-#  C6: CRC
-
-
-
 # LIBRARIES
 import usb
 
@@ -69,9 +59,9 @@ class Stick(object):
                     "OUT": None,
                     "IN": None}
 
-        # Define IDs
-        self.IDs = {"Vendor": 0x0451,
-                    "Product": 0x16A7}
+        # Define USB IDs
+        self.vendor = 0x0451
+        self.product = 0x16A7
 
         # Define errors
         self.errors = {"Radio": {0xAA: "Timeout",
@@ -89,8 +79,8 @@ class Stick(object):
         """
 
         # Find stick
-        self.link = usb.core.find(idVendor = self.IDs["Vendor"],
-                                  idProduct = self.IDs["Product"])
+        self.link = usb.core.find(idVendor = self.vendor,
+                                  idProduct = self.product)
 
         # No stick found
         if self.link is None:
@@ -99,10 +89,10 @@ class Stick(object):
             raise IOError("No stick found. Are you sure it's plugged in?")
 
         # Otherwise
-        else:
+        #else:
 
             # Show stick
-            print stick
+            #print self.link
 
 
 
@@ -127,7 +117,7 @@ class Stick(object):
 
 
 
-    def read(n = 64, timeout = 1000):
+    def read(self, n = 64, timeout = 1000):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -160,7 +150,7 @@ class Stick(object):
 
 
 
-    def write(byte = 0):
+    def write(self, byte = 0):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -175,7 +165,7 @@ class Stick(object):
 
 
 
-    def listen(timeout = 1000):
+    def listen(self, timeout = 1000):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -185,7 +175,7 @@ class Stick(object):
         """
 
         # Convert timeout to bytes
-        timeoutRadio = lib.natToBytes(timeout, 4)
+        timeoutRadio = lib.pack(timeout, 4)
 
         # Increase timeout (1s) at EP to make sure radio is done
         timeout += 1000
