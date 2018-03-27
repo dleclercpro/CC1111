@@ -87,18 +87,6 @@ class BaseError(Exception):
 class StickError(BaseError):
     pass
 
-class PumpError(BaseError):
-    pass
-
-class CGMError(BaseError):
-    pass
-
-class ReporterError(BaseError):
-    pass
-
-class ProfileError(BaseError):
-    pass
-
 
 
 # Stick errors

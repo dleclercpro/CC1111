@@ -29,6 +29,7 @@ import math
 
 
 # USER LIBRARIES
+import lib
 import errors
 
 
@@ -42,170 +43,464 @@ TABLE = ["010101", "110001", "110010", "100011", # 0 1 2 3
 
 
 
-def format(packet, n = 2):
+# CLASSES
+class Packet(object):
 
-    """
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        FORMAT
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        This formats a packet (of type string) by regrouping characters in
-        groups of n, which are then returned as a whole string.
-    """
+    def __init__(self, bytes = None):
 
-    # Make sure there are no spaces
-    packet = packet.replace(" ", "")
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Initialize packet properties.
+        """
 
-    # Compute number of character groups of n length
-    N = int(math.ceil(len(packet) / float(n)))
+        # Initialize characteristics
+        self.type = "A7"
+        self.serial = ["79", "91", "63"]
+        self.code = None
+        self.parameters = []
+        self.CRC = None
 
-    # Return said groups with spaces in between
-    return " ".join([packet[(n * i):(n * (i + 1))] for i in range(0, N)])
+        # Initialize lengths
+        self.length = {"Encoded": 0,
+                       "Decoded": 0}
 
+        # Initialize various formats
+        self.bytes = {"Encoded": [],
+                      "Decoded": {"Str": [],
+                                  "Hex": [],
+                                  "Chr": []}}
 
+        # If bytes given
+        if bytes is not None:
 
-def decode(bytes):
+            # If given as list
+            if type(bytes) == list:
 
-    """
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        DECODE
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        This decodes a raw packet received by CC1111 USB stick. It converts
-        received bytes to a long bit-string, then uses a given table and decodes
-        every 6-bit word in said string, starting from the beginning.
-    """
+                # If encoded
+                if type(bytes[0]) == int:
 
-    # Show bytes
-    #print "Decoding: " + str(bytes)
+                    # Store bytes
+                    self.bytes["Encoded"] = bytes
 
-    # Convert bytes to long bit-string
-    bits = "".join(["{:08b}".format(x) for x in bytes])
+                    # Decode them
+                    self.decode()
 
-    # Show it
-    #print "Bits: " + bits
+                # If decoded (only hex format)
+                elif type(bytes[0]) == str:
 
-    # Initialize packet
-    packet = []
+                    # Store bytes
+                    self.bytes["Decoded"]["Hex"] = bytes
 
-    # Scan bits
-    while bits:
+                    # Format them
+                    self.format()
 
-        # Get 6-bits word and shorten rest of bits
-        word, bits = bits[:6], bits[6:]
+                    # Encode them
+                    self.encode()
 
-        # Show word
-        #print word
+                # Otherwise
+                else:
 
-        # End-of-packet
-        if word == "000000":
+                    # Bad input
+                    raise TypeError("Bad packet format: could not decide if " +
+                                    "given encoded or decoded.")
 
-            # Exit
-            break
-
-        # Try converting
-        try:
-
-            # Decode word using conversion table (as hexadecimal value)
-            word = TABLE.index(word)
-
-            # Format it
-            word = hex(word)[-1].upper()
-
-            # Store word
-            packet.append(word)
-
-        # If error
-        except ValueError:
-
-            # If bits within packet
-            if bits != "":
-
-                # Raise error
-                raise errors.InvalidPacketUnmatchedBits(word)
-
-            # If last bits
+            # Otherwise
             else:
 
-                # If they do not fit
-                if word != "0101":
+                # Bad input
+                raise TypeError("Bad packet type given as input: has to be a " +
+                                "list.")
+
+
+
+    def measure(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            MEASURE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Measure packet length.
+        """
+
+        # Measure lengths
+        self.length["Encoded"] = len(self.bytes["Encoded"])
+        self.length["Decoded"] = len(self.bytes["Decoded"]["Hex"])
+
+
+
+    def format(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            FORMAT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Convert decoded packet to various formats.
+        """
+
+        # Dehexify
+        self.dehexify()
+
+        # Charify
+        self.charify()
+
+
+
+    def dehexify(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DEHEXIFY
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Interpret decoded bytes in string format as hexadecimal values and
+            store them.
+        """
+
+        # Convert string
+        self.bytes["Decoded"]["Int"] = lib.dehexify(
+            self.bytes["Decoded"]["Hex"])
+
+
+
+    def charify(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            CHARIFY
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Convert decoded bytes in string format to their ASCII values and
+            store them.
+        """
+
+        # Convert string
+        self.bytes["Decoded"]["Chr"] = lib.charify(
+            self.bytes["Decoded"]["Int"])
+
+
+
+    def showEncoded(self, n = 8):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            SHOWENCODED
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Show encoded bytes.
+        """
+
+        # Compute number of exceeding bytes
+        N = self.length["Encoded"] % n
+
+        # Define number of rows to be printed 
+        R = self.length["Encoded"] / n + int(N != 0)
+
+        # Info
+        print "-- Bytes [Encoded] --"
+
+        # Print formatted response
+        for r in range(R):
+
+            # Define range
+            a, b = r * n, (r + 1) * n
+
+            # Define row
+            row = str(self.bytes["Encoded"][a:b])
+
+            # Show response
+            print row
+
+        # Breathe
+        print
+
+
+
+    def showDecoded(self, n = 8):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            SHOWDECODED
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Show decoded bytes in all formats.
+        """
+
+        # Compute number of exceeding bytes
+        N = self.length["Decoded"] % n
+
+        # Define number of rows to be printed 
+        R = self.length["Decoded"] / n + int(N != 0)
+
+        # Format bytes
+        self.format()
+
+        # Info
+        print "-- Bytes [Decoded] --"
+
+        # Print formatted response
+        for r in range(R):
+
+            # Define range
+            a, b = r * n, (r + 1) * n
+
+            # Define row in all formats
+            rowHex = " ".join(self.bytes["Decoded"]["Hex"][a:b])
+            rowChr = "".join(self.bytes["Decoded"]["Chr"][a:b])
+            rowInt = str(self.bytes["Decoded"]["Int"][a:b])
+
+            # On last row, some extra space may be needed for some formats
+            if (r == R - 1) and (N != 0):
+
+                # Define row
+                rowHex += (n - N) * 3 * " "
+                rowChr += (n - N) * " "
+
+            # Build row
+            row = rowHex + 3 * " " + rowChr + 3 * " " + rowInt
+
+            # Show response
+            print row
+
+        # Breathe
+        print
+
+
+
+    def show(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            SHOW
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Info
+        print "-- PACKET --"
+        print "-- Characteristics --"
+
+        # Show characteristics
+        print "Type: " + str(self.type)
+        print "Serial: " + " ".join(self.serial)
+        print "Code: " + str(self.code)
+        print "Parameters: " + str(self.parameters)
+        print "CRC: " + str(self.CRC)
+
+        # Breathe
+        print
+
+        # Show encoded bytes
+        self.showEncoded()        
+
+        # Show decoded bytes
+        self.showDecoded()
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            This decodes a raw packet received by the CC1111. It converts
+            received bytes to a long bit-string, then uses a given table and
+            decodes every 6-bit word in said string, starting from the
+            beginning.
+        """
+
+        # Convert bytes to long bit-string
+        bits = "".join(["{:08b}".format(x) for x in self.bytes["Encoded"]])
+
+        # Initialize string
+        string = ""
+
+        # Scan bits
+        while bits:
+
+            # Get 6-bits word and shorten rest of bits
+            word, bits = bits[:6], bits[6:]
+
+            # End-of-packet
+            if word == "000000":
+
+                # Exit
+                break
+
+            # Try converting
+            try:
+
+                # Decode word using conversion table (as hexadecimal value)
+                word = TABLE.index(word)
+
+                # Format it
+                word = hex(word)[-1].upper()
+
+                # Store word
+                string += word
+
+            # If error
+            except ValueError:
+
+                # If bits within packet
+                if bits != "":
 
                     # Raise error
-                    raise errors.InvalidPacketBadEnd(word)
+                    raise errors.InvalidPacketUnmatchedBits(word)
 
-    # Stringify packet
-    packet = "".join(packet)
+                # If last bits
+                else:
 
-    # Format it
-    packet = format(packet)
+                    # If they do not fit
+                    if word != "0101":
 
-    # Show packet
-    #print "Decoded packet: " + packet
+                        # Raise error
+                        raise errors.InvalidPacketBadEnd(word)
 
-    # Return packet
-    return packet
+        # Split string in groups of 2 characters
+        self.bytes["Decoded"]["Hex"] = lib.split(string, 2)
+
+        # Measure
+        self.measure()
+
+        # Generate other formats as well
+        self.format()
 
 
 
-def encode(packet):
+    def encode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            This encodes a string packet to be sent using the CC1111. It uses
+            the same encoding/decoding logic described in the decode function,
+            only the other way around this time.
+        """
+
+        # Initialize bits
+        bits = ""
+
+        # Convert every character to its series of bits
+        for x in "".join(self.bytes["Decoded"]["Hex"]):
+
+            # Use table to convert it into bits and add them
+            bits += TABLE[int(x, 16)]
+
+        # Add mysterious last bits
+        bits += "0101"
+
+        # Get number of bits
+        n = len(bits)
+
+        # If number of bits not multiple of 8, encoding fails
+        if n % 8 != 0:
+
+            # Raise error
+            raise errors.InvalidPacketMissingBits(n)
+
+        # Initialize bytes
+        bytes = []
+
+        # Convert bits to bytes
+        while bits:
+
+            # Get byte and shorten rest of bits
+            byte, bits = bits[:8], bits[8:]
+
+            # Convert byte from binary to decimal value
+            byte = int(byte, 2)
+
+            # Store byte
+            bytes.append(byte)
+
+        # Store encoded packet
+        self.bytes["Encoded"] = bytes
+
+        # Measure
+        self.measure()
+
+
+
+    def assemble(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ASSEMBLE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Assembling of packet in its string version.
+        """
+
+        # Reset decoded bytes
+        self.bytes["Decoded"]["Hex"] = []
+
+        # Add type
+        self.bytes["Decoded"]["Hex"].append(self.type)
+
+        # Add pump serial number
+        self.bytes["Decoded"]["Hex"].extend(self.serial)
+
+        # Add code
+        self.bytes["Decoded"]["Hex"].append(self.code)
+
+        # Add parameters
+        self.bytes["Decoded"]["Hex"].extend(self.parameters)
+
+        # Format them
+        self.format()
+
+        # Compute CRC
+        self.CRC = lib.computeCRC8(self.bytes["Decoded"]["Int"])
+
+        # Format it
+        self.CRC = hex(self.CRC)[-2:].upper()
+
+        # Add it
+        self.bytes["Decoded"]["Hex"].append(self.CRC)
+
+        # Format packet
+        self.format()
+
+        # Measure it
+        self.measure()
+
+
+
+def main():
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ENCODE
+        MAIN
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        This encodes a string packet to be sent using the CC1111 USB stick. It
-        uses the same encoding/decoding logic described in the decode
-        function, only the other way around this time.
     """
 
-    # Show packet
-    #print "Encoding: " + packet
+    # Instanciate an encoded packet
+    packet = Packet([169, 101, 153, 103, 25, 163, 89, 85, 85, 150, 85])
 
-    # Remove spaces
-    packet = packet.replace(" ", "")
+    # Show it
+    packet.show()
 
-    # Initialize bits
-    bits = ""
 
-    # Convert every character to its series of bits
-    for p in packet:
+    # Instanciate a decoded packet
+    packet = Packet(["A7", "79", "91", "63", "70", "00", "55"])
 
-        # Use table to convert it
-        p = TABLE[int(p, 16)]
+    # Show it
+    packet.show()
 
-        # Add new bits
-        bits += p
 
-    # Add mysterious last bits
-    bits += "0101"
+    # Instanciate an empty packet
+    packet = Packet()
 
-    # Get number of bits
-    n = len(bits)
+    # Give it characteristics
+    packet.code = "5D"
+    packet.parameters = "00"
 
-    # If number of bits not multiple of 8, encoding fails
-    if n % 8 != 0:
+    # Assemble it
+    packet.assemble()
 
-        # Raise error
-        raise errors.InvalidPacketMissingBits(n)
+    # Show it
+    packet.show()
 
-    # Show bits
-    #print "Bits: " + bits
 
-    # Initialize bytes
-    bytes = []
 
-    # Convert bits to bytes
-    while bits:
-
-        # Get byte and shorten rest of bits
-        byte, bits = bits[:8], bits[8:]
-
-        # Convert byte from binary to decimal value
-        byte = int(byte, 2)
-
-        # Store byte
-        bytes.append(byte)
-
-    # Show bytes
-    #print "Encoded bytes: " + str(bytes)
-
-    # Return them
-    return bytes
+# Run this when script is called from terminal
+if __name__ == "__main__":
+    main()
