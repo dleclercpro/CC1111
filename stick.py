@@ -198,22 +198,13 @@ class Stick(object):
             bytes = self.read(timeout = timeout)
 
             # Look for possible error
-            for error, reason in self.errors["Radio"].iteritems():
+            if bytes[-1] in self.errors["Radio"]:
 
-                # Compare to radio errors
-                if bytes[-1] == error:
+                # Show error
+                print self.errors["Radio"][bytes[-1]]
 
-                    # Show error
-                    print "Error: " + reason
-
-                    # Assign bool to error
-                    error = True
-
-                    # Exit
-                    break
-
-            # Normal case
-            if not error:
+            # Otherwise
+            else:
 
                 # Show bytes
                 print bytes
