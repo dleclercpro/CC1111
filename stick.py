@@ -54,9 +54,8 @@ class Stick(object):
         # Initialize configuration
         self.config = None
 
-        # Initialize endpoints
-        self.EPs = {"EP0": None,
-                    "OUT": None,
+        # Initialize data endpoints
+        self.EPs = {"OUT": None,
                     "IN": None}
 
         # Define USB IDs
@@ -196,7 +195,7 @@ class Stick(object):
                 self.write(t)
 
             # Read response
-            bytes = self.read(timeout)
+            bytes = self.read(timeout = timeout)
 
             # Look for possible error
             for error, reason in self.errors["Radio"].iteritems():
