@@ -38,6 +38,11 @@ void command_get(void) {
 			command_radio_receive();
 			break;
 
+		// Send and receive radio packets
+		case 51:
+			command_radio_send_receive();
+			break;
+
 		// Test command
 		case 99:
 			command_test();
