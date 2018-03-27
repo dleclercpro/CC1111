@@ -33,6 +33,7 @@ import usb
 
 # USER LIBRARIES
 import lib
+import packets
 
 
 
@@ -377,8 +378,14 @@ class Stick(object):
         # Otherwise
         else:
 
-            # Show bytes
-            print bytes
+            # Parse packet (remove EOP zero)
+            index, signal, bytes = bytes[0], bytes[1], bytes[2:-1]
+
+            # Create packet
+            packet = packets.Packet(bytes)
+
+            # Show content
+            packet.show()
 
 
 
@@ -406,7 +413,7 @@ def main():
     #stick.listen()
 
     # Send and listen to radio
-    #stick.sendListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 160, 0])
+    stick.sendListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 160, 0])
 
 
 
