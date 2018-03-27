@@ -29,6 +29,11 @@ import usb
 
 
 
+# USER LIBRARIES
+import errors
+
+
+
 # FUNCTIONS
 def NatToBytes(x, n = None, order = ">"):
 
@@ -225,8 +230,7 @@ def decodePacket(bytes):
             if bits != "":
 
                 # Raise error
-                raise NotImplementedError("Unmatched bits before EOP (" +
-                                          "corrupted packet): " + word)
+                raise errors.InvalidPacketUnmatchedBits(word)
 
             # If last bits
             else:
@@ -235,8 +239,7 @@ def decodePacket(bytes):
                 if word != "0101":
 
                     # Raise error
-                    raise NotImplementedError("Last bits do not correspond " +
-                                              "to expectation (0101): " + word)
+                    raise errors.InvalidPacketBadEnd(word)
 
     # Stringify packet
     packet = "".join(packet)
@@ -297,8 +300,7 @@ def encodePacket(packet):
     if n % 8 != 0:
 
         # Raise error
-        raise NotImplementedError("Impossible to encode number of bytes " +
-                                  "which isn't a multiple of 8: " + str(n))
+        raise errors.InvalidPacketMissingBits(n)
 
     # Show bits
     #print "Bits: " + bits
