@@ -7,6 +7,7 @@
 
 # USER LIBRARIES
 import lib
+import packets
 
 
 
@@ -93,10 +94,10 @@ def testPackets():
         print "-- " + test + " --"
 
         # Test encoding
-        print "Encoding: " + str(lib.encodePacket(values[0]) == values[1])
+        print "Encoding: " + str(packets.encode(values[0]) == values[1])
 
         # Test decoding
-        print "Decoding: " + str(lib.decodePacket(values[1]) == values[0])
+        print "Decoding: " + str(packets.decode(values[1]) == values[0])
 
         # Breathe
         print
