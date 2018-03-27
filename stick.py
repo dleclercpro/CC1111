@@ -211,6 +211,73 @@ class Stick(object):
 
 
 
+    def sendAndListen(self, bytes, timeout = 1000):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            SENDANDLISTEN
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Listen to incoming packets on radio, using a given timeout.
+        """
+
+        # Convert delay and timeout to bytes
+        delayRepeat = lib.pack(0, 4)
+        timeoutRadio = lib.pack(timeout, 4)
+
+        # Increase timeout (1s) at EP to make sure radio is done
+        timeout += 1000
+
+        # Radio send and receive command
+        self.write(51)
+
+        # Give TX channel and repeat
+        self.write(0)
+        self.write(0)
+
+        # Give delay as long word (32 bits)
+        for d in delayRepeat:
+
+            # Write byte
+            self.write(d)
+
+        # Give RX channel
+        self.write(0)
+
+        # Give timeout as long word (32 bits)
+        for t in timeoutRadio:
+
+            # Write byte
+            self.write(t)
+
+        # Give retry count
+        self.write(5)
+
+        # Send bytes
+        print "Sending bytes..."
+        for b in bytes:
+
+            # Write byte
+            self.write(b)
+        print "Bytes sent."
+
+        # Read response
+        print "Waiting for response..."
+        bytes = self.read(timeout = 5 * timeout)
+
+        # Look for possible error
+        if bytes[-1] in self.errors["Radio"]:
+
+            # Show error
+            print self.errors["Radio"][bytes[-1]]
+
+        # Otherwise
+        else:
+
+            # Show bytes
+            print bytes
+
+
+
 def main():
 
     """
@@ -229,7 +296,10 @@ def main():
     stick.configure()
 
     # Listen to radio
-    stick.listen()
+    #stick.listen()
+
+    # Send and listen to radio
+    stick.sendAndListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 165, 0])
 
 
 
