@@ -419,7 +419,7 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
     while (1) {
 
         // If byte is not exceeding max packet length
-        if (radio_tx_buffer_size <= RADIO_MAX_PACKET_SIZE) {
+        if (radio_tx_buffer_size < RADIO_MAX_PACKET_SIZE) {
 
             // Get byte
             byte = usb_rx_byte();
@@ -451,7 +451,7 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
     radio_state_wait_idle();
 
     // If repeat
-    while (repeat--) {
+    while (repeat > 0) {
 
         // If delay
         if (delay > 0) {
@@ -460,15 +460,11 @@ void radio_send(uint8_t channel, uint8_t repeat, uint32_t delay) {
             timer_wait(delay);
         }
 
-        // Reset buffer index and underflow count
-        radio_tx_buffer_index = 0;
-        radio_tx_underflow_count = 0;
+        // Resend bytes from TX buffer
+        radio_resend();
 
-        // Put radio in transmit state
-        radio_state_transmit();
-
-        // Wait until packet is transmitted
-        radio_state_wait_idle();
+        // Decrease repeat count
+        repeat--;
     }
 }
 
@@ -592,8 +588,8 @@ void radio_general_isr(void) __interrupt RF_VECTOR {
     // TX underflow
     if (RFIF & RFIF_IM_TXUNF) {
 
-        // Enter IDLE state
-        RFST = RFST_SIDLE;
+        // Put radio back in idle state
+        radio_state_idle();
 
         // Reset interrupt flag
         RFIF &= ~RFIF_IM_TXUNF;
@@ -602,8 +598,8 @@ void radio_general_isr(void) __interrupt RF_VECTOR {
     // RX overflow
     if (RFIF & RFIF_IM_RXOVF) {
 
-        // Enter IDLE state
-        RFST = RFST_SIDLE;
+        // Put radio back in idle state
+        radio_state_idle();
 
         // Reset interrupt flag
         RFIF &= ~RFIF_IM_RXOVF;

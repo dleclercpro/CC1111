@@ -34,12 +34,17 @@ void command_get(void) {
 			break;
 
 		// Receive radio packets
-		case 50:
+		case 4:
 			command_radio_receive();
 			break;
 
+		// Send radio packets
+		case 5:
+			command_radio_send_receive();
+			break;
+
 		// Send and receive radio packets
-		case 51:
+		case 6:
 			command_radio_send_receive();
 			break;
 
@@ -145,7 +150,7 @@ void command_radio_send_receive(void) {
 	// Initialize radio error and retry count
 	uint8_t error = 0;
 	uint8_t retry = usb_rx_byte();
-
+	
 	// Send bytes to then receive some from radio
 	radio_send(tx_channel, tx_repeat, tx_delay);
 
