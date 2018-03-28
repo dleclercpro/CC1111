@@ -102,8 +102,9 @@ class Stick(object):
                        0xBB: "No data"}
 
         # Initialize bytes
-        self.bytes = {"ID": None,
-                      "RSSI": None,
+        self.bytes = {"#": None,
+                      "RSSI": {"Hex": None,
+                               "dBm": None},
                       "Payload": []}
 
         # Initialize packet
@@ -230,13 +231,16 @@ class Stick(object):
         """
 
         # Parse packet (remove EOP zero)
-        self.bytes["ID"], self.bytes["RSSI"] = bytes[0], bytes[1]
+        self.bytes["#"], self.bytes["RSSI"]["Hex"] = bytes[0], bytes[1]
         self.bytes["Payload"] = bytes[2:-1]
+
+        # Convert RSSI
+        self.convertRSSI()
 
         # Info
         print "Packet:"
-        print "ID: " + str(self.bytes["ID"])
-        print "RSSI: " + str(self.bytes["RSSI"])
+        print "#: " + str(self.bytes["#"])
+        print "RSSI: " + str(self.bytes["RSSI"]["dBm"]) + " dBm"
 
         # Create packet
         self.packet = packets.Packet(self.bytes["Payload"])
@@ -361,6 +365,38 @@ class Stick(object):
 
         # Info
         print "Radio tuned."
+
+
+
+    def convertRSSI(self, offset = 73):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            CONVERTRSSI
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Convert hexadecimal RSSI reading to dBm.
+        """
+
+        # Convert RSSI to dBm
+        RSSI = int("0x" + str(self.bytes["RSSI"]["Hex"]), 16)
+
+        # Bigger than
+        if RSSI >= 128:
+
+            # Value
+            RSSI = (RSSI - 256) / 2.0
+
+        # Otherwise
+        else:
+
+            # Value
+            RSSI = RSSI / 2.0
+
+        # Remove offset
+        RSSI -= offset
+
+        # Reassign rounded RSSI
+        self.bytes["RSSI"]["dBm"] = int(round(RSSI))
 
 
 
