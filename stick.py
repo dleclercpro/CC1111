@@ -78,7 +78,7 @@ class Stick(object):
                          "LED": 30,
                          "Test": 40}
 
-        # Define registers
+        # Define radio registers
         self.registers = ["SYNC1", "SYNC0",
                           "PKTLEN",
                           "PKTCTRL1", "PKTCTRL0",
@@ -97,10 +97,9 @@ class Stick(object):
                           "FREQ2", "FREQ1", "FREQ0",
                           "CHANNR"]
 
-        # Define errors
-        self.errors = {"USB": {},
-                       "Radio": {0xAA: "Timeout",
-                                 0xBB: "No data"}}
+        # Define radio errors
+        self.errors = {0xAA: "Timeout",
+                       0xBB: "No data"}
 
         # Initialize bytes
         self.bytes = {"ID": None,
@@ -234,7 +233,8 @@ class Stick(object):
         self.bytes["ID"], self.bytes["RSSI"] = bytes[0], bytes[1]
         self.bytes["Payload"] = bytes[2:-1]
 
-        # Show ID and RSSI
+        # Info
+        print "Packet:"
         print "ID: " + str(self.bytes["ID"])
         print "RSSI: " + str(self.bytes["RSSI"])
 
@@ -259,26 +259,23 @@ class Stick(object):
         """
 
         # Look for possible error
-        for errorType, errors in sorted(self.errors.iteritems()):
+        if bytes[-1] in self.errors:
 
-            # Match
-            if bytes[-1] in errors:
+            # Get error
+            error = self.errors[bytes[-1]]
 
-                # Get error
-                error = errors[bytes[-1]]
+            # Show it
+            print "Error: " + error
 
-                # Show it
-                print "Error [" + errorType + "]: " + error
-
-                # Return
-                return True
+            # Return
+            return True
 
         # No error
         return False
 
 
 
-    def readRegister(self, register):
+    def readRegister(self, address):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -291,20 +288,20 @@ class Stick(object):
         self.write(self.commands["Register RX"])
 
         # Define register address
-        self.write(register)
+        self.write(address)
 
         # Read value
         value = self.read()[0]
 
         # Update its value
-        print "Register " + str(register) + ": " + str(value)
+        #print "Register " + self.registers[address] + ": " + str(value)
 
         # Return value
         return value
 
 
 
-    def writeRegister(self, register, value):
+    def writeRegister(self, address, value):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -317,7 +314,7 @@ class Stick(object):
         self.write(self.commands["Register TX"])
 
         # Define register address
-        self.write(register)
+        self.write(address)
 
         # Update its value
         self.write(value)
