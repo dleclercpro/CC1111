@@ -288,7 +288,7 @@ class Packet(object):
         print
 
         # Show encoded bytes
-        self.showEncoded()        
+        #self.showEncoded()        
 
         # Show decoded bytes
         self.showDecoded()
