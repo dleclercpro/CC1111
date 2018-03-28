@@ -52,14 +52,13 @@ class Packet(object):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             INIT
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Initialize packet properties.
+            Initialize packet.
         """
 
         # Initialize characteristics
-        self.type = "A7"
+        self.recipient = "A7"
         self.serial = ["79", "91", "63"]
         self.code = None
-        self.parameters = []
         self.payload = []
         self.CRC = None
 
@@ -69,9 +68,7 @@ class Packet(object):
 
         # Initialize various formats
         self.bytes = {"Encoded": [],
-                      "Decoded": {"Str": [],
-                                  "Hex": [],
-                                  "Chr": []}}
+                      "Decoded": {"Str": [], "Hex": [], "Chr": []}}
 
 
 
@@ -232,24 +229,23 @@ class Packet(object):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Info
-        print "Characteristics:"
-
         # Show characteristics
-        print "Type: " + str(self.type)
+        print "Recipient: " + str(self.recipient)
         print "Serial: " + " ".join(self.serial)
         print "Code: " + str(self.code)
-        print "Parameters: " + str(self.parameters)
-        print "Payload: " + str(self.payload)
+        print "Payload: " + " ".join(self.payload)
         print "CRC: " + str(self.CRC)
 
         # Breathe
         print
 
-        # Show encoded bytes
+        # Measure packet
+        self.measure()
+
+        # Show its encoded version
         self.showEncoded()        
 
-        # Show decoded bytes
+        # Show its decoded version
         self.showDecoded()
 
 
@@ -317,9 +313,6 @@ class Packet(object):
         # Split string in groups of 2 characters
         self.bytes["Decoded"]["Hex"] = lib.split(string, 2)
 
-        # Measure
-        self.measure()
-
         # Generate other formats as well
         self.format()
 
@@ -335,6 +328,9 @@ class Packet(object):
             the same encoding/decoding logic described in the decode function,
             only the other way around this time.
         """
+
+        # Generate other formats as well (in case they are missing)
+        self.format()
 
         # Initialize bits
         bits = ""
@@ -375,8 +371,31 @@ class Packet(object):
         # Store encoded packet
         self.bytes["Encoded"] = bytes
 
-        # Measure
-        self.measure()
+
+
+    def checkCRC(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            CHECKCRC
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Verify if computed CRC8 matches with the one received.
+        """
+
+        # Last byte should be CRC
+        CRC = self.bytes["Decoded"]["Int"][-1]
+
+        # Compute expected CRC using the rest
+        expectedCRC = lib.computeCRC8(self.bytes["Decoded"]["Int"][:-1])
+
+        # Verify CRC
+        if CRC != expectedCRC:
+
+            # Raise error
+            raise errors.BadCRC(expectedCRC, CRC)
+
+        # Return
+        return True
 
 
 
@@ -389,8 +408,8 @@ class Packet(object):
             Parse packet coming in from pump.
         """
 
-        # Assign bytes
-        bytes = self.bytes["Decoded"]["Int"]
+        # Assign hexa bytes
+        bytes = self.bytes["Decoded"]["Hex"]
 
         # Get number of bytes to parse
         n = len(bytes)
@@ -398,47 +417,38 @@ class Packet(object):
         # Define minimum number of bytes per packet
         N = 6
 
-        # Info
-        print "Parsing " + str(n) + " bytes: " + str(bytes)
-
         # Not enough bytes
         if n < N:
 
             # Raise error
             raise errors.NotEnoughBytes(N, n)
 
+        # Get recipient
+        self.recipient = bytes[0]
+
+        # Get serial
+        self.serial = bytes[1:4]
+
         # Get op code
         self.code = bytes[4]
 
-        # Get CRC
-        self.CRC = bytes[-1]
+        # Check CRC
+        if self.checkCRC():
 
-        # Compute expected CRC
-        expectedCRC = lib.computeCRC8(bytes[:-1])
-
-        # Verify CRC
-        if self.CRC != expectedCRC:
-
-            # Raise error
-            raise errors.BadCRC(expectedCRC, self.CRC)
+            # Store it
+            self.CRC = bytes[-1]
 
         # Get payload
         self.payload = []
 
         # Initialize index
-        i = 5
+        i = N - 1
 
-        # Go through content
-        while i < n:
+        # Go through payload (minus CRC)
+        while i < n - 1:
 
             # Current byte
             byte = bytes[i]
-
-            # No zero allowed
-            if byte == 0:
-
-                # Exit
-                break
 
             # Add byte to payload
             self.payload.append(byte)
@@ -454,41 +464,44 @@ class Packet(object):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             ASSEMBLE
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Assembling of packet in its string version.
+            Assembling of packet.
         """
 
-        # Reset decoded bytes
-        self.bytes["Decoded"]["Hex"] = []
+        # Initialize bytes
+        bytes = []
 
-        # Add type
-        self.bytes["Decoded"]["Hex"].append(self.type)
+        # Add recipient
+        bytes.append(self.recipient)
 
-        # Add pump serial number
-        self.bytes["Decoded"]["Hex"].extend(self.serial)
+        # Add serial
+        bytes.extend(self.serial)
 
         # Add code
-        self.bytes["Decoded"]["Hex"].append(self.code)
+        bytes.append(self.code)
 
-        # Add parameters
-        self.bytes["Decoded"]["Hex"].extend(self.parameters)
+        # Add payload
+        bytes.extend(self.payload)
 
-        # Format them
+        # Store pre-packet
+        self.bytes["Decoded"]["Hex"] = bytes
+
+        # Format it
         self.format()
 
         # Compute CRC
-        self.CRC = lib.computeCRC8(self.bytes["Decoded"]["Int"])
+        CRC = lib.computeCRC8(self.bytes["Decoded"]["Int"])
 
-        # Format it
-        self.CRC = hex(self.CRC)[-2:].upper()
+        # Store its hexadecimal representation
+        self.CRC = "{0:02X}".format(CRC)
 
         # Add it
-        self.bytes["Decoded"]["Hex"].append(self.CRC)
+        bytes.append(self.CRC)
 
-        # Format packet
-        self.format()
+        # Store whole packet
+        self.bytes["Decoded"]["Hex"] = bytes
 
-        # Measure it
-        self.measure()
+        # Encode it
+        self.encode()
 
 
 
@@ -564,7 +577,7 @@ def main():
 
     # Give it characteristics
     packet.code = "5D"
-    packet.parameters = "00"
+    packet.payload = "00"
 
     # Assemble it
     packet.assemble()

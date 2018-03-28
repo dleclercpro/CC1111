@@ -85,22 +85,41 @@ class Stick(object):
                          "Test": 40}
 
         # Define radio registers
-        self.registers = ["SYNC1", "SYNC0",
+        self.registers = ["SYNC1",
+                          "SYNC0",
                           "PKTLEN",
-                          "PKTCTRL1", "PKTCTRL0",
-                          "ADDR", 
-                          "FSCTRL1", "FSCTRL0",
-                          "MDMCFG4", "MDMCFG3", "MDMCFG2", "MDMCFG1", "MDMCFG0",
+                          "PKTCTRL1",
+                          "PKTCTRL0",
+                          "ADDR",
+                          "FSCTRL1",
+                          "FSCTRL0",
+                          "MDMCFG4",
+                          "MDMCFG3",
+                          "MDMCFG2",
+                          "MDMCFG1",
+                          "MDMCFG0",
                           "DEVIATN",
-                          "MCSM2", "MCSM1", "MCSM0",
+                          "MCSM2",
+                          "MCSM1",
+                          "MCSM0",
                           "BSCFG",
                           "FOCCFG",
-                          "FREND1", "FREND0",
-                          "FSCAL3", "FSCAL2", "FSCAL1", "FSCAL0",
-                          "TEST1", "TEST0",
-                          "PA_TABLE1", "PA_TABLE0",
-                          "AGCCTRL2", "AGCCTRL1", "AGCCTRL0",
-                          "FREQ2", "FREQ1", "FREQ0",
+                          "FREND1",
+                          "FREND0",
+                          "FSCAL3",
+                          "FSCAL2",
+                          "FSCAL1",
+                          "FSCAL0",
+                          "TEST1",
+                          "TEST0",
+                          "PA_TABLE1",
+                          "PA_TABLE0",
+                          "AGCCTRL2",
+                          "AGCCTRL1",
+                          "AGCCTRL0",
+                          "FREQ2",
+                          "FREQ1",
+                          "FREQ0",
                           "CHANNR"]
 
         # Define radio errors
@@ -331,8 +350,14 @@ class Stick(object):
             Convert hexadecimal RSSI reading to dBm.
         """
 
+        # Get RSSI
+        RSSI = self.bytes["RSSI"]["Hex"]
+
+        # Info
+        print "RSSI before conversion: " + str(RSSI)
+
         # Convert RSSI to dBm
-        RSSI = int("0x" + str(self.bytes["RSSI"]["Hex"]), 16)
+        RSSI = int("0x" + str(RSSI), 16)
 
         # Bigger than
         if RSSI >= 128:
@@ -611,49 +636,6 @@ class Stick(object):
 
 
 
-    def testComms(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            TESTCOMMS
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Test communication with pump.
-        """
-
-        # Define packets
-        pkts = {"Time": packets.DecodedPacket(["A7", "79", "91", "63",
-                                               "70", "00", "55"]),
-                "Model": packets.DecodedPacket(["A7", "79", "91", "63",
-                                                "8D", "00", "C8"]),
-                "Firmware": packets.DecodedPacket(["A7", "79", "91", "63",
-                                                   "74", "00", "0D"]),
-                "Battery": packets.DecodedPacket(["A7", "79", "91", "63",
-                                                  "72", "00", "79"]),
-                "Reservoir": packets.DecodedPacket(["A7", "79", "91", "63",
-                                                    "73", "00", "6F"]),
-                "Status": packets.DecodedPacket(["A7", "79", "91", "63",
-                                                 "CE", "00", "28"])}
-
-        # Go through them
-        for name, pkt in sorted(pkts.iteritems()):
-
-            # Info
-            print "// " + name + " //"
-
-            # Try
-            try:
-
-                # Send and listen to radio
-                self.sendAndListen(pkt.bytes["Encoded"])
-
-            # Except
-            except (errors.InvalidPacket, errors.RadioError):
-
-                # Info
-                print "Corrupted packet."
-
-
-
 def main():
 
     """
@@ -676,9 +658,6 @@ def main():
 
     # Listen to radio
     #stick.listen()
-
-    # Test communications
-    stick.testComms()
 
 
 
