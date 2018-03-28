@@ -87,6 +87,9 @@ class BaseError(Exception):
 class StickError(BaseError):
     pass
 
+class InvalidPacket(StickError):
+    pass
+
 
 
 # Stick errors
@@ -105,7 +108,7 @@ class NoStick(StickError):
 
 
 
-class InvalidPacketUnmatchedBits(StickError):
+class UnmatchedBits(InvalidPacket):
 
     def prepare(self):
 
@@ -121,7 +124,7 @@ class InvalidPacketUnmatchedBits(StickError):
 
 
 
-class InvalidPacketBadEnd(StickError):
+class BadEnding(InvalidPacket):
 
     def prepare(self):
 
@@ -137,7 +140,7 @@ class InvalidPacketBadEnd(StickError):
 
 
 
-class InvalidPacketMissingBits(StickError):
+class MissingBits(InvalidPacket):
 
     def prepare(self):
 
@@ -153,7 +156,7 @@ class InvalidPacketMissingBits(StickError):
 
 
 
-class InvalidPacketBadCRC(StickError):
+class BadCRC(InvalidPacket):
 
     def prepare(self):
 

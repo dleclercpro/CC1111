@@ -344,7 +344,7 @@ class Packet(object):
                 if bits != "":
 
                     # Raise error
-                    raise errors.InvalidPacketUnmatchedBits(word)
+                    raise errors.UnmatchedBits(word)
 
                 # If last bits
                 else:
@@ -353,7 +353,7 @@ class Packet(object):
                     if word != "0101":
 
                         # Raise error
-                        raise errors.InvalidPacketBadEnd(word)
+                        raise errors.BadEnding(word)
 
         # Split string in groups of 2 characters
         self.bytes["Decoded"]["Hex"] = lib.split(string, 2)
@@ -396,7 +396,7 @@ class Packet(object):
         if n % 8 != 0:
 
             # Raise error
-            raise errors.InvalidPacketMissingBits(n)
+            raise errors.MissingBits(n)
 
         # Initialize bytes
         bytes = []
@@ -443,7 +443,7 @@ class Packet(object):
         if self.CRC != expectedCRC:
 
             # Raise error
-            raise errors.InvalidPacketBadCRC(expectedCRC, self.CRC)
+            raise errors.BadCRC(expectedCRC, self.CRC)
 
         # Get payload
         self.payload = []
