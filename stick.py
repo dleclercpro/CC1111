@@ -393,53 +393,8 @@ class Stick(object):
             # Show content
             packet.show()
 
-            # Update content with decoded version
-            content = packet.bytes["Decoded"]["Int"]
-
-            # Get op code
-            code = content[4]
-
-            # Compute CRC
-            expectedCRC = lib.computeCRC8(content[:-1])
-
-            # Get CRC
-            CRC = content[-1]
-
-            # Verify CRC
-            if CRC != expectedCRC:
-
-                # Raise error
-                raise errors.InvalidPacketBadCRC(expectedCRC, CRC)
-
-            # Get payload
-            payload = []
-
-            # Initialize index
-            i = 5
-
-            # Go through content
-            while True:
-
-                # Current byte
-                byte = content[i]
-
-                # No zero allowed
-                if byte == 0:
-
-                    # Exit
-                    break
-
-                # Add byte to payload
-                payload.append(byte)
-
-                # Increment
-                i += 1
-
-            # Show
-            print "Code: " + str(code)
-            print "CRC: " + str(CRC)
-            print "Expected CRC: " + str(expectedCRC)
-            print "Payload: " + str(payload)
+            # Parse it
+            packet.parse()
 
 
 

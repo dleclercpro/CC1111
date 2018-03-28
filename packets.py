@@ -60,6 +60,7 @@ class Packet(object):
         self.serial = ["79", "91", "63"]
         self.code = None
         self.parameters = []
+        self.payload = []
         self.CRC = None
 
         # Initialize lengths
@@ -416,6 +417,62 @@ class Packet(object):
 
         # Measure
         self.measure()
+
+
+
+    def parse(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PARSE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Parse packet coming in from pump.
+        """
+
+        # Get op code
+        self.code = self.bytes["Decoded"]["Int"][4]
+
+        # Get CRC
+        self.CRC = self.bytes["Decoded"]["Int"][-1]
+
+        # Compute expected CRC
+        expectedCRC = lib.computeCRC8(self.bytes["Decoded"]["Int"][:-1])
+
+        # Verify CRC
+        if self.CRC != expectedCRC:
+
+            # Raise error
+            raise errors.InvalidPacketBadCRC(expectedCRC, self.CRC)
+
+        # Get payload
+        self.payload = []
+
+        # Initialize index
+        i = 5
+
+        # Go through content
+        while True:
+
+            # Current byte
+            byte = self.bytes["Decoded"]["Int"][i]
+
+            # No zero allowed
+            if byte == 0:
+
+                # Exit
+                break
+
+            # Add byte to payload
+            self.payload.append(byte)
+
+            # Increment
+            i += 1
+
+        # Show
+        print "Parsed packet information:"
+        print "Code: " + str(self.code)
+        print "CRC: " + str(self.CRC)
+        print "Payload: " + str(self.payload)
 
 
 
