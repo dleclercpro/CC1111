@@ -24,38 +24,38 @@ void command_get(void) {
 			break;
 
 		// Get register
-		case 2:
+		case 10:
 			command_register_read();
 			break;
 
 		// Set register
-		case 3:
+		case 11:
 			command_register_write();
 			break;
 
 		// Receive radio packets
-		case 4:
+		case 20:
 			command_radio_receive();
 			break;
 
 		// Send radio packets
-		case 5:
-			command_radio_send_receive();
+		case 21:
+			command_radio_send();
 			break;
 
 		// Send and receive radio packets
-		case 6:
+		case 22:
 			command_radio_send_receive();
 			break;
 
-		// Test command
-		case 99:
-			command_test();
+		// Flash LED
+		case 30:
+			command_led();
 			break;
 
-		// Default (no command)
-		default:
-			usb_tx_bytes("N/A", 3);
+		// Test command
+		case 40:
+			command_test();
 			break;
 	}
 }
@@ -150,7 +150,7 @@ void command_radio_send_receive(void) {
 	// Initialize radio error and retry count
 	uint8_t error = 0;
 	uint8_t retry = usb_rx_byte();
-	
+
 	// Send bytes to then receive some from radio
 	radio_send(tx_channel, tx_repeat, tx_delay);
 
@@ -176,6 +176,17 @@ void command_radio_send_receive(void) {
         // Send error to master
         usb_tx_byte(error);
 	}
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    COMMAND_LED
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void command_led(void) {
+
+	// Switch LED
+	led_switch();
 }
 
 /*
