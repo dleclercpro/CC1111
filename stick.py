@@ -390,11 +390,11 @@ class Stick(object):
             # Create packet
             packet = packets.Packet(content)
 
-            # Show content
-            packet.show()
-
             # Parse it
             packet.parse()
+
+            # Show content
+            packet.show()
 
 
 

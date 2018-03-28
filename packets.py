@@ -281,6 +281,7 @@ class Packet(object):
         print "Serial: " + " ".join(self.serial)
         print "Code: " + str(self.code)
         print "Parameters: " + str(self.parameters)
+        print "Payload: " + str(self.payload)
         print "CRC: " + str(self.CRC)
 
         # Breathe
@@ -467,12 +468,6 @@ class Packet(object):
 
             # Increment
             i += 1
-
-        # Show
-        print "Parsed packet information:"
-        print "Code: " + str(self.code)
-        print "CRC: " + str(self.CRC)
-        print "Payload: " + str(self.payload)
 
 
 
