@@ -25,6 +25,7 @@
 
 # LIBRARIES
 import math
+import json
 import usb
 
 
@@ -304,3 +305,16 @@ def getEP(configuration, direction, interface = 0, setting = 0):
     return usb.util.find_descriptor(configuration[(interface, setting)],
         custom_match = lambda e:
             usb.util.endpoint_direction(e.bEndpointAddress) == direction)
+
+
+
+def printJSON(x):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        PRINTJSON
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Print a dictionary using a particular JSON formatting.
+    """
+
+    print json.dumps(x, indent = 2, separators = (",", ": "), sort_keys = True)

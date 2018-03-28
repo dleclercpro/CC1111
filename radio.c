@@ -161,7 +161,7 @@ void radio_configure(void) {
     // Radio locale
     // North America (NA)
     // Base frequency: f = 916.541 MHz
-    // Effective frequency: f' = 916.681 MHz
+    // Effective frequency: f' = 916.541 MHz
     #if RADIO_LOCALE == RADIO_LOCALE_NA
         FREQ2     = 0x26;
         FREQ1     = 0x30;

@@ -28,6 +28,7 @@
 
 # LIBRARIES
 import usb
+import numpy as np
 
 
 
@@ -64,8 +65,13 @@ class Stick(object):
         self.vendor = 0x0451
         self.product = 0x16A7
 
-        # Define reference frequency (MHz)
-        self.frequency = 24.0
+        # Define frequencies (MHz)
+        self.frequencies = {"Reference": 24.0,
+                            "Computed": None,
+                            "Regions": {"NA": {"Default": 916.660,
+                                               "Range": [916.500, 916.800]},
+                                        "WW": {"Default": 868.330,
+                                               "Range": [868.150, 868.750]}}}
 
         # Define commands
         self.commands = {"Product": 0,
@@ -140,7 +146,7 @@ class Stick(object):
 
 
 
-    def configure(self, f = 916.660):
+    def configure(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -158,9 +164,6 @@ class Stick(object):
         # Get EPs
         self.EPs["OUT"] = lib.getEP(self.config, "OUT")
         self.EPs["IN"] = lib.getEP(self.config, "IN")
-
-        # Tune radio
-        self.tune(f)
 
 
 
@@ -221,64 +224,6 @@ class Stick(object):
 
 
 
-    def parse(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            PARSE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Parse bytes and convert payload to packet.
-        """
-
-        # Parse packet (remove EOP zero)
-        self.bytes["#"], self.bytes["RSSI"]["Hex"] = bytes[0], bytes[1]
-        self.bytes["Payload"] = bytes[2:-1]
-
-        # Convert RSSI
-        self.convertRSSI()
-
-        # Info
-        print "Packet:"
-        print "#: " + str(self.bytes["#"])
-        print "RSSI: " + str(self.bytes["RSSI"]["dBm"]) + " dBm"
-
-        # Create packet
-        self.packet = packets.Packet(self.bytes["Payload"])
-
-        # Parse it
-        self.packet.parse()
-
-        # Show it
-        self.packet.show()
-
-
-
-    def findError(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            FINDERROR
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Test bytes for CC1111 error.
-        """
-
-        # Look for possible error
-        if bytes[-1] in self.errors:
-
-            # Get error
-            error = self.errors[bytes[-1]]
-
-            # Show it
-            print "Error: " + error
-
-            # Return
-            return True
-
-        # No error
-        return False
-
-
-
     def readRegister(self, address):
 
         """
@@ -325,6 +270,90 @@ class Stick(object):
 
 
 
+    def parse(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PARSE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Parse bytes and convert payload to packet.
+        """
+
+        # Parse packet (remove EOP zero)
+        self.bytes["#"], self.bytes["RSSI"]["Hex"] = bytes[0], bytes[1]
+        self.bytes["Payload"] = bytes[2:-1]
+
+        # Convert RSSI
+        self.rssi()
+
+        # Info
+        print "Packet:"
+        print "#: " + str(self.bytes["#"])
+        print "RSSI: " + str(self.bytes["RSSI"]["dBm"]) + " dBm"
+
+        # Create packet
+        self.packet = packets.EncodedPacket(self.bytes["Payload"])
+
+        # Parse it
+        self.packet.parse()
+
+        # Show it
+        self.packet.show()
+
+
+
+    def findError(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            FINDERROR
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Test bytes for CC1111 error.
+        """
+
+        # Look for possible error
+        if bytes[-1] in self.errors:
+
+            # Get error
+            error = self.errors[bytes[-1]]
+
+            # Raise error
+            raise errors.RadioError(error)
+
+
+
+    def rssi(self, offset = 73):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            RSSI
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Convert hexadecimal RSSI reading to dBm.
+        """
+
+        # Convert RSSI to dBm
+        RSSI = int("0x" + str(self.bytes["RSSI"]["Hex"]), 16)
+
+        # Bigger than
+        if RSSI >= 128:
+
+            # Value
+            RSSI = (RSSI - 256) / 2.0
+
+        # Otherwise
+        else:
+
+            # Value
+            RSSI = RSSI / 2.0
+
+        # Remove offset
+        RSSI -= offset
+
+        # Reassign rounded negative RSSI
+        self.bytes["RSSI"]["dBm"] = round(RSSI)
+
+
+
     def tune(self, f):
 
         """
@@ -338,7 +367,7 @@ class Stick(object):
         print "Tuning radio to: " + str(f) + " MHz"
 
         # Convert frequency to corresponding value (according to datasheet)
-        f = int(round(f * (2 ** 16) / self.frequency))
+        f = int(round(f * (2 ** 16) / self.frequencies["Reference"]))
 
         # Convert to set of 3 bytes
         bytes = [lib.getByte(f, x) for x in reversed(range(3))]
@@ -368,39 +397,116 @@ class Stick(object):
 
 
 
-    def convertRSSI(self, offset = 73):
+    def scan(self, f1 = None, f2 = None, n = 25, sample = 5):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            CONVERTRSSI
+            SCAN
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Convert hexadecimal RSSI reading to dBm.
+            Scan the air for the best frequency to use with CC1111 in order to
+            communicate with pump.
         """
 
-        # Convert RSSI to dBm
-        RSSI = int("0x" + str(self.bytes["RSSI"]["Hex"]), 16)
+        # No frequencies given
+        if f1 is None and f2 is None:
 
-        # Bigger than
-        if RSSI >= 128:
+            # Default region: NA
+            region = "NA"
 
-            # Value
-            RSSI = (RSSI - 256) / 2.0
+            # Assign frequencies
+            [f1, f2] = self.frequencies["Regions"][region]["Range"]
 
-        # Otherwise
+        # Otherwise, test them
         else:
 
-            # Value
-            RSSI = RSSI / 2.0
+            # Go through locales
+            for region, frequencies in self.frequencies["Regions"].iteritems():
 
-        # Remove offset
-        RSSI -= offset
+                # Check for correct frequencies
+                if (f1 >= min(frequencies["Range"]) and
+                    f2 <= max(frequencies["Range"])):
 
-        # Reassign rounded RSSI
-        self.bytes["RSSI"]["dBm"] = int(round(RSSI))
+                    # Exit
+                    break
+
+                # Reset region
+                region = None
+
+            # Bad frequencies
+            if region is None:
+
+                # Raise error
+                raise errors.BadFrequencies()
+
+        # Info
+        print "Scanning for a " + region + " pump..."
+
+        # Info
+        print "Generating frequency range..."
+
+        # Generate frequency range
+        frequencyRange = np.linspace(f1, f2, n, True)
+
+        # Define "get pump model" packet
+        pkt = packets.DecodedPacket(["A7", "79", "91", "63", "8D", "00", "C8"])
+
+        # Initialize RSSI readings
+        RSSIs = {}
+
+        # Go through frequency range
+        for f in frequencyRange:
+
+            # Format frequency
+            f = round(f, 3)
+
+            # Initialize RSSI value
+            RSSIs[f] = []
+
+            # Adjust frequency
+            self.tune(f)
+
+            # Sample size
+            for i in range(sample):
+
+                # Try
+                try:
+
+                    # Send and listen to radio
+                    self.sendAndListen(pkt.bytes["Encoded"])
+
+                    # Add RSSI reading
+                    RSSIs[f].append(self.bytes["RSSI"]["dBm"])
+
+                # On invalid packet of comms exception (timeout, no data)
+                except (errors.InvalidPacket, errors.RadioError):
+
+                    # Add fake low RSSI reading
+                    RSSIs[f].append(-99)
+
+            # Average readings
+            RSSIs[f] = np.mean(RSSIs[f])
+
+        # Show readings
+        lib.printJSON(RSSIs)
+
+        # Destructure RSSIs
+        frequencies, dBm = RSSIs.keys(), RSSIs.values()
+
+        # Get indices of best frequencies
+        ids = np.argwhere(dBm == np.max(dBm)).flatten()
+
+        # Average best frequencies
+        f = np.mean([frequencies[i] for i in ids])
+
+        # Info
+        print "Best frequency: " + str(f)
+
+        # Return best frequency
+        return f
 
 
 
-    def listen(self, channel = 0, timeout = 1000):
+    def listen(self, channel = 0, timeout = 500):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -413,7 +519,7 @@ class Stick(object):
         timeoutRadio = lib.pack(timeout, 4)
 
         # Increase timeout (1s) at EP to make sure radio is done
-        timeout += 1000
+        timeout += 500
 
         # Read from radio indefinitely
         while True:
@@ -430,11 +536,20 @@ class Stick(object):
             # Read response
             bytes = self.read(timeout = timeout)
 
-            # Look for possible error
-            if not self.findError(bytes):
+            # Try parsing bytes
+            try:
+
+                # Look for possible error
+                self.findError(bytes)
 
                 # Parse bytes
                 self.parse(bytes)
+
+            # Error
+            except errors.RadioError:
+
+                # Skip
+                pass
 
 
 
@@ -489,10 +604,10 @@ class Stick(object):
         bytes = self.read(timeout = timeout)
 
         # Look for possible error
-        if not self.findError(bytes):
+        self.findError(bytes)
 
-            # Parse bytes
-            self.parse(bytes)
+        # Parse bytes
+        self.parse(bytes)
 
 
 
@@ -506,18 +621,18 @@ class Stick(object):
         """
 
         # Define packets
-        pkts = {"Time": packets.Packet(["A7", "79", "91", "63",
-                                        "70", "00", "55"]),
-                "Model": packets.Packet(["A7", "79", "91", "63",
-                                         "8D", "00", "C8"]),
-                "Firmware": packets.Packet(["A7", "79", "91", "63",
-                                            "74", "00", "0D"]),
-                "Battery": packets.Packet(["A7", "79", "91", "63",
-                                           "72", "00", "79"]),
-                "Reservoir": packets.Packet(["A7", "79", "91", "63",
-                                             "73", "00", "6F"]),
-                "Status": packets.Packet(["A7", "79", "91", "63",
-                                          "CE", "00", "28"])}
+        pkts = {"Time": packets.DecodedPacket(["A7", "79", "91", "63",
+                                               "70", "00", "55"]),
+                "Model": packets.DecodedPacket(["A7", "79", "91", "63",
+                                                "8D", "00", "C8"]),
+                "Firmware": packets.DecodedPacket(["A7", "79", "91", "63",
+                                                   "74", "00", "0D"]),
+                "Battery": packets.DecodedPacket(["A7", "79", "91", "63",
+                                                  "72", "00", "79"]),
+                "Reservoir": packets.DecodedPacket(["A7", "79", "91", "63",
+                                                    "73", "00", "6F"]),
+                "Status": packets.DecodedPacket(["A7", "79", "91", "63",
+                                                 "CE", "00", "28"])}
 
         # Go through them
         for name, pkt in sorted(pkts.iteritems()):
@@ -532,7 +647,7 @@ class Stick(object):
                 self.sendAndListen(pkt.bytes["Encoded"])
 
             # Except
-            except errors.InvalidPacket:
+            except (errors.InvalidPacket, errors.RadioError):
 
                 # Info
                 print "Corrupted packet."
@@ -555,6 +670,9 @@ def main():
 
     # Configure it
     stick.configure()
+
+    # Tune radio to best frequency
+    stick.tune(stick.scan())
 
     # Listen to radio
     #stick.listen()

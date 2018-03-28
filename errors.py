@@ -78,9 +78,7 @@ class BaseError(Exception):
         errorName = self.__class__.__name__
 
         # Give user info about error
-        print
         print errorType + " > " + errorName + ": " + self.info
-        print
 
 
 
@@ -105,6 +103,36 @@ class NoStick(StickError):
 
         # Define error info
         self.info = "No stick detected. Are you sure it's plugged in?"
+
+
+
+class BadFrequencies(StickError):
+
+    def prepare(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PREPARE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Define error info
+        self.info = ("Bad frequencies to scan for given.")
+
+
+
+class RadioError(StickError):
+
+    def prepare(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PREPARE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Define error info
+        self.info = self.args[0]
 
 
 
@@ -169,3 +197,19 @@ class BadCRC(InvalidPacket):
         # Define error info
         self.info = ("Bad CRC (corrupted packet): expected " + self.args[0] +
                      ", got " + self.args[1])
+
+
+
+class NotEnoughBytes(InvalidPacket):
+
+    def prepare(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PREPARE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Define error info
+        self.info = ("Not enough bytes received. Expecting " + self.args[0] +
+                     ", received " + self.args[1] + ".")

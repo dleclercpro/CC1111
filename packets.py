@@ -46,7 +46,7 @@ TABLE = ["010101", "110001", "110010", "100011", # 0 1 2 3
 # CLASSES
 class Packet(object):
 
-    def __init__(self, bytes = None):
+    def __init__(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -72,47 +72,6 @@ class Packet(object):
                       "Decoded": {"Str": [],
                                   "Hex": [],
                                   "Chr": []}}
-
-        # If bytes given
-        if bytes is not None:
-
-            # If given as list
-            if type(bytes) == list:
-
-                # If encoded
-                if type(bytes[0]) == int:
-
-                    # Store bytes
-                    self.bytes["Encoded"] = bytes
-
-                    # Decode them
-                    self.decode()
-
-                # If decoded (only hex format)
-                elif type(bytes[0]) == str:
-
-                    # Store bytes
-                    self.bytes["Decoded"]["Hex"] = bytes
-
-                    # Format them
-                    self.format()
-
-                    # Encode them
-                    self.encode()
-
-                # Otherwise
-                else:
-
-                    # Bad input
-                    raise TypeError("Bad packet format: could not decide if " +
-                                    "given encoded or decoded.")
-
-            # Otherwise
-            else:
-
-                # Bad input
-                raise TypeError("Bad packet type given as input: has to be a " +
-                                "list.")
 
 
 
@@ -288,7 +247,7 @@ class Packet(object):
         print
 
         # Show encoded bytes
-        #self.showEncoded()        
+        self.showEncoded()        
 
         # Show decoded bytes
         self.showDecoded()
@@ -430,14 +389,32 @@ class Packet(object):
             Parse packet coming in from pump.
         """
 
+        # Assign bytes
+        bytes = self.bytes["Decoded"]["Int"]
+
+        # Get number of bytes to parse
+        n = len(bytes)
+
+        # Define minimum number of bytes per packet
+        N = 6
+
+        # Info
+        print "Parsing " + str(n) + " bytes: " + str(bytes)
+
+        # Not enough bytes
+        if n < N:
+
+            # Raise error
+            raise errors.NotEnoughBytes(N, n)
+
         # Get op code
-        self.code = self.bytes["Decoded"]["Int"][4]
+        self.code = bytes[4]
 
         # Get CRC
-        self.CRC = self.bytes["Decoded"]["Int"][-1]
+        self.CRC = bytes[-1]
 
         # Compute expected CRC
-        expectedCRC = lib.computeCRC8(self.bytes["Decoded"]["Int"][:-1])
+        expectedCRC = lib.computeCRC8(bytes[:-1])
 
         # Verify CRC
         if self.CRC != expectedCRC:
@@ -452,10 +429,10 @@ class Packet(object):
         i = 5
 
         # Go through content
-        while True:
+        while i < n:
 
             # Current byte
-            byte = self.bytes["Decoded"]["Int"][i]
+            byte = bytes[i]
 
             # No zero allowed
             if byte == 0:
@@ -515,6 +492,51 @@ class Packet(object):
 
 
 
+class DecodedPacket(Packet):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(self.__class__, self).__init__()
+
+        # Store bytes
+        self.bytes["Decoded"]["Hex"] = bytes
+
+        # Format them
+        self.format()
+
+        # Encode them
+        self.encode()
+
+
+
+class EncodedPacket(Packet):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(self.__class__, self).__init__()
+
+        # Store bytes
+        self.bytes["Encoded"] = bytes
+
+        # Decode them
+        self.decode()
+
+
+
 def main():
 
     """
@@ -524,14 +546,14 @@ def main():
     """
 
     # Instanciate an encoded packet
-    packet = Packet([169, 101, 153, 103, 25, 163, 89, 85, 85, 150, 85])
+    packet = EncodedPacket([169, 101, 153, 103, 25, 163, 89, 85, 85, 150, 85])
 
     # Show it
     packet.show()
 
 
     # Instanciate a decoded packet
-    packet = Packet(["A7", "79", "91", "63", "70", "00", "55"])
+    packet = DecodedPacket(["A7", "79", "91", "63", "70", "00", "55"])
 
     # Show it
     packet.show()
