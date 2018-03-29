@@ -46,7 +46,7 @@ def main():
     _stick = stick.Stick()
 
     # Start it
-    _stick.start()
+    _stick.start(False)
 
     # Define pump commands
     cmds = {"Time": commands.ReadPumpTime(_stick),
@@ -54,7 +54,16 @@ def main():
             "Firmware": commands.ReadPumpFirmware(_stick),
             "Battery": commands.ReadPumpBattery(_stick),
             "Reservoir": commands.ReadPumpReservoir(_stick),
-            "Status": commands.ReadPumpStatus(_stick)}
+            "Status": commands.ReadPumpStatus(_stick),
+            "Settings": commands.ReadPumpSettings(_stick),
+            "BG Units": commands.ReadPumpBGUnits(_stick),
+            "Carb Units": commands.ReadPumpCarbUnits(_stick),
+            "BG Targets": commands.ReadPumpBGTargets(_stick),
+            "ISF": commands.ReadPumpISF(_stick),
+            "CSF": commands.ReadPumpCSF(_stick),
+            "Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
+            "Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
+            "Basal Profile B": commands.ReadPumpBasalProfileB(_stick)}
 
     # Go through them
     for name, cmd in sorted(cmds.iteritems()):

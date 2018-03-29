@@ -68,7 +68,7 @@ class Stick(object):
 
         # Define frequencies (MHz)
         self.freq = {"Reference": 24.0,
-                     "Regions": {"NA": {"Default": 916.660,
+                     "Regions": {"NA": {"Default": 916.680,
                                         "Range": [916.645, 916.775]},
                                  "WW": {"Default": 868.330,
                                         "Range": [868.150, 868.750]}}}
@@ -85,7 +85,8 @@ class Stick(object):
                          "Radio RX": commands.ReadStickRadio(self),
                          "Radio TX": commands.WriteStickRadio(self),
                          "Radio TX/RX": commands.WriteReadStickRadio(self),
-                         "LED": commands.FlashStickLED(self)}
+                         "LED": commands.FlashStickLED(self),
+                         "Pump Model RX": commands.ReadPumpModel(self)}
 
         # Define radio registers
         self.registers = ["SYNC1",
@@ -127,7 +128,7 @@ class Stick(object):
 
 
 
-    def start(self, scan = False):
+    def start(self, scan = True):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,14 +291,14 @@ class Stick(object):
 
 
 
-    def scan(self, F1 = None, F2 = None, n = 25, sample = 5):
+    def regionalize(self, F1, F2):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            SCAN
+            REGIONALIZE
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Scan the air for the best frequency to use with CC1111 in order to
-            communicate with pump.
+            Test if given frequency range fits within region frequencies
+            definition.
         """
 
         # No frequencies given
@@ -334,32 +335,47 @@ class Stick(object):
         # Info
         print "Scanning for a " + region + " pump..."
 
+        # Return frequencies
+        return F1, F2
+
+
+
+    def scan(self, F1 = None, F2 = None, n = 25, sample = 5):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            SCAN
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Scan the air for frequency with best signal strength (best sample
+            average RSSI) to tune radio in order to communicate with pump.
+        """
+
+        # Test frequency range
+        F1, F2 = self.regionalize(F1, F2)
+
         # Initialize RSSI readings
         RSSIs = {}
 
         # Go through frequency range
         for f in np.linspace(F1, F2, n, True):
 
-            # Format frequency
+            # Round frequency
             f = round(f, 3)
 
             # Initialize RSSI value
             RSSIs[f] = []
 
-            # Adjust frequency
+            # Tune frequency
             self.tune(f)
 
-            # Sample size
+            # Sample
             for i in range(sample):
 
                 # Try
                 try:
 
-                    # Initialize command
-                    cmd = commands.ReadPumpModel(self)
-
                     # Run pump command and get packet
-                    pkt = cmd.run()
+                    pkt = self.commands["Pump Model RX"].run()
 
                     # Get RSSI reading and add it
                     RSSIs[f].append(pkt.RSSI["dBm"])
@@ -373,23 +389,41 @@ class Stick(object):
             # Average readings
             RSSIs[f] = np.mean(RSSIs[f])
 
-        # Destructure RSSIs
-        freq, levels = RSSIs.keys(), RSSIs.values()
-
-        # Get indices of best frequencies
-        ids = np.argwhere(levels == np.max(levels)).flatten()
-
-        # Average best frequencies
-        f = np.mean([freq[i] for i in ids])
-
         # Show readings
         lib.printJSON(RSSIs)
+
+        # Destructure RSSIs
+        x, y = np.array(RSSIs.keys()), np.array(RSSIs.values())
+
+        # Get sorted indices
+        indices = x.argsort()
+
+        # Sort
+        x = x[indices]
+        y = y[indices]
+
+        # Get frequency with max signal power (5 dBm threshold)
+        f = lib.getMaxMiddle(x, y, 5)
 
         # Info
         print "Best frequency: " + str(f)
 
         # Return best frequency
         return f
+
+
+
+    def wake(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            WAKE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Wake up pump.
+        """
+
+        # Try reading model, which will wake pump for a short amount of time
+        self.commands["Pump Model RX"].run()
 
 
 
@@ -405,11 +439,23 @@ class Stick(object):
         # Read from radio indefinitely
         while True:
 
-            # Get packet
-            pkt = self.commands["Radio RX"].run(tolerate = True)
+            # Try reading
+            try:
 
-            # Show it
-            pkt.show()
+                # Get data
+                data = self.commands["Radio RX"].run()
+
+                # Turn it into a pump packet
+                pkt = packets.FromPumpPacket(data)
+
+                # Show it
+                pkt.show()
+
+            # Error
+            except errors.RadioError:
+
+                # Ignore
+                pass
 
 
 
@@ -425,13 +471,16 @@ def main():
     stick = Stick()
 
     # Start it
-    stick.start(True)
+    stick.start(False)
 
     # Tune radio
-    #stick.tune(916.665)
+    stick.tune(916.678)
+
+    # Wake pump
+    #stick.wake()
 
     # Listen to radio
-    #stick.listen()
+    stick.listen()
 
 
 

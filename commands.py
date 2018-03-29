@@ -348,7 +348,7 @@ class ReadStickRadio(StickCommand):
         except errors.RadioError:
 
             # Errors not tolerated
-            if errors:
+            if not tolerate:
 
                 # Stop
                 raise
@@ -754,6 +754,195 @@ class ReadPumpStatus(PumpCommand):
 
         # Define code
         self.code = "CE"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpSettings(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpSettings, self).__init__(device)
+
+        # Define code
+        self.code = "C0"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpBGUnits(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpBGUnits, self).__init__(device)
+
+        # Define code
+        self.code = "89"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpCarbUnits(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpCarbUnits, self).__init__(device)
+
+        # Define code
+        self.code = "88"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpBGTargets(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpBGTargets, self).__init__(device)
+
+        # Define code
+        self.code = "9F"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpISF(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpISF, self).__init__(device)
+
+        # Define code
+        self.code = "8B"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpCSF(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpCSF, self).__init__(device)
+
+        # Define code
+        self.code = "8A"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpBasalProfileStandard(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpBasalProfileStandard, self).__init__(device)
+
+        # Define code
+        self.code = "92"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpBasalProfileA(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpBasalProfileA, self).__init__(device)
+
+        # Define code
+        self.code = "93"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpBasalProfileB(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpBasalProfileB, self).__init__(device)
+
+        # Define code
+        self.code = "94"
 
         # Define payload
         self.payload = ["00"]

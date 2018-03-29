@@ -24,6 +24,7 @@
 """
 
 # LIBRARIES
+import numpy as np
 import math
 import json
 import usb
@@ -31,6 +32,69 @@ import usb
 
 
 # FUNCTIONS
+def getPolyFitMax(x, y, n, N):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        GETPOLYFITMAX
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        f(x) = a_n * x^n + a_(n - 1) * x^(n - 1) + ... + a_0
+    """
+
+    # Generate nth-order polynomial fit
+    a = np.polyfit(x, y, n)
+
+    # Build x-axis
+    x = np.linspace(x[0], x[-1], N)
+
+    # Initialize y-axis
+    y = np.zeros(N)
+
+    # Loop through the n degrees of order
+    for i in range(n):
+
+        # Compute values on y-axis
+        y += a[i] * x ** (n - i)
+
+    # Find index of max
+    index = np.argmax(y)
+
+    # Return max
+    return x[index]
+
+
+
+def getMaxMiddle(x, y, threshold):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        GETMAXMIDDLE
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Get max
+    yMax = np.max(y)
+
+    # Initialize indices
+    indices = []
+
+    # Get indices or values near absolute max within threshold
+    for i in range(len(x)):
+
+        # Fits within threshold
+        if y[i] >= (yMax - threshold):
+
+            # Add index
+            indices.append(i)
+
+    # Get average index
+    index = int(round(np.mean(indices)))
+
+    # Return corresponding max
+    return x[index]
+
+
+
 def hexify(x):
 
     """

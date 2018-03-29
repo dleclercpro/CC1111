@@ -59,6 +59,7 @@ class Packet(object):
         self.recipient = None
         self.serial = []
         self.code = None
+        self.size = None
         self.payload = []
         self.CRC = None
 
@@ -227,7 +228,7 @@ class Packet(object):
         print
 
         # Show its encoded version
-        self.showEncoded()        
+        #self.showEncoded()        
 
         # Show its decoded version
         self.showDecoded()
@@ -532,6 +533,9 @@ class FromPumpPacket(EncodedPacket):
         # Get op code
         self.code = bytes[4]
 
+        # Get payload size
+        self.size = self.bytes["Decoded"]["Int"][5]
+
         # Check CRC
         if self.checkCRC():
 
@@ -541,20 +545,14 @@ class FromPumpPacket(EncodedPacket):
         # Get payload
         self.payload = []
 
-        # Initialize index
-        i = N - 1
-
-        # Go through payload (minus CRC)
-        while i < n - 1:
+        # Go through payload
+        for i in range(6, 6 + self.size):
 
             # Current byte
             byte = bytes[i]
 
             # Add byte to payload
             self.payload.append(byte)
-
-            # Increment
-            i += 1
 
 
 
