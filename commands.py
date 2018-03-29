@@ -38,7 +38,7 @@ import packets
 # CLASSES
 class Command(object):
 
-    def __init__(self):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -46,17 +46,17 @@ class Command(object):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
+        # Store device instance
+        self.device = device
+
         # Initialize code
         self.code = None
-
-        # Initialize data
-        self.data = None
 
 
 
 class StickCommand(Command):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,16 +65,29 @@ class StickCommand(Command):
         """
 
         # Initialize command
-        super(StickCommand, self).__init__()
+        super(StickCommand, self).__init__(device)
 
-        # Store stick instance
-        self.stick = stick
+
+
+    def checkRadioError(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            CHECKRADIOERROR
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # If single error byte
+        if len(bytes) == 1 and bytes[-1] in self.device.errors:
+
+            # Raise error
+            raise errors.RadioError(self.device.errors[bytes[-1]])
 
 
 
 class ReadStickName(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -83,7 +96,7 @@ class ReadStickName(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 0
@@ -100,10 +113,10 @@ class ReadStickName(StickCommand):
         """
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Get data
-        self.data = "".join(lib.charify(self.stick.read()))
+        self.data = "".join(lib.charify(self.device.read()))
 
         # Info
         print "Stick name: " + self.data
@@ -115,7 +128,7 @@ class ReadStickName(StickCommand):
 
 class ReadStickAuthor(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,7 +137,7 @@ class ReadStickAuthor(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 1
@@ -141,10 +154,10 @@ class ReadStickAuthor(StickCommand):
         """
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Get data
-        self.data = "".join(lib.charify(self.stick.read()))
+        self.data = "".join(lib.charify(self.device.read()))
 
         # Info
         print "Stick author: " + self.data
@@ -156,7 +169,7 @@ class ReadStickAuthor(StickCommand):
 
 class ReadStickRadioRegister(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -165,7 +178,7 @@ class ReadStickRadioRegister(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 10
@@ -190,16 +203,16 @@ class ReadStickRadioRegister(StickCommand):
         self.register = register
 
         # Get register address
-        self.address = self.stick.registers.index(register)
+        self.address = self.device.registers.index(register)
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Send register address
-        self.stick.write(self.address)
+        self.device.write(self.address)
 
         # Get data
-        self.data = self.stick.read()[0]
+        self.data = self.device.read()[0]
 
         # Info
         print "Register " + self.register + ": " + str(self.data)
@@ -211,7 +224,7 @@ class ReadStickRadioRegister(StickCommand):
 
 class WriteStickRadioRegister(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -220,7 +233,7 @@ class WriteStickRadioRegister(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 11
@@ -248,25 +261,25 @@ class WriteStickRadioRegister(StickCommand):
         self.register = register
 
         # Get register address
-        self.address = self.stick.registers.index(register)
+        self.address = self.device.registers.index(register)
 
         # Store value
         self.value = value
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Send register address
-        self.stick.write(self.address)
+        self.device.write(self.address)
 
         # Send value
-        self.stick.write(self.value)
+        self.device.write(self.value)
 
 
 
 class ReadStickRadio(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -275,10 +288,13 @@ class ReadStickRadio(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 20
+
+        # Initialize data
+        self.data = None
 
         # Initialize channel
         self.channel = None
@@ -287,10 +303,10 @@ class ReadStickRadio(StickCommand):
         self.timeout = None
 
         # Initialize radio timeout
-        self.timeoutRX = None
+        self.timeoutRadio = None
 
 
-    def run(self, channel = 0, timeout = 500):
+    def run(self, channel = 0, timeout = 500, tolerate = False):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,28 +321,46 @@ class ReadStickRadio(StickCommand):
         self.timeout = timeout + 500
 
         # Store radio timeout as long word
-        self.timeoutRX = lib.pack(timeout, 4)
+        self.timeoutRadio = lib.pack(timeout, 4)
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Send channel
-        self.stick.write(self.channel)
+        self.device.write(self.channel)
 
         # Send radio timeout
-        self.stick.write(self.timeoutRX)
+        self.device.write(self.timeoutRadio)
 
-        # Get data
-        self.data = self.stick.read(timeout = self.timeout)
+        # Try
+        try:
 
-        # Return it
+            # Get data
+            self.data = self.device.read(timeout = self.timeout)
+
+            # Look for possible error
+            self.checkRadioError(self.data)
+
+            # Remove EOP byte
+            self.data.pop(-1)
+
+        # If radio error
+        except errors.RadioError:
+
+            # Errors not tolerated
+            if errors:
+
+                # Stop
+                raise
+
+        # Return data
         return self.data
 
 
 
 class WriteStickRadio(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -335,13 +369,13 @@ class WriteStickRadio(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 21
 
-        # Initialize packet
-        self.packet = None
+        # Initialize data
+        self.data = None
 
         # Initialize channel
         self.channel = None
@@ -354,7 +388,7 @@ class WriteStickRadio(StickCommand):
 
 
 
-    def run(self, packet, channel = 0, repeat = 0, delay = 0):
+    def run(self, data, channel = 0, repeat = 0, delay = 0):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -363,7 +397,7 @@ class WriteStickRadio(StickCommand):
         """
 
         # Store packet
-        self.packet = packet
+        self.data = data
 
         # Store channel
         self.channel = channel
@@ -375,25 +409,25 @@ class WriteStickRadio(StickCommand):
         self.delay = lib.pack(delay, 4)
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Send channel
-        self.stick.write(self.channel)
+        self.device.write(self.channel)
 
         # Send delay
-        self.stick.write(self.delay)
+        self.device.write(self.delay)
 
         # Send packet
-        self.stick.write(self.packet)
+        self.device.write(self.data)
 
         # Send last byte
-        self.stick.write(0)
+        self.device.write(0)
 
 
 
 class WriteReadStickRadio(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -402,13 +436,16 @@ class WriteReadStickRadio(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 22
 
-        # Initialize packet to send
-        self.packetTX = None
+        # Initialize data to send
+        self.dataTX = None
+
+        # Initialize data to receive
+        self.dataRX = None
 
         # Initialize send channel
         self.channelTX = None
@@ -423,18 +460,18 @@ class WriteReadStickRadio(StickCommand):
         self.delayTX = None
 
         # Initialize retry count
-        self.retries = None
+        self.retry = None
 
         # Initialize timeout
         self.timeout = None
 
         # Initialize radio timeout
-        self.timeoutRX = None
+        self.timeoutRadio = None
 
 
 
-    def run(self, packetTX, channelTX = 0, channelRX = 0, repeatTX = 2,
-    						delayTX = 0, retries = 0, timeout = 500):
+    def run(self, dataTX, channelTX = 0, channelRX = 0, repeatTX = 1,
+                  delayTX = 0, retry = 1, timeout = 500, tolerate = False):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -442,8 +479,8 @@ class WriteReadStickRadio(StickCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Store packet to send
-        self.packetTX = packetTX
+        # Store data to send
+        self.dataTX = dataTX
 
         # Store send channel
         self.channelTX = channelTX
@@ -458,52 +495,70 @@ class WriteReadStickRadio(StickCommand):
         self.delayTX = lib.pack(delayTX, 4)
 
         # Store retry count
-        self.retries = retries
+        self.retry = retry
 
         # Store timeout
-        self.timeout = (1 + retries) * timeout + 500
+        self.timeout = (1 + retry) * timeout + 500
 
         # Store radio timeout as long word
-        self.timeoutRX = lib.pack(timeout, 4)
+        self.timeoutRadio = lib.pack(timeout, 4)
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
         # Send channel TX
-        self.stick.write(self.channelTX)
+        self.device.write(self.channelTX)
 
         # Send repeat count
-        self.stick.write(self.repeatTX)
+        self.device.write(self.repeatTX)
 
         # Send delay
-        self.stick.write(self.delayTX)
+        self.device.write(self.delayTX)
 
         # Send channel RX
-        self.stick.write(self.channelRX)
+        self.device.write(self.channelRX)
 
         # Send radio timeout
-        self.stick.write(self.timeoutRX)
+        self.device.write(self.timeoutRadio)
 
         # Send retry count
-        self.stick.write(self.retries)
+        self.device.write(self.retry)
 
         # Send packet
-        self.stick.write(self.packetTX)
+        self.device.write(self.dataTX)
 
         # Send last byte
-        self.stick.write(0)
+        self.device.write(0)
 
-        # Get data
-        self.data = self.stick.read(timeout = self.timeout)
+        # Try
+        try:
 
-        # Return it
-        return self.data
+            # Get data
+            self.dataRX = self.device.read(timeout = self.timeout)
+
+            # Look for possible error
+            self.checkRadioError(self.dataRX)
+
+            # Remove EOP byte
+            self.dataRX.pop(-1)
+
+        # If radio error
+        except errors.RadioError:
+
+            # Errors not tolerated
+            if not tolerate:
+
+                # Stop
+                raise
+
+        # Return data
+        return self.dataRX
 
 
 
 class FlashStickLED(StickCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -512,7 +567,7 @@ class FlashStickLED(StickCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(StickCommand, self).__init__(device)
 
         # Define code
         self.code = 30
@@ -528,13 +583,13 @@ class FlashStickLED(StickCommand):
         """
 
         # Send command code
-        self.stick.write(self.code)
+        self.device.write(self.code)
 
 
 
 class PumpCommand(Command):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -543,33 +598,11 @@ class PumpCommand(Command):
         """
 
         # Initialize command
-        super(PumpCommand, self).__init__()
+        super(PumpCommand, self).__init__(device)
 
-        # Store stick instance
-        self.stick = stick
-
-        # Instanciate a pump packet
-        self.packet = packets.ToPumpPacket()
-
-        # Define packet properties
-        self.packet.recipient = "A7"
-        self.packet.serial = ["79", "91", "63"]
-
-
-
-    def prepare(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            PREPARE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Assemble packet
-        self.packet.assemble()
-
-        # Show it
-        self.packet.show()
+        # Initialize packets
+        self.packetTX = None
+        self.packetRX = None
 
 
 
@@ -581,20 +614,29 @@ class PumpCommand(Command):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Instanciate command
-        command = WriteReadStickRadio(self.stick)
+        # Generate packet to send to pump
+        self.packetTX = packets.ToPumpPacket(self.code, self.payload)
 
-        # Send packet, listen for pump response and get data
-        self.data = command.run(self.packet.bytes["Encoded"])
+        # Instanciate command
+        cmd = WriteReadStickRadio(self.device)
+
+        # Send encoded packet, listen for pump response and get data
+        data = cmd.run(self.packetTX.bytes["Encoded"])
+
+        # Parse data into packet and store it
+        self.packetRX = packets.FromPumpPacket(data)
+
+        # Show it
+        self.packetRX.show()
 
         # Return it
-        return self.data
+        return self.packetRX
 
 
 
 class ReadPumpTime(PumpCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -603,20 +645,19 @@ class ReadPumpTime(PumpCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(ReadPumpTime, self).__init__(device)
 
-        # Define packet properties
-        self.packet.code = "70"
-        self.packet.payload = ["00"]
+        # Define code
+        self.code = "70"
 
-        # Prepare packet
-        self.prepare()
+        # Define payload
+        self.payload = ["00"]
 
 
 
 class ReadPumpModel(PumpCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -625,20 +666,19 @@ class ReadPumpModel(PumpCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(ReadPumpModel, self).__init__(device)
 
-        # Define packet properties
-        self.packet.code = "8D"
-        self.packet.payload = ["00"]
+        # Define code
+        self.code = "8D"
 
-        # Prepare packet
-        self.prepare()
+        # Define payload
+        self.payload = ["00"]
 
 
 
 class ReadPumpFirmware(PumpCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -647,20 +687,19 @@ class ReadPumpFirmware(PumpCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(ReadPumpFirmware, self).__init__(device)
 
-        # Define packet properties
-        self.packet.code = "74"
-        self.packet.payload = ["00"]
+        # Define code
+        self.code = "74"
 
-        # Prepare packet
-        self.prepare()
+        # Define payload
+        self.payload = ["00"]
 
 
 
 class ReadPumpBattery(PumpCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -669,20 +708,19 @@ class ReadPumpBattery(PumpCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(ReadPumpBattery, self).__init__(device)
 
-        # Define packet properties
-        self.packet.code = "72"
-        self.packet.payload = ["00"]
+        # Define code
+        self.code = "72"
 
-        # Prepare packet
-        self.prepare()
+        # Define payload
+        self.payload = ["00"]
 
 
 
 class ReadPumpReservoir(PumpCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -691,20 +729,19 @@ class ReadPumpReservoir(PumpCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(ReadPumpReservoir, self).__init__(device)
 
-        # Define packet properties
-        self.packet.code = "73"
-        self.packet.payload = ["00"]
+        # Define code
+        self.code = "73"
 
-        # Prepare packet
-        self.prepare()       
+        # Define payload
+        self.payload = ["00"]
 
 
 
 class ReadPumpStatus(PumpCommand):
 
-    def __init__(self, stick):
+    def __init__(self, device):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -713,14 +750,13 @@ class ReadPumpStatus(PumpCommand):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__(stick)
+        super(ReadPumpStatus, self).__init__(device)
 
-        # Define packet properties
-        self.packet.code = "CE"
-        self.packet.payload = ["00"]
+        # Define code
+        self.code = "CE"
 
-        # Prepare packet
-        self.prepare()
+        # Define payload
+        self.payload = ["00"]
 
 
 

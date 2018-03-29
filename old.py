@@ -83,3 +83,47 @@ def oldEncodePacket(string):
 
     # Return it
     return packet
+
+
+
+def test(errors):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        TEST
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Try
+    try:
+
+        # Raise error
+        raise NotImplementedError("Test")
+
+    # Except
+    except Exception as e:
+
+        # Errors not tolerated
+        if errors:
+
+            # Stop
+            raise
+
+
+
+def main():
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        MAIN
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Test
+    test(False)
+
+
+
+# Run this when script is called from terminal
+if __name__ == "__main__":
+    main()

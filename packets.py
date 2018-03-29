@@ -394,7 +394,7 @@ class DecodedPacket(Packet):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__()
+        super(DecodedPacket, self).__init__()
 
         # Store bytes
         self.bytes["Decoded"]["Hex"] = bytes
@@ -415,7 +415,7 @@ class EncodedPacket(Packet):
         """
 
         # Initialize command
-        super(self.__class__, self).__init__()
+        super(EncodedPacket, self).__init__()
 
         # Store bytes
         self.bytes["Encoded"] = bytes
@@ -425,7 +425,7 @@ class EncodedPacket(Packet):
 
 
 
-class FromPumpPacket(Packet):
+class FromPumpPacket(EncodedPacket):
 
     def __init__(self, bytes):
 
@@ -435,11 +435,11 @@ class FromPumpPacket(Packet):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Initialize command
-        super(self.__class__, self).__init__()
-
         # Get packet index
         self.index = bytes[0]
+
+        # Info
+        print "#: " + str(self.index)
 
         # Get RSSI reading
         self.RSSI = {"Hex": bytes[1], "dBm": None}
@@ -447,11 +447,11 @@ class FromPumpPacket(Packet):
         # Compute RSSI
         self.computeRSSI()
 
-        # Store bytes
-        self.bytes["Encoded"] = bytes[2:]
+        # Initialize command
+        super(FromPumpPacket, self).__init__(bytes[2:])
 
-        # Decode them
-        self.decode()
+        # Parse decoded bytes
+        self.parse()
 
 
 
@@ -468,7 +468,7 @@ class FromPumpPacket(Packet):
         RSSI = self.RSSI["Hex"]
 
         # Info
-        print "RSSI (Hex): " + str(RSSI)
+        #print "RSSI (Hex): " + str(RSSI)
 
         # Convert RSSI to dBm
         RSSI = int("0x" + str(RSSI), 16)
@@ -523,9 +523,6 @@ class FromPumpPacket(Packet):
             # Raise error
             raise errors.NotEnoughBytes(N, n)
 
-        # Look for possible error
-        self.checkError()
-
         # Get recipient
         self.recipient = bytes[0]
 
@@ -561,9 +558,9 @@ class FromPumpPacket(Packet):
 
 
 
-class ToPumpPacket(Packet):
+class ToPumpPacket(DecodedPacket):
 
-    def __init__(self):
+    def __init__(self, code, payload):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -571,8 +568,49 @@ class ToPumpPacket(Packet):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
+        # Define pump as packet recipient
+        self.recipient = "A7"
+
+        # Define pump serial number
+        self.serial = ["79", "91", "63"]
+
+        # Store code
+        self.code = code
+
+        # Store payload
+        self.payload = payload
+
         # Initialize command
-        super(self.__class__, self).__init__()
+        super(ToPumpPacket, self).__init__(self.assemble())
+
+
+
+    def computeCRC(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            COMPUTECRC
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Compute CRC of partial packet.
+        """
+
+        # Initialize pre-packet
+        pkt = Packet()
+
+        # Define its bytes
+        pkt.bytes["Decoded"]["Hex"] = bytes
+
+        # Format it
+        pkt.format()
+
+        # Get its bytes in their decimal representation
+        bytes = pkt.bytes["Decoded"]["Int"]
+
+        # Compute corresponding CRC
+        CRC = lib.computeCRC8(bytes)
+
+        # Store its hexadecimal representation
+        self.CRC = "{0:02X}".format(CRC)
 
 
 
@@ -600,26 +638,14 @@ class ToPumpPacket(Packet):
         # Add payload
         bytes.extend(self.payload)
 
-        # Store pre-packet
-        self.bytes["Decoded"]["Hex"] = bytes
-
-        # Format it
-        self.format()
-
         # Compute CRC
-        CRC = lib.computeCRC8(self.bytes["Decoded"]["Int"])
-
-        # Store its hexadecimal representation
-        self.CRC = "{0:02X}".format(CRC)
+        self.computeCRC(bytes)
 
         # Add it
         bytes.append(self.CRC)
 
-        # Store whole packet
-        self.bytes["Decoded"]["Hex"] = bytes
-
-        # Encode it
-        self.encode()        
+        # Return assembled packet
+        return bytes
 
 
 

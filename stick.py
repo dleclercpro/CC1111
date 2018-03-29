@@ -57,7 +57,7 @@ class Stick(object):
         self.product = 0x16A7
 
         # Initialize serial link
-        self.link = None
+        self.device = None
 
         # Initialize configuration
         self.config = None
@@ -68,11 +68,14 @@ class Stick(object):
 
         # Define frequencies (MHz)
         self.freq = {"Reference": 24.0,
-                     "Computed": None,
                      "Regions": {"NA": {"Default": 916.660,
-                                        "Range": [916.300, 916.800]},
+                                        "Range": [916.645, 916.775]},
                                  "WW": {"Default": 868.330,
                                         "Range": [868.150, 868.750]}}}
+
+        # Define radio errors
+        self.errors = {0xAA: "Timeout",
+                       0xBB: "No data"}
 
         # Define commands
         self.commands = {"Name RX": commands.ReadStickName(self),
@@ -82,7 +85,7 @@ class Stick(object):
                          "Radio RX": commands.ReadStickRadio(self),
                          "Radio TX": commands.WriteStickRadio(self),
                          "Radio TX/RX": commands.WriteReadStickRadio(self),
-                         "Radio LED": commands.FlashStickLED(self)}
+                         "LED": commands.FlashStickLED(self)}
 
         # Define radio registers
         self.registers = ["SYNC1",
@@ -122,13 +125,6 @@ class Stick(object):
                           "FREQ0",
                           "CHANNR"]
 
-        # Define radio errors
-        self.errors = {0xAA: "Timeout",
-                       0xBB: "No data"}
-
-        # Initialize packet
-        self.packet = None
-
 
 
     def start(self, scan = False):
@@ -164,11 +160,11 @@ class Stick(object):
         """
 
         # Find stick
-        self.link = usb.core.find(idVendor = self.vendor,
-                                  idProduct = self.product)
+        self.device = usb.core.find(idVendor = self.vendor,
+                                    idProduct = self.product)
 
         # No stick found
-        if self.link is None:
+        if self.device is None:
 
             # Raise error
             raise IOError("No stick found. Are you sure it's plugged in?")
@@ -191,10 +187,10 @@ class Stick(object):
         """
 
         # Set configuration
-        self.link.set_configuration()
+        self.device.set_configuration()
 
         # Get configuration
-        self.config = self.link.get_active_configuration()
+        self.config = self.device.get_active_configuration()
 
         # Get EPs
         self.EPs["OUT"] = lib.getEP(self.config, "OUT")
@@ -229,12 +225,6 @@ class Stick(object):
 
                 # Exit
                 break
-
-        # Look for possible error
-        if len(bytes) == 1 and bytes[-1] in self.errors:
-
-            # Raise error
-            raise errors.RadioError(self.errors[bytes[-1]])
 
         # Return them
         return bytes
@@ -281,7 +271,7 @@ class Stick(object):
         f = int(round(f * (2 ** 16) / self.freq["Reference"]))
 
         # Convert to set of 3 bytes
-        bytes = [lib.getByte(f, x) for x in reversed(range(3))]
+        bytes = [lib.getByte(f, x) for x in [2, 1, 0]]
 
         # Update registers
         for reg, byte in zip(["FREQ2", "FREQ1", "FREQ0"], bytes):
@@ -347,9 +337,6 @@ class Stick(object):
         # Initialize RSSI readings
         RSSIs = {}
 
-        # Initialize command
-        command = commands.ReadPumpModel(self)
-
         # Go through frequency range
         for f in np.linspace(F1, F2, n, True):
 
@@ -368,16 +355,16 @@ class Stick(object):
                 # Try
                 try:
 
-                    # Run pump command and get data
-                    data = command.run()
+                    # Initialize command
+                    cmd = commands.ReadPumpModel(self)
 
-                    # Use it to generate a packet
-                    self.packet = packets.FromPumpPacket(data)
+                    # Run pump command and get packet
+                    pkt = cmd.run()
 
                     # Get RSSI reading and add it
-                    RSSIs[f].append(self.packet["RSSI"]["dBm"])
+                    RSSIs[f].append(pkt.RSSI["dBm"])
 
-                # On invalid packet of comms exception (timeout, no data)
+                # On invalid packet or radio error
                 except (errors.InvalidPacket, errors.RadioError):
 
                     # Add fake low RSSI reading
@@ -418,39 +405,11 @@ class Stick(object):
         # Read from radio indefinitely
         while True:
 
-            # Try command
-            try:
+            # Get packet
+            pkt = self.commands["Radio RX"].run(tolerate = True)
 
-                # Radio read command and get data
-                data = self.commands["Radio RX"].run()
-
-                # Use it to generate packet
-                self.packet = packets.FromPumpPacket(data)
-
-            # Error
-            except errors.RadioError:
-
-                # Skip
-                pass
-
-
-
-    def sendAndListen(self, packet):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            SENDANDLISTEN
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Send packets using radio. Repeat if necessary. Following that,
-            listen for incoming packets, using a given timeout. Retry the whole
-            if necessary.
-        """
-
-        # Radio send packet and receive data
-        data = self.commands["Radio TX/RX"].run(packet)
-
-        # Use it to generate packet
-        self.packet = packets.FromPumpPacket(data)
+            # Show it
+            pkt.show()
 
 
 
@@ -473,9 +432,6 @@ def main():
 
     # Listen to radio
     #stick.listen()
-
-    # Send and listen to radio
-    #stick.sendAndListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 165])
 
 
 
