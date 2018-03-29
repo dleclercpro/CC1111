@@ -634,6 +634,70 @@ class PumpCommand(Command):
 
 
 
+class PumpPreCommand(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PumpPreCommand, self).__init__(device)
+
+
+
+    def run(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            RUN
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Generate packet to send to pump
+        self.packetTX = packets.ToPumpPacket(self.code, self.payload)
+
+        # Instanciate command
+        cmd = WriteStickRadio(self.device)
+
+        # Send encoded packet
+        cmd.run(self.packetTX.bytes["Encoded"])
+
+
+
+class PumpBigCommand(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PumpBigCommand, self).__init__(device)
+
+        # Initialize commands to run one after the other
+        self.commands = []
+
+
+
+    def run(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            RUN
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # ...
+
+
+
 class ReadPumpTime(PumpCommand):
 
     def __init__(self, device):
@@ -943,6 +1007,92 @@ class ReadPumpBasalProfileB(PumpCommand):
 
         # Define code
         self.code = "94"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpDailyTotals(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpDailyTotals, self).__init__(device)
+
+        # Define code
+        self.code = "79"
+
+        # Define payload
+        self.payload = ["00"]
+
+
+
+class ReadPumpHistory(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpHistory, self).__init__(device)
+
+        # Define code
+        self.code = "80"
+
+        # Define payload
+        self.payload = ["00"]
+
+        # FIXME: only send packet, do not wait for response?
+
+
+
+class ReadPumpHistoryTest(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpHistoryTest, self).__init__(device)
+
+        # Define code
+        self.code = "80"
+
+        # Define payload (numbers of bytes to come, page, zeros)
+        self.payload = ["01"] + ["04"] + ["00"] * 63
+
+
+
+class ReadPumpNext(PumpCommand):
+
+    def __init__(self, device):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpNext, self).__init__(device)
+
+        # Define code
+        self.code = "06"
 
         # Define payload
         self.payload = ["00"]
