@@ -36,6 +36,7 @@ import numpy as np
 import lib
 import errors
 import packets
+import commands
 
 
 
@@ -51,6 +52,10 @@ class Stick(object):
             Initialize stick properties.
         """
 
+        # Define USB IDs
+        self.vendor = 0x0451
+        self.product = 0x16A7
+
         # Initialize serial link
         self.link = None
 
@@ -61,28 +66,23 @@ class Stick(object):
         self.EPs = {"OUT": None,
                     "IN": None}
 
-        # Define USB IDs
-        self.vendor = 0x0451
-        self.product = 0x16A7
-
         # Define frequencies (MHz)
-        self.frequencies = {"Reference": 24.0,
-                            "Computed": None,
-                            "Regions": {"NA": {"Default": 916.660,
-                                               "Range": [916.500, 916.800]},
-                                        "WW": {"Default": 868.330,
-                                               "Range": [868.150, 868.750]}}}
+        self.freq = {"Reference": 24.0,
+                     "Computed": None,
+                     "Regions": {"NA": {"Default": 916.660,
+                                        "Range": [916.300, 916.800]},
+                                 "WW": {"Default": 868.330,
+                                        "Range": [868.150, 868.750]}}}
 
         # Define commands
-        self.commands = {"Product": 0,
-                         "Author": 1,
-                         "Register RX": 10,
-                         "Register TX": 11,
-                         "Radio RX": 20,
-                         "Radio TX": 21,
-                         "Radio TX/RX": 22,
-                         "LED": 30,
-                         "Test": 40}
+        self.commands = {"Name RX": commands.ReadStickName(self),
+                         "Author RX": commands.ReadStickAuthor(self),
+                         "Radio Register RX": commands.ReadStickRadioRegister(self),
+                         "Radio Register TX": commands.WriteStickRadioRegister(self),
+                         "Radio RX": commands.ReadStickRadio(self),
+                         "Radio TX": commands.WriteStickRadio(self),
+                         "Radio TX/RX": commands.WriteReadStickRadio(self),
+                         "Radio LED": commands.FlashStickLED(self)}
 
         # Define radio registers
         self.registers = ["SYNC1",
@@ -126,14 +126,31 @@ class Stick(object):
         self.errors = {0xAA: "Timeout",
                        0xBB: "No data"}
 
-        # Initialize bytes
-        self.bytes = {"#": None,
-                      "RSSI": {"Hex": None,
-                               "dBm": None},
-                      "Payload": []}
-
         # Initialize packet
         self.packet = None
+
+
+
+    def start(self, scan = False):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            START
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Starting procedure for stick.
+        """
+
+        # Find it
+        self.find()
+
+        # Configure it
+        self.configure()
+
+        # If scanning wanted
+        if scan:
+
+            # Tune radio to best frequency
+            self.tune(self.scan())
 
 
 
@@ -161,7 +178,6 @@ class Stick(object):
 
             # Show stick
             print "Stick found."
-            #print self.link
 
 
 
@@ -214,6 +230,12 @@ class Stick(object):
                 # Exit
                 break
 
+        # Look for possible error
+        if len(bytes) == 1 and bytes[-1] in self.errors:
+
+            # Raise error
+            raise errors.RadioError(self.errors[bytes[-1]])
+
         # Return them
         return bytes
 
@@ -243,142 +265,6 @@ class Stick(object):
 
 
 
-    def readRegister(self, address):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            READREGISTER
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Read from radio register.
-        """
-
-        # Command
-        self.write(self.commands["Register RX"])
-
-        # Define register address
-        self.write(address)
-
-        # Read value
-        value = self.read()[0]
-
-        # Update its value
-        #print "Register " + self.registers[address] + ": " + str(value)
-
-        # Return value
-        return value
-
-
-
-    def writeRegister(self, address, value):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            WRITEREGISTER
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Write to radio register.
-        """
-
-        # Command
-        self.write(self.commands["Register TX"])
-
-        # Define register address
-        self.write(address)
-
-        # Update its value
-        self.write(value)
-
-
-
-    def parse(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            PARSE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Parse bytes and convert payload to packet.
-        """
-
-        # Parse packet (remove EOP zero)
-        self.bytes["#"], self.bytes["RSSI"]["Hex"] = bytes[0], bytes[1]
-        self.bytes["Payload"] = bytes[2:-1]
-
-        # Convert RSSI
-        self.rssi()
-
-        # Info
-        print "Packet:"
-        print "#: " + str(self.bytes["#"])
-        print "RSSI: " + str(self.bytes["RSSI"]["dBm"]) + " dBm"
-
-        # Create packet
-        self.packet = packets.EncodedPacket(self.bytes["Payload"])
-
-        # Parse it
-        self.packet.parse()
-
-        # Show it
-        self.packet.show()
-
-
-
-    def findError(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            FINDERROR
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Test bytes for CC1111 error.
-        """
-
-        # Look for possible error
-        if bytes[-1] in self.errors:
-
-            # Get error
-            error = self.errors[bytes[-1]]
-
-            # Raise error
-            raise errors.RadioError(error)
-
-
-
-    def rssi(self, offset = 73):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            RSSI
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Convert hexadecimal RSSI reading to dBm.
-        """
-
-        # Get RSSI
-        RSSI = self.bytes["RSSI"]["Hex"]
-
-        # Info
-        print "RSSI before conversion: " + str(RSSI)
-
-        # Convert RSSI to dBm
-        RSSI = int("0x" + str(RSSI), 16)
-
-        # Bigger than
-        if RSSI >= 128:
-
-            # Value
-            RSSI = (RSSI - 256) / 2.0
-
-        # Otherwise
-        else:
-
-            # Value
-            RSSI = RSSI / 2.0
-
-        # Remove offset
-        RSSI -= offset
-
-        # Reassign rounded negative RSSI
-        self.bytes["RSSI"]["dBm"] = round(RSSI)
-
-
-
     def tune(self, f):
 
         """
@@ -392,27 +278,19 @@ class Stick(object):
         print "Tuning radio to: " + str(f) + " MHz"
 
         # Convert frequency to corresponding value (according to datasheet)
-        f = int(round(f * (2 ** 16) / self.frequencies["Reference"]))
+        f = int(round(f * (2 ** 16) / self.freq["Reference"]))
 
         # Convert to set of 3 bytes
         bytes = [lib.getByte(f, x) for x in reversed(range(3))]
 
-        # Define corresponding registers
-        registers = [self.registers.index("FREQ2"),
-                     self.registers.index("FREQ1"),
-                     self.registers.index("FREQ0")]
-
-        # Number of registers
-        n = len(registers)
-
         # Update registers
-        for i in range(n):
+        for reg, byte in zip(["FREQ2", "FREQ1", "FREQ0"], bytes):
 
             # Write to register
-            self.writeRegister(registers[i], bytes[i])
+            self.commands["Radio Register TX"].run(reg, byte)
 
             # If mismatch
-            if self.readRegister(registers[i]) != bytes[i]:
+            if self.commands["Radio Register RX"].run(reg) != byte:
 
                 # Raise error
                 raise IOError("Register not updated correctly.")
@@ -422,7 +300,7 @@ class Stick(object):
 
 
 
-    def scan(self, f1 = None, f2 = None, n = 25, sample = 5):
+    def scan(self, F1 = None, F2 = None, n = 25, sample = 5):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -433,23 +311,23 @@ class Stick(object):
         """
 
         # No frequencies given
-        if f1 is None and f2 is None:
+        if F1 is None and F2 is None:
 
             # Default region: NA
             region = "NA"
 
             # Assign frequencies
-            [f1, f2] = self.frequencies["Regions"][region]["Range"]
+            [F1, F2] = self.freq["Regions"][region]["Range"]
 
         # Otherwise, test them
         else:
 
             # Go through locales
-            for region, frequencies in self.frequencies["Regions"].iteritems():
+            for region, freq in self.freq["Regions"].iteritems():
 
                 # Check for correct frequencies
-                if (f1 >= min(frequencies["Range"]) and
-                    f2 <= max(frequencies["Range"])):
+                if (F1 >= min(freq["Range"]) and
+                    F2 <= max(freq["Range"])):
 
                     # Exit
                     break
@@ -466,20 +344,14 @@ class Stick(object):
         # Info
         print "Scanning for a " + region + " pump..."
 
-        # Info
-        print "Generating frequency range..."
-
-        # Generate frequency range
-        frequencyRange = np.linspace(f1, f2, n, True)
-
-        # Define "get pump model" packet
-        pkt = packets.DecodedPacket(["A7", "79", "91", "63", "8D", "00", "C8"])
-
         # Initialize RSSI readings
         RSSIs = {}
 
+        # Initialize command
+        command = commands.ReadPumpModel(self)
+
         # Go through frequency range
-        for f in frequencyRange:
+        for f in np.linspace(F1, F2, n, True):
 
             # Format frequency
             f = round(f, 3)
@@ -496,11 +368,14 @@ class Stick(object):
                 # Try
                 try:
 
-                    # Send and listen to radio
-                    self.sendAndListen(pkt.bytes["Encoded"])
+                    # Run pump command and get data
+                    data = command.run()
 
-                    # Add RSSI reading
-                    RSSIs[f].append(self.bytes["RSSI"]["dBm"])
+                    # Use it to generate a packet
+                    self.packet = packets.FromPumpPacket(data)
+
+                    # Get RSSI reading and add it
+                    RSSIs[f].append(self.packet["RSSI"]["dBm"])
 
                 # On invalid packet of comms exception (timeout, no data)
                 except (errors.InvalidPacket, errors.RadioError):
@@ -511,17 +386,17 @@ class Stick(object):
             # Average readings
             RSSIs[f] = np.mean(RSSIs[f])
 
-        # Show readings
-        lib.printJSON(RSSIs)
-
         # Destructure RSSIs
-        frequencies, dBm = RSSIs.keys(), RSSIs.values()
+        freq, levels = RSSIs.keys(), RSSIs.values()
 
         # Get indices of best frequencies
-        ids = np.argwhere(dBm == np.max(dBm)).flatten()
+        ids = np.argwhere(levels == np.max(levels)).flatten()
 
         # Average best frequencies
-        f = np.mean([frequencies[i] for i in ids])
+        f = np.mean([freq[i] for i in ids])
+
+        # Show readings
+        lib.printJSON(RSSIs)
 
         # Info
         print "Best frequency: " + str(f)
@@ -531,44 +406,26 @@ class Stick(object):
 
 
 
-    def listen(self, channel = 0, timeout = 500):
+    def listen(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             LISTEN
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Listen to incoming packets on radio, using a given timeout.
+            Listen to incoming packets on radio.
         """
-
-        # Convert timeout to bytes
-        timeoutRadio = lib.pack(timeout, 4)
-
-        # Increase timeout (1s) at EP to make sure radio is done
-        timeout += 500
 
         # Read from radio indefinitely
         while True:
-        
-            # Radio command
-            self.write(self.commands["Radio RX"])
 
-            # Give channel
-            self.write(channel)
-
-            # Give timeout as long word (32 bits)
-            self.write(timeoutRadio)
-
-            # Read response
-            bytes = self.read(timeout = timeout)
-
-            # Try parsing bytes
+            # Try command
             try:
 
-                # Look for possible error
-                self.findError(bytes)
+                # Radio read command and get data
+                data = self.commands["Radio RX"].run()
 
-                # Parse bytes
-                self.parse(bytes)
+                # Use it to generate packet
+                self.packet = packets.FromPumpPacket(data)
 
             # Error
             except errors.RadioError:
@@ -578,9 +435,7 @@ class Stick(object):
 
 
 
-    def sendAndListen(self, bytes, channelTX = 0, channelRX = 0,
-                            repeat = 1, repeatDelay = 0,
-                            retries = 2, timeout = 500):
+    def sendAndListen(self, packet):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -591,48 +446,11 @@ class Stick(object):
             if necessary.
         """
 
-        # Pack times
-        timeoutRadio = lib.pack(timeout, 4)
-        repeatDelay = lib.pack(repeatDelay, 4)
+        # Radio send packet and receive data
+        data = self.commands["Radio TX/RX"].run(packet)
 
-        # Adjust timeout based on number of trials and give some slack (1s) at
-        # EP to make sure radio is done
-        timeout *= 1 + retries
-        timeout += 500
-
-        # Radio send and receive command
-        self.write(self.commands["Radio TX/RX"])
-
-        # Give TX channel and repeat
-        self.write(channelTX)
-        self.write(repeat)
-
-        # Give delay as long word (32 bits)
-        self.write(repeatDelay)
-
-        # Give RX channel
-        self.write(channelRX)
-
-        # Give timeout as long word (32 bits)
-        self.write(timeoutRadio)
-
-        # Give retry count
-        self.write(retries)
-
-        # Send bytes
-        self.write(bytes)
-
-        # Send last byte
-        self.write(0)
-
-        # Read response
-        bytes = self.read(timeout = timeout)
-
-        # Look for possible error
-        self.findError(bytes)
-
-        # Parse bytes
-        self.parse(bytes)
+        # Use it to generate packet
+        self.packet = packets.FromPumpPacket(data)
 
 
 
@@ -647,17 +465,17 @@ def main():
     # Instanciate a stick
     stick = Stick()
 
-    # Find it
-    stick.find()
+    # Start it
+    stick.start(True)
 
-    # Configure it
-    stick.configure()
-
-    # Tune radio to best frequency
-    stick.tune(stick.scan())
+    # Tune radio
+    #stick.tune(916.665)
 
     # Listen to radio
     #stick.listen()
+
+    # Send and listen to radio
+    #stick.sendAndListen([169, 101, 153, 103, 25, 163, 104, 213, 85, 177, 165])
 
 
 

@@ -52,11 +52,6 @@ void command_get(void) {
 		case 30:
 			command_led();
 			break;
-
-		// Test command
-		case 40:
-			command_test();
-			break;
 	}
 }
 
@@ -187,21 +182,4 @@ void command_led(void) {
 
 	// Switch LED
 	led_switch();
-}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    COMMAND_TEST
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-void command_test(void) {
-
-	// Get long word
-	uint32_t test = usb_rx_long();
-
-	// Repeat to master
-	usb_tx_byte((test & 0xFF000000) >> (8*3));
-	usb_tx_byte((test & 0x00FF0000) >> (8*2));
-	usb_tx_byte((test & 0x0000FF00) >> (8*1));
-	usb_tx_byte((test & 0x000000FF) >> (8*0));
 }

@@ -56,34 +56,15 @@ class Packet(object):
         """
 
         # Initialize characteristics
-        self.recipient = "A7"
-        self.serial = ["79", "91", "63"]
+        self.recipient = None
+        self.serial = []
         self.code = None
         self.payload = []
         self.CRC = None
 
-        # Initialize lengths
-        self.length = {"Encoded": 0,
-                       "Decoded": 0}
-
         # Initialize various formats
         self.bytes = {"Encoded": [],
                       "Decoded": {"Str": [], "Hex": [], "Chr": []}}
-
-
-
-    def measure(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            MEASURE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Measure packet length.
-        """
-
-        # Measure lengths
-        self.length["Encoded"] = len(self.bytes["Encoded"])
-        self.length["Decoded"] = len(self.bytes["Decoded"]["Hex"])
 
 
 
@@ -145,11 +126,14 @@ class Packet(object):
             Show encoded bytes.
         """
 
+        # Get size of packet
+        size = len(self.bytes["Encoded"])
+
         # Compute number of exceeding bytes
-        N = self.length["Encoded"] % n
+        N = size % n
 
         # Define number of rows to be printed 
-        R = self.length["Encoded"] / n + int(N != 0)
+        R = size / n + int(N != 0)
 
         # Info
         print "Encoded bytes:"
@@ -180,11 +164,14 @@ class Packet(object):
             Show decoded bytes in all formats.
         """
 
+        # Get size of packet
+        size = len(self.bytes["Decoded"]["Hex"])
+
         # Compute number of exceeding bytes
-        N = self.length["Decoded"] % n
+        N = size % n
 
         # Define number of rows to be printed 
-        R = self.length["Decoded"] / n + int(N != 0)
+        R = size / n + int(N != 0)
 
         # Format bytes
         self.format()
@@ -239,9 +226,6 @@ class Packet(object):
         # Breathe
         print
 
-        # Measure packet
-        self.measure()
-
         # Show its encoded version
         self.showEncoded()        
 
@@ -287,7 +271,7 @@ class Packet(object):
                 word = TABLE.index(word)
 
                 # Format it
-                word = hex(word)[-1].upper()
+                word = "{0:01X}".format(word)
 
                 # Store word
                 string += word
@@ -329,9 +313,6 @@ class Packet(object):
             only the other way around this time.
         """
 
-        # Generate other formats as well (in case they are missing)
-        self.format()
-
         # Initialize bits
         bits = ""
 
@@ -371,6 +352,9 @@ class Packet(object):
         # Store encoded packet
         self.bytes["Encoded"] = bytes
 
+        # Generate other formats as well
+        self.format()
+
 
 
     def checkCRC(self):
@@ -399,6 +383,122 @@ class Packet(object):
 
 
 
+class DecodedPacket(Packet):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(self.__class__, self).__init__()
+
+        # Store bytes
+        self.bytes["Decoded"]["Hex"] = bytes
+
+        # Encode them
+        self.encode()
+
+
+
+class EncodedPacket(Packet):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(self.__class__, self).__init__()
+
+        # Store bytes
+        self.bytes["Encoded"] = bytes
+
+        # Decode them
+        self.decode()
+
+
+
+class FromPumpPacket(Packet):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(self.__class__, self).__init__()
+
+        # Get packet index
+        self.index = bytes[0]
+
+        # Get RSSI reading
+        self.RSSI = {"Hex": bytes[1], "dBm": None}
+
+        # Compute RSSI
+        self.computeRSSI()
+
+        # Store bytes
+        self.bytes["Encoded"] = bytes[2:]
+
+        # Decode them
+        self.decode()
+
+
+
+    def computeRSSI(self, offset = 73):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            COMPUTERSSI
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Convert hexadecimal RSSI reading to dBm.
+        """
+
+        # Get RSSI
+        RSSI = self.RSSI["Hex"]
+
+        # Info
+        print "RSSI (Hex): " + str(RSSI)
+
+        # Convert RSSI to dBm
+        RSSI = int("0x" + str(RSSI), 16)
+
+        # Bigger than
+        if RSSI >= 128:
+
+            # Value
+            RSSI = (RSSI - 256) / 2.0
+
+        # Otherwise
+        else:
+
+            # Value
+            RSSI = RSSI / 2.0
+
+        # Remove offset
+        RSSI -= offset
+
+        # Round value
+        RSSI = round(RSSI)
+
+        # Reassign it
+        self.RSSI["dBm"] = RSSI
+
+        # Info
+        print "RSSI (dBm): " + str(RSSI)
+
+
+
     def parse(self):
 
         """
@@ -408,7 +508,7 @@ class Packet(object):
             Parse packet coming in from pump.
         """
 
-        # Assign hexa bytes
+        # Get bytes in hexadecimal format
         bytes = self.bytes["Decoded"]["Hex"]
 
         # Get number of bytes to parse
@@ -422,6 +522,9 @@ class Packet(object):
 
             # Raise error
             raise errors.NotEnoughBytes(N, n)
+
+        # Look for possible error
+        self.checkError()
 
         # Get recipient
         self.recipient = bytes[0]
@@ -458,13 +561,28 @@ class Packet(object):
 
 
 
+class ToPumpPacket(Packet):
+
+    def __init__(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(self.__class__, self).__init__()
+
+
+
     def assemble(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             ASSEMBLE
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Assembling of packet.
+            Assemble packet to send to pump.
         """
 
         # Initialize bytes
@@ -501,52 +619,7 @@ class Packet(object):
         self.bytes["Decoded"]["Hex"] = bytes
 
         # Encode it
-        self.encode()
-
-
-
-class DecodedPacket(Packet):
-
-    def __init__(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            INIT
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Initialize command
-        super(self.__class__, self).__init__()
-
-        # Store bytes
-        self.bytes["Decoded"]["Hex"] = bytes
-
-        # Format them
-        self.format()
-
-        # Encode them
-        self.encode()
-
-
-
-class EncodedPacket(Packet):
-
-    def __init__(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            INIT
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Initialize command
-        super(self.__class__, self).__init__()
-
-        # Store bytes
-        self.bytes["Encoded"] = bytes
-
-        # Decode them
-        self.decode()
+        self.encode()        
 
 
 
@@ -557,33 +630,6 @@ def main():
         MAIN
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
-
-    # Instanciate an encoded packet
-    packet = EncodedPacket([169, 101, 153, 103, 25, 163, 89, 85, 85, 150, 85])
-
-    # Show it
-    packet.show()
-
-
-    # Instanciate a decoded packet
-    packet = DecodedPacket(["A7", "79", "91", "63", "70", "00", "55"])
-
-    # Show it
-    packet.show()
-
-
-    # Instanciate an empty packet
-    packet = Packet()
-
-    # Give it characteristics
-    packet.code = "5D"
-    packet.payload = "00"
-
-    # Assemble it
-    packet.assemble()
-
-    # Show it
-    packet.show()
 
 
 
