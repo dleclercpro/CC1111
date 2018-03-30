@@ -221,6 +221,7 @@ class Packet(object):
         print "Recipient: " + str(self.recipient)
         print "Serial: " + " ".join(self.serial)
         print "Code: " + str(self.code)
+        print "Size: " + str(self.size)
         print "Payload: " + " ".join(self.payload)
         print "CRC: " + str(self.CRC)
 
@@ -446,7 +447,7 @@ class FromPumpPacket(EncodedPacket):
         self.RSSI = {"Hex": bytes[1], "dBm": None}
 
         # Compute RSSI
-        self.computeRSSI()
+        self.rssi()
 
         # Initialize command
         super(FromPumpPacket, self).__init__(bytes[2:])
@@ -456,11 +457,11 @@ class FromPumpPacket(EncodedPacket):
 
 
 
-    def computeRSSI(self, offset = 73):
+    def rssi(self, offset = 73):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            COMPUTERSSI
+            RSSI
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             Convert hexadecimal RSSI reading to dBm.
         """
@@ -469,7 +470,7 @@ class FromPumpPacket(EncodedPacket):
         RSSI = self.RSSI["Hex"]
 
         # Info
-        #print "RSSI (Hex): " + str(RSSI)
+        print "RSSI (Hex): " + str(RSSI)
 
         # Convert RSSI to dBm
         RSSI = int("0x" + str(RSSI), 16)
@@ -545,14 +546,20 @@ class FromPumpPacket(EncodedPacket):
         # Get payload
         self.payload = []
 
-        # Go through payload
-        for i in range(6, 6 + self.size):
+        # Initialize index (start after size byte)
+        i = N
+
+        # Go through payload (minus CRC)
+        while i < n - 1:
 
             # Current byte
             byte = bytes[i]
 
             # Add byte to payload
             self.payload.append(byte)
+
+            # Increment
+            i += 1
 
 
 

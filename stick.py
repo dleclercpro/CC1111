@@ -15,11 +15,11 @@
     License:  GNU General Public License, Version 3
               (http://www.gnu.org/licenses/gpl.html)
 
-    Overview: This is a script that allows the creation of a Stick instance,
-              which can be used to communicate with a Medtronic MiniMed insulin
-              pump using a Texas Instruments CC1111 USB stick. It uses the PyUSB
-              library and is based on the reverse-engineering of Carelink USB
-              from Medtronic.
+    Overview: This script defines a Stick object, which can be used to
+              communicate with a Medtronic MiniMed insulin pump, using a Texas
+              Instruments CC1111 USB radio stick. It is based on the PyUSB
+              library as well as the reverse-engineering of the Carelink USB
+              stick from Medtronic.
 
     Notes:    ...
 
@@ -27,8 +27,8 @@
 """
 
 # LIBRARIES
-import usb
 import numpy as np
+import usb
 
 
 
@@ -85,8 +85,7 @@ class Stick(object):
                          "Radio RX": commands.ReadStickRadio(self),
                          "Radio TX": commands.WriteStickRadio(self),
                          "Radio TX/RX": commands.WriteReadStickRadio(self),
-                         "LED": commands.FlashStickLED(self),
-                         "Pump Model RX": commands.ReadPumpModel(self)}
+                         "LED": commands.FlashStickLED(self)}
 
         # Define radio registers
         self.registers = ["SYNC1",
@@ -199,7 +198,7 @@ class Stick(object):
 
 
 
-    def read(self, n = 64, timeout = 1000):
+    def read(self, n = 64, timeout = 1000, radio = False):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -226,6 +225,12 @@ class Stick(object):
 
                 # Exit
                 break
+
+        # If bytes coming from radio are an error code
+        if radio and len(bytes) == 1 and bytes[-1] in self.errors:
+
+            # Raise error
+            raise errors.RadioError(self.errors[bytes[-1]])
 
         # Return them
         return bytes
@@ -368,6 +373,9 @@ class Stick(object):
             # Tune frequency
             self.tune(f)
 
+            # Get pump model command
+            cmd = commands.ReadPumpModel(self)
+
             # Sample
             for i in range(sample):
 
@@ -375,7 +383,7 @@ class Stick(object):
                 try:
 
                     # Run pump command and get packet
-                    pkt = self.commands["Pump Model RX"].run()
+                    pkt = cmd.run()
 
                     # Get RSSI reading and add it
                     RSSIs[f].append(pkt.RSSI["dBm"])
@@ -410,20 +418,6 @@ class Stick(object):
 
         # Return best frequency
         return f
-
-
-
-    def wake(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            WAKE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Wake up pump.
-        """
-
-        # Try reading model, which will wake pump for a short amount of time
-        self.commands["Pump Model RX"].run()
 
 
 
@@ -475,9 +469,6 @@ def main():
 
     # Tune radio
     stick.tune(916.678)
-
-    # Wake pump
-    #stick.wake()
 
     # Listen to radio
     stick.listen()
