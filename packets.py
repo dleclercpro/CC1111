@@ -472,9 +472,6 @@ class FromPumpPacket(EncodedPacket):
         # Info
         print "RSSI (Hex): " + str(RSSI)
 
-        # Convert RSSI to dBm
-        RSSI = int("0x" + str(RSSI), 16)
-
         # Bigger than
         if RSSI >= 128:
 

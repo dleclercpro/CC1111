@@ -545,6 +545,9 @@ class PumpCommand(Command):
         # Initialize command
         super(PumpCommand, self).__init__(stick)
 
+        # Initialize payload
+        self.payload = []
+
 
 
     def execute(self):
@@ -585,30 +588,45 @@ class PumpBigCommand(PumpCommand):
         # Initialize command
         super(PumpBigCommand, self).__init__(stick)
 
-        # Initialize commands to run one after the other
-        self.commands = []
+        # Initialize payload (one byte to tell how many bytes to read, plus 64)
+        self.payload = (64 + 1) * ["00"]
 
         # Initialize size
         self.size = 0
 
+        # Initialize prelude command
+        self.prelude = None
+
+        # Initialize postlude command
+        self.postlude = ReadPumpNext(stick)
 
 
-    def execute(self):
+
+    def run(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            EXECUTE
+            RUN
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Initialize larger payload
-        payload = []
+        # If prelude command
+        if self.prelude is not None:
 
-        # Run through commands
+            # Run it
+            self.prelude.run()
+
+        # Execute command core and store data
+        data = self.execute().payload
+
+        # Query more data
         for i in range(self.size):
 
-            # Get next data
-            pass
+            # Append it
+            data += self.postlude.run().payload
+
+        # Decode and return it
+        return self.decode(data)
 
 
 
@@ -967,11 +985,9 @@ class ReadPumpHistory(PumpCommand):
         # Define payload
         self.payload = ["00"]
 
-        # FIXME: only send packet, do not wait for response?
 
 
-
-class ReadPumpHistoryTest(PumpCommand):
+class ReadPumpHistoryPage(PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -982,13 +998,22 @@ class ReadPumpHistoryTest(PumpCommand):
         """
 
         # Initialize command
-        super(ReadPumpHistoryTest, self).__init__(stick)
+        super(ReadPumpHistoryPage, self).__init__(stick)
 
         # Define code
         self.code = "80"
 
-        # Define payload (numbers of bytes to come, page, zeros)
-        self.payload = ["01"] + ["04"] + ["00"] * 63
+        # Define numbers of bytes to come
+        self.payload[0] = "01"
+
+        # Define page
+        self.payload[1] = "04"
+
+        # Initialize size
+        self.size = 14
+
+        # Initialize prelude command
+        self.prelude = ReadPumpHistory(stick)
 
 
 
