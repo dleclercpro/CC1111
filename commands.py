@@ -546,7 +546,7 @@ class PumpCommand(Command):
         super(PumpCommand, self).__init__(stick)
 
         # Initialize payload
-        self.payload = []
+        self.payload = ["00"]
 
 
 
@@ -602,7 +602,7 @@ class PumpBigCommand(PumpCommand):
 
 
 
-    def run(self):
+    def run(self, *args):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -617,7 +617,7 @@ class PumpBigCommand(PumpCommand):
             self.prelude.run()
 
         # Execute command core and store data
-        data = self.execute().payload
+        data = self.execute(*args).payload
 
         # Query more data
         for i in range(self.size):
@@ -646,9 +646,6 @@ class ReadPumpTime(PumpCommand):
         # Define code
         self.code = "70"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpModel(PumpCommand):
@@ -666,9 +663,6 @@ class ReadPumpModel(PumpCommand):
 
         # Define code
         self.code = "8D"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -688,9 +682,6 @@ class ReadPumpFirmware(PumpCommand):
         # Define code
         self.code = "74"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpBattery(PumpCommand):
@@ -708,9 +699,6 @@ class ReadPumpBattery(PumpCommand):
 
         # Define code
         self.code = "72"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -730,9 +718,6 @@ class ReadPumpReservoir(PumpCommand):
         # Define code
         self.code = "73"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpStatus(PumpCommand):
@@ -750,9 +735,6 @@ class ReadPumpStatus(PumpCommand):
 
         # Define code
         self.code = "CE"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -772,9 +754,6 @@ class ReadPumpSettings(PumpCommand):
         # Define code
         self.code = "C0"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpBGUnits(PumpCommand):
@@ -792,9 +771,6 @@ class ReadPumpBGUnits(PumpCommand):
 
         # Define code
         self.code = "89"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -814,9 +790,6 @@ class ReadPumpCarbUnits(PumpCommand):
         # Define code
         self.code = "88"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpBGTargets(PumpCommand):
@@ -834,9 +807,6 @@ class ReadPumpBGTargets(PumpCommand):
 
         # Define code
         self.code = "9F"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -856,9 +826,6 @@ class ReadPumpISF(PumpCommand):
         # Define code
         self.code = "8B"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpCSF(PumpCommand):
@@ -876,9 +843,6 @@ class ReadPumpCSF(PumpCommand):
 
         # Define code
         self.code = "8A"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -898,9 +862,6 @@ class ReadPumpBasalProfileStandard(PumpCommand):
         # Define code
         self.code = "92"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpBasalProfileA(PumpCommand):
@@ -918,9 +879,6 @@ class ReadPumpBasalProfileA(PumpCommand):
 
         # Define code
         self.code = "93"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -940,9 +898,6 @@ class ReadPumpBasalProfileB(PumpCommand):
         # Define code
         self.code = "94"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpDailyTotals(PumpCommand):
@@ -961,9 +916,6 @@ class ReadPumpDailyTotals(PumpCommand):
         # Define code
         self.code = "79"
 
-        # Define payload
-        self.payload = ["00"]
-
 
 
 class ReadPumpHistory(PumpCommand):
@@ -981,9 +933,6 @@ class ReadPumpHistory(PumpCommand):
 
         # Define code
         self.code = "80"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 
@@ -1006,14 +955,51 @@ class ReadPumpHistoryPage(PumpBigCommand):
         # Define numbers of bytes to come
         self.payload[0] = "01"
 
-        # Define page
-        self.payload[1] = "04"
-
-        # Initialize size
+        # Define number of page parts
         self.size = 14
 
         # Initialize prelude command
         self.prelude = ReadPumpHistory(stick)
+
+
+
+    def execute(self, page = 0):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            EXECUTE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Test page number
+        if int(page) != page or page < 0 or page > 99:
+
+            # Raise error
+            raise IOError("Invalid history page number.")
+
+        # Define page
+        self.payload[1] = "{0:02}".format(page)
+
+        # Execute core
+        return super(ReadPumpHistoryPage, self).execute()
+
+
+
+class ReadPumpHistorySize(PumpCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpHistorySize, self).__init__(stick)
+
+        # Define code
+        self.code = "9D"
 
 
 
@@ -1032,9 +1018,6 @@ class ReadPumpNext(PumpCommand):
 
         # Define code
         self.code = "06"
-
-        # Define payload
-        self.payload = ["00"]
 
 
 

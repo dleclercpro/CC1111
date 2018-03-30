@@ -470,7 +470,7 @@ class FromPumpPacket(EncodedPacket):
         RSSI = self.RSSI["Hex"]
 
         # Info
-        print "RSSI (Hex): " + str(RSSI)
+        print "RSSI (Byte): " + str(RSSI)
 
         # Bigger than
         if RSSI >= 128:

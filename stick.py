@@ -345,7 +345,7 @@ class Stick(object):
 
 
 
-    def scan(self, F1 = None, F2 = None, n = 25, sample = 5):
+    def scan(self, F1 = None, F2 = None, n = 15, sample = 5):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -465,10 +465,10 @@ def main():
     stick = Stick()
 
     # Start it
-    stick.start(False)
+    stick.start()
 
     # Tune radio
-    stick.tune(916.678)
+    #stick.tune(916.678)
 
     # Listen to radio
     stick.listen()
