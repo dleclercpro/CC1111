@@ -336,11 +336,11 @@ def computeCRC8(bytes):
 
 
 
-def checkByte(byte, byteRange, error):
+def checkIntWithinRange(byte, byteRange, error):
 
     """
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        CHECKBYTE
+        CHECKINTWITHINRANGE
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         Test a byte to see if it is an integer and fits within given range.
         If not, raise input/output error.

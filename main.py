@@ -62,24 +62,24 @@ def main():
     powerCmd.run()
 
     # Define pump commands
-    cmds = {#"Time": commands.ReadPumpTime(_stick),
-            #"Model": commands.ReadPumpModel(_stick),
-            #"Firmware": commands.ReadPumpFirmware(_stick),
-            #"Battery": commands.ReadPumpBattery(_stick),
-            #"Reservoir": commands.ReadPumpReservoir(_stick),
-            #"Status": commands.ReadPumpStatus(_stick),
-            #"Settings": commands.ReadPumpSettings(_stick),
-            #"BG Units": commands.ReadPumpBGUnits(_stick),
-            #"Carb Units": commands.ReadPumpCarbUnits(_stick),
-            #"BG Targets": commands.ReadPumpBGTargets(_stick),
-            #"ISF": commands.ReadPumpISF(_stick),
-            #"CSF": commands.ReadPumpCSF(_stick),
-            #"Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
-            #"Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
-            #"Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
-            #"Daily Totals": commands.ReadPumpDailyTotals(_stick),
-            #"TB": commands.ReadPumpTB(_stick),
-            #"Button": commands.PushPumpButton(_stick),
+    cmds = {"Time": commands.ReadPumpTime(_stick),
+            "Model": commands.ReadPumpModel(_stick),
+            "Firmware": commands.ReadPumpFirmware(_stick),
+            "Battery": commands.ReadPumpBattery(_stick),
+            "Reservoir": commands.ReadPumpReservoir(_stick),
+            "Status": commands.ReadPumpStatus(_stick),
+            "Settings": commands.ReadPumpSettings(_stick),
+            "BG Units": commands.ReadPumpBGUnits(_stick),
+            "Carb Units": commands.ReadPumpCarbUnits(_stick),
+            "BG Targets": commands.ReadPumpBGTargets(_stick),
+            "ISF": commands.ReadPumpISF(_stick),
+            "CSF": commands.ReadPumpCSF(_stick),
+            "Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
+            "Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
+            "Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
+            "Daily Totals": commands.ReadPumpDailyTotals(_stick),
+            "TB": commands.ReadPumpTB(_stick),
+            "Button": commands.PushPumpButton(_stick),
             #"Suspend": commands.SuspendPump(_stick),
             #"Resume": commands.ResumePump(_stick)
             }
@@ -123,10 +123,13 @@ def main():
 
     # Define TB commands
     tbCmds = [
-              #["TB Units",commands.SetPumpTBUnits(_stick), ["U/h"]],
-              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [12.53, 30]],
+              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
               #["TB Units",commands.SetPumpTBUnits(_stick), ["%"]],
-              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [98, 30]]
+              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [98, 30]],
+              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [0, 0]],
+              #["TB Units",commands.SetPumpTBUnits(_stick), ["U/h"]],
+              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [5.55, 30]],
+              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
               ]
 
     # Run them

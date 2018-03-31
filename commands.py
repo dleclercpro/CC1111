@@ -825,9 +825,6 @@ class PumpBigCommand(PumpCommand):
         self.executions = {"Prelude": 1,
                            "Postlude": 0}
 
-        # Initialize postlude command
-        self.postlude = ReadPumpMore(stick)
-
 
 
     def reset(self):
@@ -857,6 +854,37 @@ class PumpBigCommand(PumpCommand):
             # Do it
             self.execute()
 
+            # Decode it
+            self.decode()
+
+
+
+    def postlude(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            POSTLUDE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize postlude command
+        cmd = ReadPumpMore(self.stick)
+
+        # Get payload part
+        payload = self.response
+
+        # Query more data
+        for i in range(self.executions["Postlude"]):
+
+            # Run postlude command
+            cmd.run()
+
+            # Append it to payload
+            payload += cmd.response
+
+        # Overwrite response with whole payload
+        self.response = payload
+
 
 
     def run(self, *args):
@@ -882,22 +910,10 @@ class PumpBigCommand(PumpCommand):
         # Decode it
         self.decode()
 
-        # Get payload part
-        payload = self.response
+        # Execute postlude
+        self.postlude()
 
-        # Query more data
-        for i in range(self.executions["Postlude"]):
-
-            # Run postlude command
-            self.postlude.run()
-
-            # Append it to payload
-            payload += self.postlude.response
-
-        # Overwrite response with whole payload
-        self.response = payload
-
-        # Return it
+        # Return response
         return self.response
 
 
@@ -1265,7 +1281,7 @@ class ReadPumpHistoryPage(PumpGetCommand, PumpBigCommand):
         """
 
         # Test page number
-        lib.checkByte(page, [0, 35], "Invalid history page number.")
+        lib.checkIntWithinRange(page, [0, 35], "Invalid history page number.")
 
         # Define number of bytes to read from payload
         self.parameters = ["01"] + 64 * ["00"]
@@ -1293,7 +1309,7 @@ class ReadPumpMore(PumpGetCommand):
 
 
 
-class PowerPump(PumpBigCommand):
+class PowerPump(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1310,7 +1326,7 @@ class PowerPump(PumpBigCommand):
         self.code = "5D"
 
         # Define prelude command repeat counts
-        self.executions["Prelude"] = 500
+        self.executions["Prelude"] = 50
 
 
 
@@ -1322,17 +1338,29 @@ class PowerPump(PumpBigCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Set radio mode to writing only
-        self.mode = "Radio TX"
-
         # Execute command prelude given number of times
         for i in range(self.executions["Prelude"]):
 
-            # Do it
-            self.execute()
+            # Try
+            try:
 
-        # Reset radio mode to reading/writing
-        self.mode = "Radio TX/RX"
+                # Do it
+                self.execute()
+
+                # Decode it
+                self.decode()
+
+                # Exit
+                return
+
+            # Except
+            except errors.RadioError:
+
+                # Ignore
+                pass
+
+        # Pump absent?
+        raise errors.NoPump
 
 
 
@@ -1345,7 +1373,7 @@ class PowerPump(PumpBigCommand):
         """
 
         # Test RF session length
-        lib.checkByte(t, [0, 30], "Invalid RF session length.")
+        lib.checkIntWithinRange(t, [0, 30], "Invalid RF session length.")
 
         # Define number of bytes to read from payload
         self.parameters = ["02"] + 64 * ["00"]
@@ -1502,7 +1530,7 @@ class DeliverPumpBolus(PumpSetCommand, PumpBigCommand):
         bolus *= 10.0
 
         # Test bolus
-        lib.checkByte(bolus, [0, 250], "Invalid bolus.")
+        lib.checkIntWithinRange(bolus, [0, 250], "Invalid bolus.")
 
         # Convert bolus to integer
         bolus = int(bolus)
@@ -1594,10 +1622,10 @@ class SetPumpAbsoluteTB(PumpSetCommand, PumpBigCommand):
         duration /= 30.0
 
         # Test rate
-        lib.checkByte(rate, [0, 1400], "Invalid TB rate.")
+        lib.checkIntWithinRange(rate, [0, 1400], "Invalid TB rate.")
 
         # Test duration
-        lib.checkByte(duration, [0, 48], "Invalid TB duration.")
+        lib.checkIntWithinRange(duration, [0, 48], "Invalid TB duration.")
 
         # Convert rate to integer
         rate = int(rate)
@@ -1646,10 +1674,10 @@ class SetPumpPercentageTB(PumpSetCommand, PumpBigCommand):
         duration /= 30.0
 
         # Test rate
-        lib.checkByte(rate, [0, 200], "Invalid TB rate.")
+        lib.checkIntWithinRange(rate, [0, 200], "Invalid TB rate.")
 
         # Test duration
-        lib.checkByte(duration, [0, 48], "Invalid TB duration.")
+        lib.checkIntWithinRange(duration, [0, 48], "Invalid TB duration.")
 
         # Convert rate to integer
         rate = int(rate)

@@ -85,6 +85,9 @@ class BaseError(Exception):
 class StickError(BaseError):
     pass
 
+class PumpError(BaseError):
+    pass
+
 class InvalidPacket(StickError):
     pass
 
@@ -106,7 +109,7 @@ class NoStick(StickError):
 
 
 
-class BadRadioCommand(StickError):
+class NoPump(PumpError):
 
     def prepare(self):
 
@@ -117,7 +120,8 @@ class BadRadioCommand(StickError):
         """
 
         # Define error info
-        self.info = "There is no such radio command."
+        self.info = ("No pump detected. Are you sure it's nearby and " +
+                     "battery level is not too low?")
 
 
 
