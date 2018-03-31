@@ -53,13 +53,13 @@ def main():
     #_stick.tune(916.690)
 
     # Info
-    #print "// Power //"
+    print "// Power //"
 
     # Define power pump command
-    #powerCmd = commands.PowerPump(_stick)
+    powerCmd = commands.PowerPump(_stick)
 
     # Run it
-    #powerCmd.run()
+    powerCmd.run()
 
     # Define pump commands
     cmds = {#"Time": commands.ReadPumpTime(_stick),
@@ -98,7 +98,7 @@ def main():
         cmd.run()
 
     # Define history size (max 36)
-    historySize = 36
+    historySize = 0
 
     # Read whole history
     for i in range(historySize):

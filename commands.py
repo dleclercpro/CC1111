@@ -704,6 +704,9 @@ class PumpCommand(Command):
         # Initialize command
         super(PumpCommand, self).__init__(stick)
 
+        # Define radio mode
+        self.mode = "Radio TX/RX"
+
         # Initialize packets
         self.packets = {"TX": None, "RX": None}
 
@@ -724,14 +727,14 @@ class PumpCommand(Command):
         self.packets["TX"] = packets.ToPumpPacket(self.code, self.parameters)
 
         # Get command to send encoded packet, and listen for pump data
-        cmd = self.stick.commands["Radio TX/RX"]
+        cmd = self.stick.commands[self.mode]
 
         # Run it
         self.data["RX"] = cmd.run(self.packets["TX"].bytes["Encoded"])
 
 
 
-class PumpWriteCommand(PumpCommand):
+class PumpSetCommand(PumpCommand):
 
     def __init__(self, stick):
 
@@ -742,7 +745,7 @@ class PumpWriteCommand(PumpCommand):
         """
 
         # Initialize command
-        super(PumpWriteCommand, self).__init__(stick)
+        super(PumpSetCommand, self).__init__(stick)
 
 
 
@@ -771,7 +774,7 @@ class PumpWriteCommand(PumpCommand):
 
 
 
-class PumpReadCommand(PumpCommand):
+class PumpGetCommand(PumpCommand):
 
     def __init__(self, stick):
 
@@ -782,7 +785,7 @@ class PumpReadCommand(PumpCommand):
         """
 
         # Initialize command
-        super(PumpReadCommand, self).__init__(stick)
+        super(PumpGetCommand, self).__init__(stick)
 
 
 
@@ -840,6 +843,22 @@ class PumpBigCommand(PumpCommand):
 
 
 
+    def prelude(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PRELUDE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Execute command prelude given number of times
+        for i in range(self.executions["Prelude"]):
+
+            # Do it
+            self.execute()
+
+
+
     def run(self, *args):
 
         """
@@ -851,11 +870,8 @@ class PumpBigCommand(PumpCommand):
         # Reset command
         self.reset()
 
-        # Execute command prelude given number of times
-        for i in range(self.executions["Prelude"]):
-
-            # Do it
-            self.execute()
+        # Execute prelude
+        self.prelude()
 
         # Encode parameters
         self.encode(*args)
@@ -886,7 +902,7 @@ class PumpBigCommand(PumpCommand):
 
 
 
-class ReadPumpTime(PumpReadCommand):
+class ReadPumpTime(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -904,7 +920,7 @@ class ReadPumpTime(PumpReadCommand):
 
 
 
-class ReadPumpModel(PumpReadCommand):
+class ReadPumpModel(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -922,7 +938,7 @@ class ReadPumpModel(PumpReadCommand):
 
 
 
-class ReadPumpFirmware(PumpReadCommand):
+class ReadPumpFirmware(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -940,7 +956,7 @@ class ReadPumpFirmware(PumpReadCommand):
 
 
 
-class ReadPumpBattery(PumpReadCommand):
+class ReadPumpBattery(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -958,7 +974,7 @@ class ReadPumpBattery(PumpReadCommand):
 
 
 
-class ReadPumpReservoir(PumpReadCommand):
+class ReadPumpReservoir(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -976,7 +992,7 @@ class ReadPumpReservoir(PumpReadCommand):
 
 
 
-class ReadPumpStatus(PumpReadCommand):
+class ReadPumpStatus(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -994,7 +1010,7 @@ class ReadPumpStatus(PumpReadCommand):
 
 
 
-class ReadPumpSettings(PumpReadCommand):
+class ReadPumpSettings(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1012,7 +1028,7 @@ class ReadPumpSettings(PumpReadCommand):
 
 
 
-class ReadPumpBGUnits(PumpReadCommand):
+class ReadPumpBGUnits(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1030,7 +1046,7 @@ class ReadPumpBGUnits(PumpReadCommand):
 
 
 
-class ReadPumpCarbUnits(PumpReadCommand):
+class ReadPumpCarbUnits(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1048,7 +1064,7 @@ class ReadPumpCarbUnits(PumpReadCommand):
 
 
 
-class ReadPumpBGTargets(PumpReadCommand):
+class ReadPumpBGTargets(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1066,7 +1082,7 @@ class ReadPumpBGTargets(PumpReadCommand):
 
 
 
-class ReadPumpISF(PumpReadCommand):
+class ReadPumpISF(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1084,7 +1100,7 @@ class ReadPumpISF(PumpReadCommand):
 
 
 
-class ReadPumpCSF(PumpReadCommand):
+class ReadPumpCSF(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1102,7 +1118,7 @@ class ReadPumpCSF(PumpReadCommand):
 
 
 
-class ReadPumpBasalProfileStandard(PumpReadCommand, PumpBigCommand):
+class ReadPumpBasalProfileStandard(PumpGetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1123,7 +1139,7 @@ class ReadPumpBasalProfileStandard(PumpReadCommand, PumpBigCommand):
 
 
 
-class ReadPumpBasalProfileA(PumpReadCommand, PumpBigCommand):
+class ReadPumpBasalProfileA(PumpGetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1144,7 +1160,7 @@ class ReadPumpBasalProfileA(PumpReadCommand, PumpBigCommand):
 
 
 
-class ReadPumpBasalProfileB(PumpReadCommand, PumpBigCommand):
+class ReadPumpBasalProfileB(PumpGetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1165,7 +1181,7 @@ class ReadPumpBasalProfileB(PumpReadCommand, PumpBigCommand):
 
 
 
-class ReadPumpDailyTotals(PumpReadCommand):
+class ReadPumpDailyTotals(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1183,7 +1199,7 @@ class ReadPumpDailyTotals(PumpReadCommand):
 
 
 
-class ReadPumpTB(PumpReadCommand):
+class ReadPumpTB(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1201,7 +1217,7 @@ class ReadPumpTB(PumpReadCommand):
 
 
 
-class ReadPumpHistorySize(PumpReadCommand):
+class ReadPumpHistorySize(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1219,7 +1235,7 @@ class ReadPumpHistorySize(PumpReadCommand):
 
 
 
-class ReadPumpHistoryPage(PumpReadCommand, PumpBigCommand):
+class ReadPumpHistoryPage(PumpGetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1259,7 +1275,7 @@ class ReadPumpHistoryPage(PumpReadCommand, PumpBigCommand):
 
 
 
-class ReadPumpMore(PumpReadCommand):
+class ReadPumpMore(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1277,50 +1293,72 @@ class ReadPumpMore(PumpReadCommand):
 
 
 
-# class PowerPump(PumpBigCommand):
+class PowerPump(PumpBigCommand):
 
-#     def __init__(self, stick):
+    def __init__(self, stick):
 
-#         """
-#         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#             INIT
-#         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#         """
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
 
-#         # Initialize command
-#         super(PowerPump, self).__init__(stick)
+        # Initialize command
+        super(PowerPump, self).__init__(stick)
 
-#         # Define code
-#         self.code = "5D"
+        # Define code
+        self.code = "5D"
 
-#         # Define prelude command repeat counts
-#         self.executions["Prelude"] = 200
-
-
-
-#     def encode(self, t = 10):
-
-#         """
-#         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#             ENCODE
-#         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#         """
-
-#         # Test RF session length
-#         lib.checkByte(t, [0, 30], "Invalid RF session length.")
-
-#         # Define number of bytes to read from payload
-#         self.parameters = ["02"] + 64 * ["00"]
-
-#         # Define arbitrary byte
-#         self.parameters[1] = "01"
-
-#         # Define button
-#         self.parameters[2] = "{0:02X}".format(t)
+        # Define prelude command repeat counts
+        self.executions["Prelude"] = 500
 
 
 
-class PushPumpButton(PumpWriteCommand, PumpBigCommand):
+    def prelude(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PRELUDE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Set radio mode to writing only
+        self.mode = "Radio TX"
+
+        # Execute command prelude given number of times
+        for i in range(self.executions["Prelude"]):
+
+            # Do it
+            self.execute()
+
+        # Reset radio mode to reading/writing
+        self.mode = "Radio TX/RX"
+
+
+
+    def encode(self, t = 10):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Test RF session length
+        lib.checkByte(t, [0, 30], "Invalid RF session length.")
+
+        # Define number of bytes to read from payload
+        self.parameters = ["02"] + 64 * ["00"]
+
+        # Define arbitrary byte
+        self.parameters[1] = "01"
+
+        # Define button
+        self.parameters[2] = "{0:02X}".format(t)
+
+
+
+class PushPumpButton(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1366,7 +1404,7 @@ class PushPumpButton(PumpWriteCommand, PumpBigCommand):
 
 
 
-class ResumePump(PumpWriteCommand, PumpBigCommand):
+class ResumePump(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1400,7 +1438,7 @@ class ResumePump(PumpWriteCommand, PumpBigCommand):
 
 
 
-class SuspendPump(PumpWriteCommand, PumpBigCommand):
+class SuspendPump(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1434,7 +1472,7 @@ class SuspendPump(PumpWriteCommand, PumpBigCommand):
 
 
 
-class DeliverPumpBolus(PumpWriteCommand, PumpBigCommand):
+class DeliverPumpBolus(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1477,7 +1515,7 @@ class DeliverPumpBolus(PumpWriteCommand, PumpBigCommand):
 
 
 
-class SetPumpTBUnits(PumpWriteCommand, PumpBigCommand):
+class SetPumpTBUnits(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1523,7 +1561,7 @@ class SetPumpTBUnits(PumpWriteCommand, PumpBigCommand):
 
 
 
-class SetPumpAbsoluteTB(PumpWriteCommand, PumpBigCommand):
+class SetPumpAbsoluteTB(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -1578,7 +1616,7 @@ class SetPumpAbsoluteTB(PumpWriteCommand, PumpBigCommand):
 
 
 
-class SetPumpPercentageTB(PumpWriteCommand, PumpBigCommand):
+class SetPumpPercentageTB(PumpSetCommand, PumpBigCommand):
 
     def __init__(self, stick):
 
