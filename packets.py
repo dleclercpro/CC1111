@@ -390,7 +390,7 @@ class Packet(object):
 
 class DecodedPacket(Packet):
 
-    def __init__(self, bytes):
+    def __init__(self, bytes = None):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -401,17 +401,20 @@ class DecodedPacket(Packet):
         # Initialize command
         super(DecodedPacket, self).__init__()
 
-        # Store bytes
-        self.bytes["Decoded"]["Hex"] = bytes
+        # Given bytes?
+        if bytes is not None:
 
-        # Encode them
-        self.encode()
+            # Store bytes
+            self.bytes["Decoded"]["Hex"] = bytes
+
+            # Encode them
+            self.encode()
 
 
 
 class EncodedPacket(Packet):
 
-    def __init__(self, bytes):
+    def __init__(self, bytes = None):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -422,11 +425,14 @@ class EncodedPacket(Packet):
         # Initialize command
         super(EncodedPacket, self).__init__()
 
-        # Store bytes
-        self.bytes["Encoded"] = bytes
+        # Given bytes?
+        if bytes is not None:
 
-        # Decode them
-        self.decode()
+            # Store bytes
+            self.bytes["Encoded"] = bytes
+
+            # Decode them
+            self.decode()
 
 
 
@@ -441,25 +447,13 @@ class FromPumpPacket(EncodedPacket):
         """
 
         # Initialize command
-        super(FromPumpPacket, self).__init__(bytes[2:])
+        super(FromPumpPacket, self).__init__()
 
         # Define minimum number of bytes per packet
         self.min = 7
 
-        # Get packet index
-        self.index = bytes[0]
-
-        # Info
-        print "#: " + str(self.index)
-
-        # Get RSSI reading
-        self.RSSI = {"Hex": bytes[1], "dBm": None}
-
-        # Compute RSSI
-        self.rssi()
-
         # Parse decoded bytes
-        self.parse()
+        self.parse(bytes)
 
 
 
@@ -529,7 +523,7 @@ class FromPumpPacket(EncodedPacket):
 
 
 
-    def parse(self):
+    def parse(self, bytes):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -537,6 +531,24 @@ class FromPumpPacket(EncodedPacket):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             Parse packet coming in from pump.
         """
+
+        # Get packet index
+        self.index = bytes[0]
+
+        # Info
+        print "#: " + str(self.index)
+
+        # Get RSSI reading
+        self.RSSI = {"Hex": bytes[1], "dBm": None}
+
+        # Compute RSSI
+        self.rssi()
+
+        # Assign bytes
+        self.bytes["Encoded"] = bytes[2:]
+
+        # Decode them
+        self.decode()
 
         # Get number of bytes to parse
         n = len(self.bytes["Decoded"]["Hex"])
@@ -580,6 +592,9 @@ class ToPumpPacket(DecodedPacket):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
+        # Initialize command
+        super(ToPumpPacket, self).__init__()
+
         # Define pump as packet recipient
         self.recipient = "A7"
 
@@ -593,14 +608,10 @@ class ToPumpPacket(DecodedPacket):
         self.payload = payload
 
         # Assemble packet bytes
-        bytes = self.assemble()
+        self.assemble()
 
-        # Show them
-        print "Sending packet: " + " ".join(bytes)
-
-        # FIXME: packet properties get erased when calling init here.
-        # Initialize command
-        super(ToPumpPacket, self).__init__(bytes)
+        # Show it
+        #self.show()
 
 
 
@@ -663,8 +674,11 @@ class ToPumpPacket(DecodedPacket):
         # Add it
         bytes.append(self.CRC)
 
-        # Return assembled packet
-        return bytes
+        # Assign them
+        self.bytes["Decoded"]["Hex"] = bytes
+
+        # Encode them
+        self.encode()
 
 
 
