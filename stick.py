@@ -382,8 +382,11 @@ class Stick(object):
                 # Try
                 try:
 
-                    # Run pump command and get packet
+                    # Run pump command
                     pkt = cmd.run()
+
+                    # Get packet
+                    pkt = cmd.packets["RX"]
 
                     # Get RSSI reading and add it
                     RSSIs[f].append(pkt.RSSI["dBm"])

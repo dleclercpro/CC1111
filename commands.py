@@ -52,29 +52,46 @@ class Command(object):
         # Initialize code
         self.code = None
 
+        # Initialize response
+        self.response = None
+
+        # Initialize data
+        self.data = {"TX": None, "RX": None}
 
 
-    def decode(self, data):
+
+    def encode(self, *args):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Ignore
+        pass
+
+
+
+    def decode(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             DECODE
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Base decode function: if not overwritten, simply returns given data.
         """
 
-        # Return data
-        return data
+        # By default, the command response is the raw data
+        self.response = self.data["RX"]
 
 
 
-    def execute(self, *args):
+    def execute(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             EXECUTE
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Base execute function: if not overwritten, returns nothing.
         """
 
         # Ignore
@@ -92,8 +109,17 @@ class Command(object):
             (if any) is decoded, and returned.
         """
 
-        # Execute command and return decoded data
-        return self.decode(self.execute(*args))
+        # Encode parameters
+        self.encode(*args)
+
+        # Execute command
+        self.execute()
+
+        # Decode data
+        self.decode()
+
+        # Return response
+        return self.response
 
 
 
@@ -130,7 +156,7 @@ class ReadStickName(StickCommand):
 
 
 
-    def decode(self, data):
+    def decode(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,13 +165,10 @@ class ReadStickName(StickCommand):
         """
 
         # Decode data
-        response = "".join(lib.charify(data))
+        self.response = "".join(lib.charify(self.data["RX"]))
 
         # Info
-        print "Stick name: " + response
-
-        # Return response
-        return response
+        print "Stick name: " + self.response
 
 
 
@@ -162,7 +185,7 @@ class ReadStickName(StickCommand):
         self.stick.write(self.code)
 
         # Get data
-        return self.stick.read()
+        self.data["RX"] = self.self.stick.read()
 
 
 
@@ -184,7 +207,7 @@ class ReadStickAuthor(StickCommand):
 
 
 
-    def decode(self, data):
+    def decode(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,13 +216,10 @@ class ReadStickAuthor(StickCommand):
         """
 
         # Decode data
-        response = "".join(lib.charify(data))
+        self.response = "".join(lib.charify(self.data["RX"]))
 
         # Info
-        print "Stick author: " + response
-
-        # Return response
-        return response
+        print "Stick author: " + self.response
 
 
 
@@ -216,7 +236,7 @@ class ReadStickAuthor(StickCommand):
         self.stick.write(self.code)
 
         # Get data
-        return self.stick.read()
+        self.data["RX"] = self.stick.read()
 
 
 
@@ -236,9 +256,31 @@ class ReadStickRadioRegister(StickCommand):
         # Define code
         self.code = 10
 
+        # Initialize register
+        self.register = None
+
+        # Initialize register address
+        self.address = None
 
 
-    def decode(self, data):
+
+    def encode(self, register):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Store register
+        self.register = register
+
+        # Get register address
+        self.address = self.stick.registers.index(register)
+
+
+
+    def decode(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -247,17 +289,14 @@ class ReadStickRadioRegister(StickCommand):
         """
 
         # Decode data
-        response = data[0]
+        self.response = self.data["RX"][0]
 
         # Info
-        print response
-
-        # Return response
-        return response
+        print self.register + ": " + str(self.response)
 
 
 
-    def execute(self, register):
+    def execute(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -265,17 +304,14 @@ class ReadStickRadioRegister(StickCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Info
-        print "Radio register " + register + ":"
-
         # Send command code
         self.stick.write(self.code)
 
         # Send register address
-        self.stick.write(self.stick.registers.index(register))
+        self.stick.write(self.address)
 
         # Get data
-        return self.stick.read()
+        self.data["RX"] = self.stick.read()
 
 
 
@@ -295,9 +331,37 @@ class WriteStickRadioRegister(StickCommand):
         # Define code
         self.code = 11
 
+        # Initialize register
+        self.register = None
+
+        # Initialize register address
+        self.address = None
+
+        # Initialize register value
+        self.value = None
 
 
-    def execute(self, register, value):
+
+    def encode(self, register, value):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Store register
+        self.register = register
+
+        # Get register address
+        self.address = self.stick.registers.index(register)
+
+        # Store register value
+        self.value = value
+
+
+
+    def execute(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -309,10 +373,10 @@ class WriteStickRadioRegister(StickCommand):
         self.stick.write(self.code)
 
         # Send register address
-        self.stick.write(self.stick.registers.index(register))
+        self.stick.write(self.address)
 
         # Send value
-        self.stick.write(value)
+        self.stick.write(self.value)
 
 
 
@@ -332,9 +396,35 @@ class ReadStickRadio(StickCommand):
         # Define code
         self.code = 20
 
+        # Initialize channel
+        self.channel = None
+
+        # Initialize timeout values
+        self.timeout = None
 
 
-    def execute(self, channel = 0, timeout = 500, tolerate = False):
+
+    def encode(self, channel = 0, timeout = 500, tolerate = False):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Store channel
+        self.channel = channel
+
+        # Store timeout values
+        self.timeout = {"Stick": timeout + 500,
+                        "Radio": lib.pack(timeout, 4)}
+
+        # Store error tolerance
+        self.tolerate = tolerate
+
+
+
+    def execute(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -342,32 +432,27 @@ class ReadStickRadio(StickCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Pack radio reading timeout
-        timeoutRadioRX = lib.pack(timeout, 4)
-
-        # Define timeout for stick USB EP
-        timeoutStickRX = timeout + 500
-
         # Send command code
         self.stick.write(self.code)
 
         # Send channel
-        self.stick.write(channel)
+        self.stick.write(self.channel)
 
         # Send radio timeout
-        self.stick.write(timeoutRadioRX)
+        self.stick.write(self.timeout["Radio"])
 
         # Try
         try:
 
             # Get data (remove EOP byte)
-            return self.stick.read(timeout = timeoutStickRX, radio = True)[:-1]
+            self.data["RX"] = self.stick.read(timeout = self.timeout["Stick"],
+                                              radio = True)[:-1]
 
         # If radio error
         except errors.RadioError:
 
             # Errors not tolerated
-            if not tolerate:
+            if not self.tolerate:
 
                 # Stop
                 raise
@@ -390,9 +475,40 @@ class WriteStickRadio(StickCommand):
         # Define code
         self.code = 21
 
+        # Initialize channel
+        self.channel = None
+
+        # Initialize repeat count
+        self.repeat = None
+
+        # Initialize repeat delay
+        self.delay = None
 
 
-    def execute(self, data, channel = 0, repeat = 0, delay = 0):
+
+    def encode(self, data, channel = 0, repeat = 0, delay = 0):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Store data
+        self.data["TX"] = data
+
+        # Store channel
+        self.channel = channel
+
+        # Store repeat count
+        self.repeat = repeat
+
+        # Store repeat delay
+        self.delay = lib.pack(delay, 4)
+
+
+
+    def execute(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -404,13 +520,13 @@ class WriteStickRadio(StickCommand):
         self.stick.write(self.code)
 
         # Send channel
-        self.stick.write(channel)
+        self.stick.write(self.channel)
 
         # Send delay
-        self.stick.write(lib.pack(delay, 4))
+        self.stick.write(self.delay)
 
-        # Send packet
-        self.stick.write(data)
+        # Send data
+        self.stick.write(self.data["TX"])
 
         # Send last byte
         self.stick.write(0)
@@ -433,11 +549,61 @@ class WriteReadStickRadio(StickCommand):
         # Define code
         self.code = 22
 
+        # Initialize channel values
+        self.channel = None
+
+        # Initialize write repeat count
+        self.repeat = None
+
+        # Initialize write repeat delay
+        self.delay = None
+
+        # Initialize retry count
+        self.retry = None
+
+        # Initialize timeout values
+        self.timeout = None
+
+        # Initialize error tolerance
+        self.tolerate = None
 
 
-    def execute(self, dataTX, channelTX = 0, channelRX = 0,
-                      repeatTX = 1, repeatDelayTX = 0, retry = 1,
-                      timeout = 500, tolerate = False):
+
+    def encode(self, data, channelTX = 0, channelRX = 0, repeat = 1, delay = 0,
+                     retry = 1, timeout = 500, tolerate = False):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Store data
+        self.data["TX"] = data
+
+        # Store channel values
+        self.channel = {"TX": channelTX,
+                        "RX": channelRX}
+
+        # Store write repeat count
+        self.repeat = repeat
+
+        # Store write repeat delay
+        self.delay = lib.pack(delay, 4)
+
+        # Store retry count
+        self.retry = retry
+
+        # Store timeout values
+        self.timeout = {"Stick": (retry + 1) * timeout + 500,
+                        "Radio": lib.pack(timeout, 4)}
+
+        # Store error tolerance
+        self.tolerate = tolerate
+
+
+
+    def execute(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -445,38 +611,29 @@ class WriteReadStickRadio(StickCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Pack send repeat delay
-        repeatDelayTX = lib.pack(repeatDelayTX, 4)
-
-        # Pack radio reading timeout
-        timeoutRadioRX = lib.pack(timeout, 4)
-
-        # Define timeout according to retry count for stick USB EP
-        timeoutStickRX = (retry + 1) * timeout + 500
-
         # Send command code
         self.stick.write(self.code)
 
-        # Send channel TX
-        self.stick.write(channelTX)
+        # Send write channel
+        self.stick.write(self.channel["TX"])
 
         # Send repeat count
-        self.stick.write(repeatTX)
+        self.stick.write(self.repeat)
 
         # Send send repeat delay
-        self.stick.write(repeatDelayTX)
+        self.stick.write(self.delay)
 
-        # Send channel RX
-        self.stick.write(channelRX)
+        # Send read channel
+        self.stick.write(self.channel["RX"])
 
         # Send radio timeout
-        self.stick.write(timeoutRadioRX)
+        self.stick.write(self.timeout["Radio"])
 
         # Send retry count
-        self.stick.write(retry)
+        self.stick.write(self.retry)
 
         # Send packet
-        self.stick.write(dataTX)
+        self.stick.write(self.data["TX"])
 
         # Send last byte
         self.stick.write(0)
@@ -485,13 +642,14 @@ class WriteReadStickRadio(StickCommand):
         try:
 
             # Get data (remove EOP byte)
-            return self.stick.read(timeout = timeoutStickRX, radio = True)[:-1]
+            self.data["RX"] = self.stick.read(timeout = self.timeout["Stick"],
+                                              radio = True)[:-1]
 
         # If radio error
         except errors.RadioError:
 
             # Errors not tolerated
-            if not tolerate:
+            if not self.tolerate:
 
                 # Stop
                 raise
@@ -545,8 +703,30 @@ class PumpCommand(Command):
         # Initialize command
         super(PumpCommand, self).__init__(stick)
 
-        # Initialize payload
-        self.payload = ["00"]
+        # Initialize packets
+        self.packets = {"TX": None, "RX": None}
+
+        # Initialize parameters
+        self.parameters = ["00"]
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Parse data into packet
+        self.packets["RX"] = packets.FromPumpPacket(self.data["RX"])
+
+        # Show it
+        self.packets["RX"].show()
+
+        # By default, the command response is the payload
+        self.response = self.packets["RX"].payload
 
 
 
@@ -559,19 +739,11 @@ class PumpCommand(Command):
         """
 
         # Generate packet to send to pump
-        packetTX = packets.ToPumpPacket(self.code, self.payload)
+        self.packets["TX"] = packets.ToPumpPacket(self.code, self.parameters)
 
         # Send encoded packet, listen for pump data
-        data = self.stick.commands["Radio TX/RX"].run(packetTX.bytes["Encoded"])
-
-        # Parse data into packet
-        packetRX = packets.FromPumpPacket(data)
-
-        # Show it
-        packetRX.show()
-
-        # Return it
-        return packetRX
+        self.data["RX"] = self.stick.commands["Radio TX/RX"].run(
+            self.packets["TX"].bytes["Encoded"])
 
 
 
@@ -588,11 +760,8 @@ class PumpBigCommand(PumpCommand):
         # Initialize command
         super(PumpBigCommand, self).__init__(stick)
 
-        # Initialize payload (one byte to tell how many bytes to read, plus 64)
-        self.payload = (64 + 1) * ["00"]
-
         # Initialize size
-        self.size = 0
+        self.size = 1
 
         # Initialize prelude command
         self.prelude = None
@@ -610,23 +779,38 @@ class PumpBigCommand(PumpCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
+        # Encode parameters
+        self.encode(*args)
+
         # If prelude command
         if self.prelude is not None:
 
             # Run it
             self.prelude.run()
 
-        # Execute command core and store data
-        data = self.execute(*args).payload
+        # Execute command core
+        self.execute()
+
+        # Decode it
+        self.decode()
+
+        # Get payload part
+        payload = self.response
 
         # Query more data
-        for i in range(self.size):
+        for i in range(self.size - 1):
 
-            # Append it
-            data += self.postlude.run().payload
+            # Run postlude command
+            self.postlude.run()
 
-        # Decode and return it
-        return self.decode(data)
+            # Append it to payload
+            payload += self.postlude.response
+
+        # Overwrite response with whole payload
+        self.response = payload
+
+        # Return it
+        return self.response
 
 
 
@@ -846,7 +1030,7 @@ class ReadPumpCSF(PumpCommand):
 
 
 
-class ReadPumpBasalProfileStandard(PumpCommand):
+class ReadPumpBasalProfileStandard(PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -862,9 +1046,12 @@ class ReadPumpBasalProfileStandard(PumpCommand):
         # Define code
         self.code = "92"
 
+        # Define size
+        self.size = 2
 
 
-class ReadPumpBasalProfileA(PumpCommand):
+
+class ReadPumpBasalProfileA(PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -880,9 +1067,12 @@ class ReadPumpBasalProfileA(PumpCommand):
         # Define code
         self.code = "93"
 
+        # Define size
+        self.size = 2
 
 
-class ReadPumpBasalProfileB(PumpCommand):
+
+class ReadPumpBasalProfileB(PumpBigCommand):
 
     def __init__(self, stick):
 
@@ -897,6 +1087,9 @@ class ReadPumpBasalProfileB(PumpCommand):
 
         # Define code
         self.code = "94"
+
+        # Define size
+        self.size = 2
 
 
 
@@ -952,22 +1145,22 @@ class ReadPumpHistoryPage(PumpBigCommand):
         # Define code
         self.code = "80"
 
-        # Define numbers of bytes to come
-        self.payload[0] = "01"
+        # Initialize parameters (size, plus 64 bytes payload)
+        self.parameters = ["01"] + 64 * ["00"]
 
         # Define number of page parts
-        self.size = 14
+        self.size = 15
 
         # Initialize prelude command
         self.prelude = ReadPumpHistory(stick)
 
 
 
-    def execute(self, page = 0):
+    def encode(self, page = 0):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            EXECUTE
+            ENCODE
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
@@ -978,10 +1171,7 @@ class ReadPumpHistoryPage(PumpBigCommand):
             raise IOError("Invalid history page number.")
 
         # Define page
-        self.payload[1] = "{0:02}".format(page)
-
-        # Execute core
-        return super(ReadPumpHistoryPage, self).execute()
+        self.parameters[1] = "{0:02}".format(page)
 
 
 

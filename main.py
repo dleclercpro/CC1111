@@ -67,35 +67,30 @@ def main():
             "Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
             "Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
             "Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
-            "Daily Totals": commands.ReadPumpDailyTotals(_stick)}
+            "Daily Totals": commands.ReadPumpDailyTotals(_stick)
+            }
 
     # Define pump commands
-    history = {"History Size": commands.ReadPumpHistorySize(_stick),
-               "History Page": commands.ReadPumpHistoryPage(_stick)}
-
-    # Read history size
-    history["History Size"].run()
-
-    # Get size
-    size = 24
+    historyCmds = {"History Size": commands.ReadPumpHistorySize(_stick),
+                   "History Page": commands.ReadPumpHistoryPage(_stick)}
 
     # Read whole history
-    for i in range(size):
+    for i in range(24):
 
         # Info
         print "// History Page: " + str(i) + " //"
 
         # Send and listen to radio
-        history["History Page"].run(i)
+        historyCmds["History Page"].run(i)
 
     # Go through them
-    #for name, cmd in sorted(cmds.iteritems()):
+    for name, cmd in sorted(cmds.iteritems()):
 
         # Info
-        #print "// " + name + " //"
+        print "// " + name + " //"
 
         # Send and listen to radio
-        #cmd.run()
+        cmd.run()
 
 
 
