@@ -742,9 +742,11 @@ class PumpCommand(Command):
         # Generate packet to send to pump
         self.packets["TX"] = packets.ToPumpPacket(self.code, self.parameters)
 
-        # Send encoded packet, listen for pump data
-        self.data["RX"] = self.stick.commands["Radio TX/RX"].run(
-            self.packets["TX"].bytes["Encoded"])
+        # Get command to send encoded packet, and listen for pump data
+        cmd = self.stick.commands["Radio TX/RX"]
+
+        # Run it
+        self.data["RX"] = cmd.run(self.packets["TX"].bytes["Encoded"])
 
 
 
