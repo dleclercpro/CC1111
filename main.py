@@ -51,6 +51,15 @@ def main():
     # Tune radio
     #_stick.tune(916.690)
 
+    # Info
+    #print "// Power //"
+
+    # Define power pump command
+    #powerCmd = commands.PowerPump(_stick)
+
+    # Run it
+    #powerCmd.run()
+
     # Define pump commands
     cmds = {"Time": commands.ReadPumpTime(_stick),
             "Model": commands.ReadPumpModel(_stick),
@@ -67,21 +76,14 @@ def main():
             "Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
             "Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
             "Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
-            "Daily Totals": commands.ReadPumpDailyTotals(_stick)
+            "Daily Totals": commands.ReadPumpDailyTotals(_stick),
+            "TB": commands.ReadPumpTB(_stick),
+            "Button": commands.PushPumpButton(_stick)
             }
 
     # Define pump commands
     historyCmds = {"History Size": commands.ReadPumpHistorySize(_stick),
                    "History Page": commands.ReadPumpHistoryPage(_stick)}
-
-    # Read whole history
-    for i in range(24):
-
-        # Info
-        print "// History Page: " + str(i) + " //"
-
-        # Send and listen to radio
-        historyCmds["History Page"].run(i)
 
     # Go through them
     for name, cmd in sorted(cmds.iteritems()):
@@ -91,6 +93,18 @@ def main():
 
         # Send and listen to radio
         cmd.run()
+
+    # Define history size (max 24?)
+    historySize = 1
+
+    # Read whole history
+    for i in range(historySize):
+
+        # Info
+        print "// History Page: " + str(i) + " //"
+
+        # Send and listen to radio
+        historyCmds["History Page"].run(i)
 
 
 

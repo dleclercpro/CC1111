@@ -56,7 +56,8 @@ class Command(object):
         self.response = None
 
         # Initialize data
-        self.data = {"TX": None, "RX": None}
+        self.data = {"TX": None,
+                     "RX": None}
 
 
 
@@ -760,14 +761,12 @@ class PumpBigCommand(PumpCommand):
         # Initialize command
         super(PumpBigCommand, self).__init__(stick)
 
-        # Initialize size
-        self.size = 1
-
-        # Initialize prelude command
-        self.prelude = None
+        # Define number of times pre-/postlude commands need to be executed
+        self.nExecutions = {"Prelude": 1,
+                            "Postlude": 0}
 
         # Initialize postlude command
-        self.postlude = ReadPumpNext(stick)
+        self.postlude = ReadPumpMore(stick)
 
 
 
@@ -779,14 +778,14 @@ class PumpBigCommand(PumpCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
+        # Execute command prelude given number of times
+        for i in range(self.nExecutions["Prelude"]):
+
+            # Do it
+            self.execute()
+
         # Encode parameters
         self.encode(*args)
-
-        # If prelude command
-        if self.prelude is not None:
-
-            # Run it
-            self.prelude.run()
 
         # Execute command core
         self.execute()
@@ -798,7 +797,7 @@ class PumpBigCommand(PumpCommand):
         payload = self.response
 
         # Query more data
-        for i in range(self.size - 1):
+        for i in range(self.nExecutions["Postlude"]):
 
             # Run postlude command
             self.postlude.run()
@@ -1046,8 +1045,8 @@ class ReadPumpBasalProfileStandard(PumpBigCommand):
         # Define code
         self.code = "92"
 
-        # Define size
-        self.size = 2
+        # Define postlude command repeat count
+        self.nExecutions["Postlude"] = 1
 
 
 
@@ -1067,8 +1066,8 @@ class ReadPumpBasalProfileA(PumpBigCommand):
         # Define code
         self.code = "93"
 
-        # Define size
-        self.size = 2
+        # Define postlude command repeat count
+        self.nExecutions["Postlude"] = 1
 
 
 
@@ -1088,8 +1087,8 @@ class ReadPumpBasalProfileB(PumpBigCommand):
         # Define code
         self.code = "94"
 
-        # Define size
-        self.size = 2
+        # Define postlude command repeat count
+        self.nExecutions["Postlude"] = 1
 
 
 
@@ -1111,7 +1110,7 @@ class ReadPumpDailyTotals(PumpCommand):
 
 
 
-class ReadPumpHistory(PumpCommand):
+class ReadPumpTB(PumpCommand):
 
     def __init__(self, stick):
 
@@ -1122,10 +1121,10 @@ class ReadPumpHistory(PumpCommand):
         """
 
         # Initialize command
-        super(ReadPumpHistory, self).__init__(stick)
+        super(ReadPumpTB, self).__init__(stick)
 
         # Define code
-        self.code = "80"
+        self.code = "98"
 
 
 
@@ -1145,14 +1144,8 @@ class ReadPumpHistoryPage(PumpBigCommand):
         # Define code
         self.code = "80"
 
-        # Initialize parameters (size, plus 64 bytes payload)
-        self.parameters = ["01"] + 64 * ["00"]
-
-        # Define number of page parts
-        self.size = 15
-
-        # Initialize prelude command
-        self.prelude = ReadPumpHistory(stick)
+        # Define postlude command repeat count
+        self.nExecutions["Postlude"] = 14
 
 
 
@@ -1169,6 +1162,9 @@ class ReadPumpHistoryPage(PumpBigCommand):
 
             # Raise error
             raise IOError("Invalid history page number.")
+
+        # Define number of bytes to read from payload
+        self.parameters = ["01"] + 64 * ["00"]
 
         # Define page
         self.parameters[1] = "{0:02}".format(page)
@@ -1193,7 +1189,7 @@ class ReadPumpHistorySize(PumpCommand):
 
 
 
-class ReadPumpNext(PumpCommand):
+class ReadPumpMore(PumpCommand):
 
     def __init__(self, stick):
 
@@ -1204,10 +1200,96 @@ class ReadPumpNext(PumpCommand):
         """
 
         # Initialize command
-        super(ReadPumpNext, self).__init__(stick)
+        super(ReadPumpMore, self).__init__(stick)
 
         # Define code
         self.code = "06"
+
+
+
+class PowerPump(PumpBigCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PowerPump, self).__init__(stick)
+
+        # Define code
+        self.code = "5D"
+
+        # Define prelude command repeat counts
+        self.nExecutions["Prelude"] = 200
+
+
+
+    def encode(self, t = 10):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Test RF session length
+        if int(t) != t or t < 0 or t > 255:
+
+            # Raise error
+            raise IOError("Invalid RF session length.")
+
+        # Define number of bytes to read from payload
+        self.parameters = ["02"] + 64 * ["00"]
+
+        # Define arbitrary byte
+        self.parameters[1] = "01"
+
+        # Define button
+        self.parameters[2] = "{0:02X}".format(t)
+
+
+
+class PushPumpButton(PumpBigCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PushPumpButton, self).__init__(stick)
+
+        # Define code
+        self.code = "5B"
+
+
+
+    def encode(self, button = 4):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ENCODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Test button
+        if int(button) != button or button < 0 or button > 4:
+
+            # Raise error
+            raise IOError("Invalid button.")
+
+        # Define number of bytes to read from payload
+        self.parameters = ["01"] + 64 * ["00"]
+
+        # Define button
+        self.parameters[1] = "{0:02}".format(button)
 
 
 

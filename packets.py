@@ -437,6 +437,9 @@ class FromPumpPacket(EncodedPacket):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
+        # Initialize command
+        super(FromPumpPacket, self).__init__(bytes[2:])
+
         # Get packet index
         self.index = bytes[0]
 
@@ -448,9 +451,6 @@ class FromPumpPacket(EncodedPacket):
 
         # Compute RSSI
         self.rssi()
-
-        # Initialize command
-        super(FromPumpPacket, self).__init__(bytes[2:])
 
         # Parse decoded bytes
         self.parse()
@@ -583,6 +583,7 @@ class ToPumpPacket(DecodedPacket):
         self.payload = payload
 
         # Initialize command
+        # FIXME: packet properties get erased when calling init here.
         super(ToPumpPacket, self).__init__(self.assemble())
 
 
