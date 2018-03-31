@@ -151,6 +151,21 @@ class RadioError(StickError):
 
 
 
+class UnsuccessfulRadioCommand(StickError):
+
+    def prepare(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PREPARE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Define error info
+        self.info = "Radio command was unsuccessful."
+
+
+
 class UnmatchedBits(InvalidPacket):
 
     def prepare(self):

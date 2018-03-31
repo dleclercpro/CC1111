@@ -206,7 +206,7 @@ def pack(x, n = None, order = ">"):
     N = 1
 
     # Loop until number is covered
-    while x >= 8 ** N:
+    while x >= 0xFF ** N:
 
         # Increase it
         N += 1
@@ -333,6 +333,24 @@ def computeCRC8(bytes):
 
     # Return CRC
     return CRC
+
+
+
+def checkByte(byte, byteRange, error):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        CHECKBYTE
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Test a byte to see if it is an integer and fits within given range.
+        If not, raise input/output error.
+    """
+
+    # Test byte
+    if not (int(byte) == byte and min(byteRange) <= byte <= max(byteRange)):
+
+        # Raise error
+        raise IOError(error)
 
 
 

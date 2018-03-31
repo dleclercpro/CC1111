@@ -63,6 +63,9 @@ class Packet(object):
         self.payload = []
         self.CRC = None
 
+        # Initialize minimum size
+        self.min = None
+
         # Initialize various formats
         self.bytes = {"Encoded": [],
                       "Decoded": {"Str": [], "Hex": [], "Chr": []}}
@@ -440,6 +443,9 @@ class FromPumpPacket(EncodedPacket):
         # Initialize command
         super(FromPumpPacket, self).__init__(bytes[2:])
 
+        # Define minimum number of bytes per packet
+        self.min = 7
+
         # Get packet index
         self.index = bytes[0]
 
@@ -498,6 +504,31 @@ class FromPumpPacket(EncodedPacket):
 
 
 
+    def extract(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            EXTRACT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Reset payload
+        self.payload = []
+
+        # Define starting byte
+        start = self.min - 1
+
+        # Define ending byte
+        end = len(self.bytes["Decoded"]["Hex"]) - 1
+
+        # Go through payload (minus CRC)
+        for i in range(start, end):
+
+            # Add byte to payload
+            self.payload.append(self.bytes["Decoded"]["Hex"][i])
+
+
+
     def parse(self):
 
         """
@@ -507,56 +538,35 @@ class FromPumpPacket(EncodedPacket):
             Parse packet coming in from pump.
         """
 
-        # Get bytes in hexadecimal format
-        bytes = self.bytes["Decoded"]["Hex"]
-
         # Get number of bytes to parse
-        n = len(bytes)
-
-        # Define minimum number of bytes per packet
-        N = 6
+        n = len(self.bytes["Decoded"]["Hex"])
 
         # Not enough bytes
-        if n < N:
+        if n < self.min:
 
             # Raise error
-            raise errors.NotEnoughBytes(N, n)
+            raise errors.NotEnoughBytes(self.min, n)
 
         # Get recipient
-        self.recipient = bytes[0]
+        self.recipient = self.bytes["Decoded"]["Hex"][0]
 
         # Get serial
-        self.serial = bytes[1:4]
+        self.serial = self.bytes["Decoded"]["Hex"][1:4]
 
         # Get op code
-        self.code = bytes[4]
+        self.code = self.bytes["Decoded"]["Hex"][4]
 
         # Get payload size
         self.size = self.bytes["Decoded"]["Int"][5]
+
+        # Get payload
+        self.extract()
 
         # Check CRC
         if self.checkCRC():
 
             # Store it
-            self.CRC = bytes[-1]
-
-        # Get payload
-        self.payload = []
-
-        # Initialize index (start after size byte)
-        i = N
-
-        # Go through payload (minus CRC)
-        while i < n - 1:
-
-            # Current byte
-            byte = bytes[i]
-
-            # Add byte to payload
-            self.payload.append(byte)
-
-            # Increment
-            i += 1
+            self.CRC = self.bytes["Decoded"]["Hex"][-1]
 
 
 
@@ -582,9 +592,15 @@ class ToPumpPacket(DecodedPacket):
         # Store payload
         self.payload = payload
 
-        # Initialize command
+        # Assemble packet bytes
+        bytes = self.assemble()
+
+        # Show them
+        print "Sending packet: " + " ".join(bytes)
+
         # FIXME: packet properties get erased when calling init here.
-        super(ToPumpPacket, self).__init__(self.assemble())
+        # Initialize command
+        super(ToPumpPacket, self).__init__(bytes)
 
 
 
@@ -649,6 +665,37 @@ class ToPumpPacket(DecodedPacket):
 
         # Return assembled packet
         return bytes
+
+
+
+class FromPumpACKPacket(FromPumpPacket):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(FromPumpACKPacket, self).__init__(bytes)
+
+
+
+    def extract(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            EXTRACT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Reset payload
+        self.payload = []
+
+        # Get payload
+        self.payload.append(self.bytes["Decoded"]["Hex"][5])
 
 
 
