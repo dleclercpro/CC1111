@@ -98,7 +98,7 @@ def main():
         cmd.run()
 
     # Define history size (max 36)
-    historySize = 0
+    historySize = 3
 
     # Read whole history
     for i in range(historySize):
@@ -123,13 +123,13 @@ def main():
 
     # Define TB commands
     tbCmds = [
-              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
-              #["TB Units",commands.SetPumpTBUnits(_stick), ["%"]],
-              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [98, 30]],
-              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [0, 0]],
-              #["TB Units",commands.SetPumpTBUnits(_stick), ["U/h"]],
-              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [5.55, 30]],
-              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
+              ["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
+              ["TB Units",commands.SetPumpTBUnits(_stick), ["%"]],
+              ["TB Percentage",commands.SetPumpPercentageTB(_stick), [98, 30]],
+              ["TB Percentage",commands.SetPumpPercentageTB(_stick), [0, 0]],
+              ["TB Units",commands.SetPumpTBUnits(_stick), ["U/h"]],
+              ["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [5.55, 30]],
+              ["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
               ]
 
     # Run them

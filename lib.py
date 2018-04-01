@@ -27,6 +27,7 @@
 import numpy as np
 import math
 import json
+import datetime
 import usb
 
 
@@ -224,12 +225,6 @@ def pack(x, n = None, order = ">"):
         raise ArithmeticError("Minimum number of bytes required to represent " +
                               str(x) + ": " + str(N))
 
-    # Show number in bytes
-    #print "Number: " + str(x) + " (" + str(bin(x)) + ")"
-
-    # Show its length
-    #print "Number of bytes: " + str(n)
-
     # Initialize bytes and their string representation
     bytes = []
     bytes_ = []
@@ -274,11 +269,50 @@ def pack(x, n = None, order = ">"):
         # Append byte
         bytes_.append(byte)
 
-    # Show them
-    #print bytes_
-
     # Return them
     return bytes
+
+
+
+def unpack(bytes, order = ">"):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        UNPACK
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        This is a function that converts a number expressed in an array of bytes
+        to its decimal equivalent.
+    """
+
+    # Only natural numbers
+    if np.any([not (int(b) == b and (0 <= b <= 0xFF)) for b in bytes]):
+
+        # Raise error
+        raise ArithmeticError("Invalid bytes to unpack in a number.")
+
+    # Compute number of bytes
+    n = len(bytes)
+
+    # Initialize result
+    x = 0
+
+    # Unpack bytes in x
+    for i in range(n):
+
+        # From MSB to LSB
+        if order == ">":
+
+            # Add ith byte
+            x += bytes[i] * 0x100 ** (n - 1 - i)
+
+        # From LSB to MSB
+        elif order == "<":
+
+            # Add ith byte
+            x += bytes[i] * 0x100 ** i
+
+    # Return
+    return x
 
 
 
@@ -387,6 +421,49 @@ def getEP(configuration, direction, interface = 0, setting = 0):
     return usb.util.find_descriptor(configuration[(interface, setting)],
         custom_match = lambda e:
             usb.util.endpoint_direction(e.bEndpointAddress) == direction)
+
+
+
+def formatTime(t):
+
+    """
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        FORMATTIME
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    # Define time formats
+    f = "%Y.%m.%d - %H:%M:%S"
+    F = "%H:%M"
+
+    # If datetime object
+    if type(t) is datetime.datetime:
+
+        t = datetime.datetime.strftime(t, f)
+
+    # Otherwise
+    else:
+
+        # Try first format
+        try:
+
+            t = datetime.datetime.strptime(t, f)
+
+        except:
+
+            pass
+
+        # Try second format
+        try:
+
+            t = datetime.datetime.strptime(t, F).time()
+
+        except:
+
+            pass
+
+    # Return formatted time
+    return t
 
 
 
