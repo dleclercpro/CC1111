@@ -56,6 +56,7 @@ class Packet(object):
         """
 
         # Initialize characteristics
+        self.type = None
         self.recipient = None
         self.serial = []
         self.code = None
@@ -221,6 +222,7 @@ class Packet(object):
         """
 
         # Show characteristics
+        print "Type: " + str(self.type)
         print "Recipient: " + str(self.recipient)
         print "Serial: " + " ".join(self.serial)
         print "Code: " + str(self.code)
@@ -450,6 +452,9 @@ class ToPumpPacket(DecodedPacket):
         # Initialize command
         super(ToPumpPacket, self).__init__()
 
+        # Define packet type
+        self.type = "TX"
+
         # Define pump as packet recipient
         self.recipient = "A7"
 
@@ -533,7 +538,7 @@ class ToPumpPacket(DecodedPacket):
         self.encode()
 
         # Show assembled packet
-        #self.show()
+        self.show()
 
 
 
@@ -549,6 +554,9 @@ class FromPumpPacket(EncodedPacket):
 
         # Initialize command
         super(FromPumpPacket, self).__init__()
+
+        # Define packet type
+        self.type = "RX"
 
         # Define minimum number of bytes per packet
         self.min = 7

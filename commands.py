@@ -37,9 +37,10 @@ import packets
 
 
 # CONSTANTS
+PUMP_BOLUS_RATE = 40.0 # Bolus delivery rate (s/U)
 PUMP_BOLUS_STROKE = 0.1
 PUMP_BASAL_STROKE = 0.025
-PUMP_BASAL_TIME_BLOCK = 30
+PUMP_BASAL_TIME_BLOCK = 30 # (m)
 
 
 
@@ -996,6 +997,25 @@ class PumpBigGetCommand(PumpCommand):
 
 
 
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Get last packets
+        pkts = self.packets["RX"][1:]
+
+        # Decode payload
+        payload = lib.dehexify(lib.flatten([pkt.payload for pkt in pkts]))
+
+        # Return it for further decoding
+        return payload
+
+
+
 class PumpBigCommand(PumpCommand):
 
     def __init__(self, stick):
@@ -1073,11 +1093,11 @@ class PumpBigCommand(PumpCommand):
         # Execute command core
         self.execute()
 
-        # Decode it
-        self.decode()
-
         # Execute postlude
         self.postlude()
+
+        # Decode it
+        self.decode()
 
         # Return response
         return self.response
@@ -1540,8 +1560,11 @@ class ReadPumpBGTargets(PumpNormalGetCommand):
         # Decode targets
         for i in range(n):
 
+            # Update index
+            i *= size
+
             # Decode time (m)
-            t = payload[size * i + 1] * PUMP_BASAL_TIME_BLOCK
+            t = payload[i + 1] * PUMP_BASAL_TIME_BLOCK
 
             # Convert it to hours and minutes
             t = "{0:02}".format(t / 60) + ":" + "{0:02}".format(t % 60)
@@ -1550,15 +1573,81 @@ class ReadPumpBGTargets(PumpNormalGetCommand):
             self.response["Times"].append(t)
 
             # Decode target
-            self.response["Targets"].append([payload[size * i + 2] / 10 ** m,
-                                             payload[size * i + 3] / 10 ** m])
+            self.response["Targets"].append([payload[i + 2] / 10 ** m,
+                                             payload[i + 3] / 10 ** m])
 
         # Show response
         print "BG Targets: " + str(self.response)
 
 
 
-class ReadPumpISF(PumpNormalGetCommand):
+class ReadPumpFactors(PumpNormalGetCommand):
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Get last packet
+        pkt = self.packets["RX"][-1]
+
+        # Decode payload
+        payload = lib.dehexify(pkt.payload)
+
+        # Initialize response
+        self.response = {"Times": [],
+                         "Factors": [],
+                         "Units": None}
+
+        # Define size of entry
+        size = 2
+
+        # Compute number of targets
+        n = (pkt.size - 1) / size
+
+        # Define decoding factor
+        # Integer
+        if payload[0] == 1:
+
+            # Do it
+            m = 0
+
+        # Float
+        elif payload[0] == 2:
+
+            # Do it
+            m = 1.0
+
+        # Decode targets
+        for i in range(n):
+
+            # Update index
+            i *= size
+
+            # Decode time (m)
+            t = payload[i + 1] % 64 * PUMP_BASAL_TIME_BLOCK
+
+            # Convert it to hours and minutes
+            t = "{0:02}".format(t / 60) + ":" + "{0:02}".format(t % 60)
+
+            # Store it
+            self.response["Times"].append(t)
+
+            # Decode factor
+            f = lib.unpack([payload[i + 1] / 64, payload[i + 2]]) / 10 ** m
+
+            # Store it
+            self.response["Factors"].append(f)
+
+        # Return payload for further decoding
+        return payload
+
+
+
+class ReadPumpISF(ReadPumpFactors):
 
     def __init__(self, stick):
 
@@ -1584,19 +1673,8 @@ class ReadPumpISF(PumpNormalGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
-
-        # Initialize response
-        self.response = {"Times": [],
-                         "Factors": [],
-                         "Units": None}
-
-        # Define size of entry
-        size = 2
+        # Initialize decoding and get payload
+        payload = super(ReadPumpISF, self).decode()
 
         # Decode units
         # mg/dL
@@ -1605,46 +1683,18 @@ class ReadPumpISF(PumpNormalGetCommand):
             # Store them
             self.response["Units"] = "mg/dL/U"
 
-            # Define byte multiplicator
-            m = 0
-
         # mmol/L
         elif payload[0] == 2:
 
             # Store them
             self.response["Units"] = "mmol/L/U"
 
-            # Define byte multiplicator
-            m = 1.0
-
-        # Compute number of targets
-        n = (pkt.size - 1) / size
-
-        # Decode targets
-        for i in range(n):
-
-            # Decode time (m)
-            t = payload[size * i + 1] % 64 * PUMP_BASAL_TIME_BLOCK
-
-            # Convert it to hours and minutes
-            t = "{0:02}".format(t / 60) + ":" + "{0:02}".format(t % 60)
-
-            # Store it
-            self.response["Times"].append(t)
-
-            # Decode factor
-            f = lib.unpack([payload[size * i + 1] / 64,
-                            payload[size * i + 2]]) / 10 ** m
-
-            # Store it
-            self.response["Factors"].append(f)
-
         # Show response
         print "ISF: " + str(self.response)
 
 
 
-class ReadPumpCSF(PumpNormalGetCommand):
+class ReadPumpCSF(ReadPumpFactors):
 
     def __init__(self, stick):
 
@@ -1670,19 +1720,8 @@ class ReadPumpCSF(PumpNormalGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
-
-        # Initialize response
-        self.response = {"Times": [],
-                         "Factors": [],
-                         "Units": None}
-
-        # Define size of entry
-        size = 2
+        # Initialize decoding and get payload
+        payload = super(ReadPumpCSF, self).decode()
 
         # Decode units
         # mg/dL
@@ -1691,26 +1730,78 @@ class ReadPumpCSF(PumpNormalGetCommand):
             # Store them
             self.response["Units"] = "g/U"
 
-            # Define byte multiplicator
-            m = 0
-
         # mmol/L
         elif payload[0] == 2:
 
             # Store them
             self.response["Units"] = "U/exchange"
 
-            # Define byte multiplicator
-            m = 1.0
+        # Show response
+        print "CSF: " + str(self.response)
+
+
+
+class ReadPumpBasalProfile(PumpBigCommand, PumpBigGetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpBasalProfile, self).__init__(stick)
+
+        # Define postlude command repeat count
+        self.size["Postlude"] = 1
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding and get whole payload
+        payload = super(ReadPumpBasalProfile, self).decode()
+
+        # Initialize response
+        self.response = {"Times": [],
+                         "Rates": []}
+
+        # Define size of entry
+        size = 3
 
         # Compute number of targets
-        n = (pkt.size - 1) / size
+        n = (len(payload) - 1) / size
+
+        # Initialize index
+        i = 0
 
         # Decode targets
-        for i in range(n):
+        while True:
+
+            # Define start (a) and end (b) indices of current entry based
+            # on the latter's size
+            a = n * i
+            b = a + n
+
+            # Get entry
+            entry = payload[a:b]
+
+            # No more data in payload
+            if sum(entry) == 0 or len(entry) != n:
+
+                # Exit
+                break
 
             # Decode time (m)
-            t = payload[size * i + 1] % 64 * PUMP_BASAL_TIME_BLOCK
+            t = entry[2] * PUMP_BASAL_TIME_BLOCK
 
             # Convert it to hours and minutes
             t = "{0:02}".format(t / 60) + ":" + "{0:02}".format(t % 60)
@@ -1718,19 +1809,18 @@ class ReadPumpCSF(PumpNormalGetCommand):
             # Store it
             self.response["Times"].append(t)
 
-            # Decode factor
-            f = lib.unpack([payload[size * i + 1] / 64,
-                            payload[size * i + 2]]) / 10 ** m
+            # Decode rate
+            r = lib.unpack([entry[0], entry[1]], "<") / PUMP_BOLUS_RATE
 
             # Store it
-            self.response["Factors"].append(f)
+            self.response["Rates"].append(r)
 
-        # Show response
-        print "CSF: " + str(self.response)
+            # Update index
+            i += 1
 
 
 
-class ReadPumpBasalProfileStandard(PumpBigCommand, PumpBigGetCommand):
+class ReadPumpBasalProfileStandard(ReadPumpBasalProfile):
 
     def __init__(self, stick):
 
@@ -1746,12 +1836,25 @@ class ReadPumpBasalProfileStandard(PumpBigCommand, PumpBigGetCommand):
         # Define code
         self.code = "92"
 
-        # Define postlude command repeat count
-        self.size["Postlude"] = 1
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding
+        super(ReadPumpBasalProfileStandard, self).decode()
+
+        # Show response
+        print "Basal Profile (Standard): " + str(self.response)
 
 
 
-class ReadPumpBasalProfileA(PumpBigCommand, PumpBigGetCommand):
+class ReadPumpBasalProfileA(ReadPumpBasalProfile):
 
     def __init__(self, stick):
 
@@ -1767,12 +1870,25 @@ class ReadPumpBasalProfileA(PumpBigCommand, PumpBigGetCommand):
         # Define code
         self.code = "93"
 
-        # Define postlude command repeat count
-        self.size["Postlude"] = 1
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding
+        super(ReadPumpBasalProfileA, self).decode()
+
+        # Show response
+        print "Basal Profile (A): " + str(self.response)
 
 
 
-class ReadPumpBasalProfileB(PumpBigCommand, PumpBigGetCommand):
+class ReadPumpBasalProfileB(ReadPumpBasalProfile):
 
     def __init__(self, stick):
 
@@ -1788,8 +1904,21 @@ class ReadPumpBasalProfileB(PumpBigCommand, PumpBigGetCommand):
         # Define code
         self.code = "94"
 
-        # Define postlude command repeat count
-        self.size["Postlude"] = 1
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding
+        super(ReadPumpBasalProfileB, self).decode()
+
+        # Show response
+        print "Basal Profile (B): " + str(self.response)
 
 
 
@@ -1950,7 +2079,7 @@ class PowerPump(PumpBigCommand, PumpSetCommand):
                 return
 
             # Except
-            except errors.RadioError:
+            except errors.RadioError, errors.InvalidPacket:
 
                 # Ignore
                 pass
