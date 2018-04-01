@@ -70,7 +70,7 @@ def main():
             "Status": commands.ReadPumpStatus(_stick),
             "Settings": commands.ReadPumpSettings(_stick),
             "BG Units": commands.ReadPumpBGUnits(_stick),
-            "Carb Units": commands.ReadPumpCarbUnits(_stick),
+            "Carbs Units": commands.ReadPumpCarbsUnits(_stick),
             "BG Targets": commands.ReadPumpBGTargets(_stick),
             "ISF": commands.ReadPumpISF(_stick),
             "CSF": commands.ReadPumpCSF(_stick),
@@ -98,7 +98,7 @@ def main():
         cmd.run()
 
     # Define history size (max 36)
-    historySize = 3
+    historySize = 5
 
     # Read whole history
     for i in range(historySize):
@@ -123,13 +123,13 @@ def main():
 
     # Define TB commands
     tbCmds = [
-              ["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
-              ["TB Units",commands.SetPumpTBUnits(_stick), ["%"]],
-              ["TB Percentage",commands.SetPumpPercentageTB(_stick), [98, 30]],
-              ["TB Percentage",commands.SetPumpPercentageTB(_stick), [0, 0]],
-              ["TB Units",commands.SetPumpTBUnits(_stick), ["U/h"]],
-              ["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [5.55, 30]],
-              ["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
+              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
+              #["TB Units",commands.SetPumpTBUnits(_stick), ["%"]],
+              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [98, 30]],
+              #["TB Percentage",commands.SetPumpPercentageTB(_stick), [0, 0]],
+              #["TB Units",commands.SetPumpTBUnits(_stick), ["U/h"]],
+              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [5.55, 30]],
+              #["TB Absolute", commands.SetPumpAbsoluteTB(_stick), [0, 0]],
               ]
 
     # Run them

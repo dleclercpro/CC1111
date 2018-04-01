@@ -60,6 +60,7 @@ class Packet(object):
         self.serial = []
         self.code = None
         self.size = None
+        self.part = None
         self.payload = []
         self.CRC = None
 
@@ -68,7 +69,9 @@ class Packet(object):
 
         # Initialize various formats
         self.bytes = {"Encoded": [],
-                      "Decoded": {"Str": [], "Hex": [], "Chr": []}}
+                      "Decoded": {"Hex": [],
+                                  "Chr": [],
+                                  "Int": []}}
 
 
 
@@ -177,9 +180,6 @@ class Packet(object):
         # Define number of rows to be printed 
         R = size / n + int(N != 0)
 
-        # Format bytes
-        self.format()
-
         # Info
         print "Decoded bytes:"
 
@@ -225,6 +225,7 @@ class Packet(object):
         print "Serial: " + " ".join(self.serial)
         print "Code: " + str(self.code)
         print "Size: " + str(self.size)
+        print "Part: " + str(self.part)
         print "Payload: " + " ".join(self.payload)
         print "CRC: " + str(self.CRC)
 
@@ -362,11 +363,11 @@ class Packet(object):
 
 
 
-    def checkCRC(self):
+    def crc(self):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            CHECKCRC
+            CRC
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             Verify if computed CRC8 matches with the one received.
         """
@@ -436,152 +437,6 @@ class EncodedPacket(Packet):
 
 
 
-class FromPumpPacket(EncodedPacket):
-
-    def __init__(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            INIT
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Initialize command
-        super(FromPumpPacket, self).__init__()
-
-        # Define minimum number of bytes per packet
-        self.min = 7
-
-        # Parse decoded bytes
-        self.parse(bytes)
-
-
-
-    def rssi(self, offset = 73):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            RSSI
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Convert hexadecimal RSSI reading to dBm.
-        """
-
-        # Get RSSI
-        RSSI = self.RSSI["Hex"]
-
-        # Info
-        print "RSSI (Byte): " + str(RSSI)
-
-        # Bigger than
-        if RSSI >= 128:
-
-            # Value
-            RSSI = (RSSI - 256) / 2.0
-
-        # Otherwise
-        else:
-
-            # Value
-            RSSI = RSSI / 2.0
-
-        # Remove offset
-        RSSI -= offset
-
-        # Round value
-        RSSI = round(RSSI)
-
-        # Reassign it
-        self.RSSI["dBm"] = RSSI
-
-        # Info
-        print "RSSI (dBm): " + str(RSSI)
-
-
-
-    def extract(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            EXTRACT
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Reset payload
-        self.payload = []
-
-        # Define starting byte
-        start = self.min - 1
-
-        # Define ending byte
-        end = len(self.bytes["Decoded"]["Hex"]) - 1
-
-        # Go through payload (minus CRC)
-        for i in range(start, end):
-
-            # Add byte to payload
-            self.payload.append(self.bytes["Decoded"]["Hex"][i])
-
-
-
-    def parse(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            PARSE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Parse packet coming in from pump.
-        """
-
-        # Get packet index
-        self.index = bytes[0]
-
-        # Info
-        print "#: " + str(self.index)
-
-        # Get RSSI reading
-        self.RSSI = {"Hex": bytes[1], "dBm": None}
-
-        # Compute RSSI
-        self.rssi()
-
-        # Assign bytes
-        self.bytes["Encoded"] = bytes[2:]
-
-        # Decode them
-        self.decode()
-
-        # Get number of bytes to parse
-        n = len(self.bytes["Decoded"]["Hex"])
-
-        # Not enough bytes
-        if n < self.min:
-
-            # Raise error
-            raise errors.NotEnoughBytes(self.min, n)
-
-        # Get recipient
-        self.recipient = self.bytes["Decoded"]["Hex"][0]
-
-        # Get serial
-        self.serial = self.bytes["Decoded"]["Hex"][1:4]
-
-        # Get op code
-        self.code = self.bytes["Decoded"]["Hex"][4]
-
-        # Get payload size
-        self.size = self.bytes["Decoded"]["Int"][5]
-
-        # Get payload
-        self.extract()
-
-        # Check CRC
-        if self.checkCRC():
-
-            # Store it
-            self.CRC = self.bytes["Decoded"]["Hex"][-1]
-
-
-
 class ToPumpPacket(DecodedPacket):
 
     def __init__(self, code, payload):
@@ -609,9 +464,6 @@ class ToPumpPacket(DecodedPacket):
 
         # Assemble packet bytes
         self.assemble()
-
-        # Show it
-        #self.show()
 
 
 
@@ -680,6 +532,187 @@ class ToPumpPacket(DecodedPacket):
         # Encode them
         self.encode()
 
+        # Show assembled packet
+        #self.show()
+
+
+
+class FromPumpPacket(EncodedPacket):
+
+    def __init__(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(FromPumpPacket, self).__init__()
+
+        # Define minimum number of bytes per packet
+        self.min = 7
+
+        # Parse decoded bytes
+        self.parse(bytes)
+
+        # Extract payload
+        self.extract()
+
+        # Check CRC
+        if self.crc():
+
+            # Store it
+            self.CRC = self.bytes["Decoded"]["Hex"][-1]
+
+
+
+    def rssi(self, offset = 73):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            RSSI
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Convert hexadecimal RSSI reading to dBm.
+        """
+
+        # Get RSSI
+        RSSI = self.RSSI["Hex"]
+
+        # Info
+        print "RSSI (Byte): " + str(RSSI)
+
+        # Bigger than
+        if RSSI >= 128:
+
+            # Value
+            RSSI = (RSSI - 256) / 2.0
+
+        # Otherwise
+        else:
+
+            # Value
+            RSSI = RSSI / 2.0
+
+        # Remove offset
+        RSSI -= offset
+
+        # Round value
+        RSSI = round(RSSI)
+
+        # Reassign it
+        self.RSSI["dBm"] = RSSI
+
+        # Info
+        print "RSSI (dBm): " + str(RSSI)
+
+
+
+    def extract(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            EXTRACT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Define starting byte
+        a = self.min - 1
+
+        # Define ending byte
+        b = a + self.size
+
+        # Get payload
+        self.payload = self.bytes["Decoded"]["Hex"][a:b]
+
+
+
+    def parse(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PARSE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Parse packet coming in from pump.
+        """
+
+        # Get packet index
+        self.index = bytes[0]
+
+        # Info
+        print "#: " + str(self.index)
+
+        # Get RSSI reading
+        self.RSSI = {"Hex": bytes[1], "dBm": None}
+
+        # Compute RSSI
+        self.rssi()
+
+        # Assign bytes
+        self.bytes["Encoded"] = bytes[2:]
+
+        # Decode them
+        self.decode()
+
+        # Get number of bytes to parse
+        n = len(self.bytes["Decoded"]["Hex"])
+
+        # Not enough bytes
+        if n < self.min:
+
+            # Raise error
+            raise errors.NotEnoughBytes(self.min, n)
+
+        # Get recipient
+        self.recipient = self.bytes["Decoded"]["Hex"][0]
+
+        # Get serial
+        self.serial = self.bytes["Decoded"]["Hex"][1:4]
+
+        # Get op code
+        self.code = self.bytes["Decoded"]["Hex"][4]
+
+
+
+class FromPumpNormalPacket(FromPumpPacket):
+
+    def parse(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PARSE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Parse packet coming in from pump.
+        """
+
+        # Initialize parsing
+        super(FromPumpNormalPacket, self).parse(bytes)
+
+        # Get payload size
+        self.size = self.bytes["Decoded"]["Int"][5]
+
+
+
+class FromPumpBigPacket(FromPumpPacket):
+
+    def parse(self, bytes):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            PARSE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Parse packet coming in from pump.
+        """
+
+        # Initialize parsing
+        super(FromPumpBigPacket, self).parse(bytes)
+
+        # Get part
+        self.part = self.bytes["Decoded"]["Int"][5]
+
+        # Define payload size (without CRC and intro)
+        self.size = 64
+
 
 
 class FromPumpACKPacket(FromPumpPacket):
@@ -705,11 +738,8 @@ class FromPumpACKPacket(FromPumpPacket):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Reset payload
-        self.payload = []
-
-        # Get payload
-        self.payload.append(self.bytes["Decoded"]["Hex"][5])
+        # Get payload in various formats
+        self.payload = [self.bytes["Decoded"]["Hex"][5]]
 
 
 

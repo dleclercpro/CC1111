@@ -69,7 +69,7 @@ class Stick(object):
         # Define frequencies (MHz)
         self.freq = {"Reference": 24.0,
                      "Regions": {"NA": {"Default": 916.680,
-                                        "Range": [916.645, 916.775]},
+                                        "Range": [916.600, 916.750]},
                                  "WW": {"Default": 868.330,
                                         "Range": [868.150, 868.750]}}}
 
