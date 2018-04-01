@@ -842,7 +842,26 @@ class FlashStickLED(StickCommand):
 
 
 
+
+
+
 class PumpCommand(Command):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PumpCommand, self).__init__(stick)
+
+        # Define function to generate send packet
+        self.sendPacket = packets.ToPumpPacket
+
+
 
     def reset(self):
 
@@ -877,7 +896,7 @@ class PumpCommand(Command):
         """
 
         # Generate packet to send to pump
-        pkt = packets.ToPumpPacket(self.code, self.parameters)
+        pkt = self.sendPacket(self.code, self.parameters)
 
         # Store it
         self.packets["TX"].append(pkt)
@@ -898,9 +917,34 @@ class PumpCommand(Command):
         # Store data
         self.data["RX"].append(self.stick.commands["Radio TX/RX"].data["RX"])
 
+        # Parse data into packet
+        pkt = self.receivePacket(self.data["RX"][-1])
+
+        # Show it
+        pkt.show()
+
+        # Store it
+        self.packets["RX"].append(pkt)
+
 
 
 class PumpSetCommand(PumpCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PumpSetCommand, self).__init__(stick)
+
+        # Define function to generate receive packet
+        self.receivePacket = packets.FromPumpACKPacket
+
+
 
     def decode(self):
 
@@ -927,92 +971,39 @@ class PumpSetCommand(PumpCommand):
 
 
 
-    def receive(self):
+class PumpGetCommand(PumpCommand):
+
+    def __init__(self, stick):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            RECEIVE
+            INIT
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Initialize receiving of packet
-        super(PumpSetCommand, self).receive()
+        # Initialize command
+        super(PumpGetCommand, self).__init__(stick)
 
-        # Parse data into packet
-        pkt = packets.FromPumpACKPacket(self.data["RX"][-1])
-
-        # Show it
-        pkt.show()
-
-        # Store it
-        self.packets["RX"].append(pkt)
+        # Define function to generate receive packet
+        self.receivePacket = packets.FromPumpPacket
 
 
 
-class PumpNormalGetCommand(PumpCommand):
+class PumpGetBigCommand(PumpCommand):
 
-    def receive(self):
+    def __init__(self, stick):
 
         """
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            RECEIVE
+            INIT
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Initialize receiving packet
-        super(PumpNormalGetCommand, self).receive()
+        # Initialize command
+        super(PumpGetBigCommand, self).__init__(stick)
 
-        # Parse data into packet
-        pkt = packets.FromPumpNormalPacket(self.data["RX"][-1])
-
-        # Show it
-        pkt.show()
-
-        # Store it
-        self.packets["RX"].append(pkt)
-
-
-
-class PumpBigGetCommand(PumpCommand):
-
-    def receive(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            RECEIVE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Initialize receiving packet
-        super(PumpBigGetCommand, self).receive()
-
-        # Parse data into packet
-        pkt = packets.FromPumpBigPacket(self.data["RX"][-1])
-
-        # Show it
-        pkt.show()
-
-        # Store it
-        self.packets["RX"].append(pkt)
-
-
-
-    def decode(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            DECODE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Get last packets
-        pkts = self.packets["RX"][1:]
-
-        # Decode payload
-        payload = lib.dehexify(lib.flatten([pkt.payload for pkt in pkts]))
-
-        # Return it for further decoding
-        return payload
+        # Define function to generate receive packet
+        self.receivePacket = packets.FromPumpBigPacket
 
 
 
@@ -1030,8 +1021,12 @@ class PumpBigCommand(PumpCommand):
         super(PumpBigCommand, self).__init__(stick)
 
         # Define number of times pre-/postlude commands need to be executed
-        self.size = {"Prelude": 1,
-                     "Postlude": 0}
+        self.repeat = {"Prelude": 1,
+                       "Postlude": 0}
+
+        # Define pre- and postlude commands
+        self.commands = {"Prelude": None,
+                         "Postlude": ReadPumpMore(self.stick)}
 
 
 
@@ -1043,11 +1038,17 @@ class PumpBigCommand(PumpCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Execute prelude command
-        self.execute()
+        # Get prelude command
+        cmd = self.commands["Prelude"]
 
-        # Decode it
-        self.decode()
+        # Run prelude command given number of times
+        for i in range(self.repeat["Prelude"]):
+
+            # Do it
+            cmd.run()
+
+            # Store response packet
+            self.packets["RX"].append(cmd.packets["RX"][-1])
 
 
 
@@ -1060,16 +1061,32 @@ class PumpBigCommand(PumpCommand):
         """
 
         # Get postlude command
-        cmd = ReadPumpMore(self.stick)
+        cmd = self.commands["Postlude"]
 
         # Run postlude command given number of times
-        for i in range(self.size["Postlude"]):
+        for i in range(self.repeat["Postlude"]):
 
             # Do it
             cmd.run()
 
             # Store response packet
             self.packets["RX"].append(cmd.packets["RX"][-1])
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Get last packets (without prelude)
+        pkts = self.packets["RX"][self.repeat["Prelude"]:]
+
+        # Flatten payloads to one larger one and return it for further decoding
+        return lib.dehexify(lib.flatten([pkt.payload for pkt in pkts]))
 
 
 
@@ -1084,11 +1101,11 @@ class PumpBigCommand(PumpCommand):
         # Reset command
         self.reset()
 
-        # Execute prelude
-        self.prelude()
-
         # Encode parameters
         self.encode(*args)
+
+        # Execute prelude
+        self.prelude()
 
         # Execute command core
         self.execute()
@@ -1104,7 +1121,7 @@ class PumpBigCommand(PumpCommand):
 
 
 
-class ReadPumpTime(PumpNormalGetCommand):
+class ReadPumpTime(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1150,7 +1167,7 @@ class ReadPumpTime(PumpNormalGetCommand):
 
 
 
-class ReadPumpModel(PumpNormalGetCommand):
+class ReadPumpModel(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1190,7 +1207,7 @@ class ReadPumpModel(PumpNormalGetCommand):
 
 
 
-class ReadPumpFirmware(PumpNormalGetCommand):
+class ReadPumpFirmware(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1230,7 +1247,7 @@ class ReadPumpFirmware(PumpNormalGetCommand):
 
 
 
-class ReadPumpBattery(PumpNormalGetCommand):
+class ReadPumpBattery(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1270,7 +1287,7 @@ class ReadPumpBattery(PumpNormalGetCommand):
 
 
 
-class ReadPumpReservoir(PumpNormalGetCommand):
+class ReadPumpReservoir(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1310,7 +1327,7 @@ class ReadPumpReservoir(PumpNormalGetCommand):
 
 
 
-class ReadPumpStatus(PumpNormalGetCommand):
+class ReadPumpStatus(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1352,7 +1369,7 @@ class ReadPumpStatus(PumpNormalGetCommand):
 
 
 
-class ReadPumpSettings(PumpNormalGetCommand):
+class ReadPumpSettings(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1395,7 +1412,7 @@ class ReadPumpSettings(PumpNormalGetCommand):
 
 
 
-class ReadPumpBGUnits(PumpNormalGetCommand):
+class ReadPumpBGUnits(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1445,7 +1462,7 @@ class ReadPumpBGUnits(PumpNormalGetCommand):
 
 
 
-class ReadPumpCarbsUnits(PumpNormalGetCommand):
+class ReadPumpCarbsUnits(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1495,7 +1512,7 @@ class ReadPumpCarbsUnits(PumpNormalGetCommand):
 
 
 
-class ReadPumpBGTargets(PumpNormalGetCommand):
+class ReadPumpBGTargets(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1581,7 +1598,7 @@ class ReadPumpBGTargets(PumpNormalGetCommand):
 
 
 
-class ReadPumpFactors(PumpNormalGetCommand):
+class ReadPumpFactors(PumpGetCommand):
 
     def decode(self):
 
@@ -1741,7 +1758,7 @@ class ReadPumpCSF(ReadPumpFactors):
 
 
 
-class ReadPumpBasalProfile(PumpBigCommand, PumpBigGetCommand):
+class ReadPumpBasalProfile(PumpBigCommand, PumpGetBigCommand):
 
     def __init__(self, stick):
 
@@ -1754,8 +1771,9 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpBigGetCommand):
         # Initialize command
         super(ReadPumpBasalProfile, self).__init__(stick)
 
-        # Define postlude command repeat count
-        self.size["Postlude"] = 1
+        # Define pre- and postlude command repeat count
+        self.repeat["Prelude"] = 0
+        self.repeat["Postlude"] = 1
 
 
 
@@ -1777,9 +1795,6 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpBigGetCommand):
         # Define size of entry
         size = 3
 
-        # Compute number of targets
-        n = (len(payload) - 1) / size
-
         # Initialize index
         i = 0
 
@@ -1788,14 +1803,14 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpBigGetCommand):
 
             # Define start (a) and end (b) indices of current entry based
             # on the latter's size
-            a = n * i
-            b = a + n
+            a = size * i
+            b = a + size
 
             # Get entry
             entry = payload[a:b]
 
             # No more data in payload
-            if sum(entry) == 0 or len(entry) != n:
+            if sum(entry) == 0 or len(entry) != size:
 
                 # Exit
                 break
@@ -1810,7 +1825,7 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpBigGetCommand):
             self.response["Times"].append(t)
 
             # Decode rate
-            r = lib.unpack([entry[0], entry[1]], "<") / PUMP_BOLUS_RATE
+            r = lib.unpack(entry[0:2], "<") / PUMP_BOLUS_RATE
 
             # Store it
             self.response["Rates"].append(r)
@@ -1922,7 +1937,7 @@ class ReadPumpBasalProfileB(ReadPumpBasalProfile):
 
 
 
-class ReadPumpDailyTotals(PumpNormalGetCommand):
+class ReadPumpDailyTotals(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1940,7 +1955,7 @@ class ReadPumpDailyTotals(PumpNormalGetCommand):
 
 
 
-class ReadPumpTB(PumpNormalGetCommand):
+class ReadPumpTB(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1958,7 +1973,7 @@ class ReadPumpTB(PumpNormalGetCommand):
 
 
 
-class ReadPumpHistorySize(PumpNormalGetCommand):
+class ReadPumpHistorySize(PumpGetCommand):
 
     def __init__(self, stick):
 
@@ -1976,7 +1991,25 @@ class ReadPumpHistorySize(PumpNormalGetCommand):
 
 
 
-class ReadPumpHistoryPage(PumpBigCommand, PumpBigGetCommand):
+class ReadPumpHistoryPagePrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ReadPumpHistoryPagePrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "80"
+
+
+
+class ReadPumpHistoryPage(PumpBigCommand, PumpGetBigCommand):
 
     def __init__(self, stick):
 
@@ -1992,8 +2025,11 @@ class ReadPumpHistoryPage(PumpBigCommand, PumpBigGetCommand):
         # Define code
         self.code = "80"
 
+        # Define prelude command
+        self.commands["Prelude"] = ReadPumpHistoryPagePrelude(stick)
+
         # Define postlude command repeat count
-        self.size["Postlude"] = 14
+        self.repeat["Postlude"] = 14
 
 
 
@@ -2016,7 +2052,7 @@ class ReadPumpHistoryPage(PumpBigCommand, PumpBigGetCommand):
 
 
 
-class ReadPumpMore(PumpBigGetCommand):
+class ReadPumpMore(PumpGetBigCommand):
 
     def __init__(self, stick):
 
@@ -2031,6 +2067,24 @@ class ReadPumpMore(PumpBigGetCommand):
 
         # Define code
         self.code = "06"
+
+
+
+class PowerPumpPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PowerPumpPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "5D"
 
 
 
@@ -2050,8 +2104,11 @@ class PowerPump(PumpBigCommand, PumpSetCommand):
         # Define code
         self.code = "5D"
 
+        # Define prelude command
+        self.commands["Prelude"] = PowerPumpPrelude(stick)
+
         # Define prelude command repeat counts
-        self.size["Prelude"] = 50
+        self.repeat["Prelude"] = 50
 
 
 
@@ -2064,16 +2121,13 @@ class PowerPump(PumpBigCommand, PumpSetCommand):
         """
 
         # Execute a given number of times
-        for i in range(self.size["Prelude"]):
+        for i in range(self.repeat["Prelude"]):
 
             # Try
             try:
 
                 # Execute
-                self.execute()
-
-                # Decode
-                self.decode()
+                self.commands["Prelude"].run()
 
                 # Exit
                 return
@@ -2084,7 +2138,7 @@ class PowerPump(PumpBigCommand, PumpSetCommand):
                 # Ignore
                 pass
 
-        # Pump absent?
+        # Pump does not respond
         raise errors.NoPump
 
 
@@ -2111,6 +2165,24 @@ class PowerPump(PumpBigCommand, PumpSetCommand):
 
 
 
+class PushPumpButtonPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(PushPumpButtonPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "5B"
+
+
+
 class PushPumpButton(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2126,6 +2198,9 @@ class PushPumpButton(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "5B"
+
+        # Define prelude command
+        self.commands["Prelude"] = PushPumpButtonPrelude(stick)
 
 
 
@@ -2157,6 +2232,24 @@ class PushPumpButton(PumpBigCommand, PumpSetCommand):
 
 
 
+class ResumePumpPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(ResumePumpPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "4D"
+
+
+
 class ResumePump(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2172,6 +2265,9 @@ class ResumePump(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "4D"
+
+        # Define prelude command
+        self.commands["Prelude"] = ResumePumpPrelude(stick)
 
 
 
@@ -2191,6 +2287,24 @@ class ResumePump(PumpBigCommand, PumpSetCommand):
 
 
 
+class SuspendPumpPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(SuspendPumpPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "4D"
+
+
+
 class SuspendPump(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2206,6 +2320,9 @@ class SuspendPump(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "4D"
+
+        # Define prelude command
+        self.commands["Prelude"] = SuspendPumpPrelude(stick)
 
 
 
@@ -2225,6 +2342,24 @@ class SuspendPump(PumpBigCommand, PumpSetCommand):
 
 
 
+class DeliverPumpBolusPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(DeliverPumpBolusPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "42"
+
+
+
 class DeliverPumpBolus(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2240,6 +2375,9 @@ class DeliverPumpBolus(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "42"
+
+        # Define prelude command
+        self.commands["Prelude"] = DeliverPumpBolusPrelude(stick)
 
 
 
@@ -2268,6 +2406,24 @@ class DeliverPumpBolus(PumpBigCommand, PumpSetCommand):
 
 
 
+class SetPumpTBUnitsPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(SetPumpTBUnitsPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "68"
+
+
+
 class SetPumpTBUnits(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2283,6 +2439,9 @@ class SetPumpTBUnits(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "68"
+
+        # Define prelude command
+        self.commands["Prelude"] = SetPumpTBUnitsPrelude(stick)
 
 
 
@@ -2314,6 +2473,24 @@ class SetPumpTBUnits(PumpBigCommand, PumpSetCommand):
 
 
 
+class SetPumpAbsoluteTBPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(SetPumpAbsoluteTBPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "4C"
+
+
+
 class SetPumpAbsoluteTB(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2329,6 +2506,9 @@ class SetPumpAbsoluteTB(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "4C"
+
+        # Define prelude command
+        self.commands["Prelude"] = SetPumpAbsoluteTBPrelude(stick)
 
 
 
@@ -2369,6 +2549,24 @@ class SetPumpAbsoluteTB(PumpBigCommand, PumpSetCommand):
 
 
 
+class SetPumpPercentageTBPrelude(PumpSetCommand):
+
+    def __init__(self, stick):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            INIT
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize command
+        super(SetPumpPercentageTBPrelude, self).__init__(stick)
+
+        # Define code
+        self.code = "69"
+
+
+
 class SetPumpPercentageTB(PumpBigCommand, PumpSetCommand):
 
     def __init__(self, stick):
@@ -2384,6 +2582,9 @@ class SetPumpPercentageTB(PumpBigCommand, PumpSetCommand):
 
         # Define code
         self.code = "69"
+
+        # Define prelude command
+        self.commands["Prelude"] = SetPumpPercentageTBPrelude(stick)
 
 
 

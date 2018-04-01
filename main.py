@@ -74,7 +74,7 @@ def main():
             #"BG Targets": commands.ReadPumpBGTargets(_stick),
             #"ISF": commands.ReadPumpISF(_stick),
             #"CSF": commands.ReadPumpCSF(_stick),
-            "Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
+            #"Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
             #"Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
             #"Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
             #"Daily Totals": commands.ReadPumpDailyTotals(_stick),
@@ -98,7 +98,7 @@ def main():
         cmd.run()
 
     # Define history size (max 36)
-    historySize = 2
+    historySize = 0
 
     # Read whole history
     for i in range(historySize):

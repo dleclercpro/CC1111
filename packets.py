@@ -538,7 +538,7 @@ class ToPumpPacket(DecodedPacket):
         self.encode()
 
         # Show assembled packet
-        self.show()
+        #self.show()
 
 
 
@@ -679,22 +679,6 @@ class FromPumpPacket(EncodedPacket):
 
         # Get op code
         self.code = self.bytes["Decoded"]["Hex"][4]
-
-
-
-class FromPumpNormalPacket(FromPumpPacket):
-
-    def parse(self, bytes):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            PARSE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            Parse packet coming in from pump.
-        """
-
-        # Initialize parsing
-        super(FromPumpNormalPacket, self).parse(bytes)
 
         # Get payload size
         self.size = self.bytes["Decoded"]["Int"][5]
