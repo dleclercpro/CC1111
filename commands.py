@@ -989,6 +989,23 @@ class PumpGetCommand(PumpCommand):
 
 
 
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Get last packet
+        pkt = self.packets["RX"][-1]
+
+        # Return payload in integer format for further decoding as well as its
+        # size
+        return [lib.dehexify(pkt.payload), pkt.size]
+
+
+
 class PumpGetBigCommand(PumpCommand):
 
     def __init__(self, stick):
@@ -1004,6 +1021,27 @@ class PumpGetBigCommand(PumpCommand):
 
         # Define function to generate receive packet
         self.receivePacket = packets.FromPumpBigPacket
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Warning: This will only work when class instanciated alongside of
+                     PumpBigCommand.
+        """
+
+        # Get last packets (without prelude)
+        pkts = self.packets["RX"][self.repeat["Prelude"]:]
+
+        # Flatten payloads to one larger one
+        payload = lib.dehexify(lib.flatten([pkt.payload for pkt in pkts]))
+
+        # Return it for further decoding as well as its size
+        return [payload, len(payload)]
 
 
 
@@ -1074,22 +1112,6 @@ class PumpBigCommand(PumpCommand):
 
 
 
-    def decode(self):
-
-        """
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            DECODE
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-
-        # Get last packets (without prelude)
-        pkts = self.packets["RX"][self.repeat["Prelude"]:]
-
-        # Flatten payloads to one larger one and return it for further decoding
-        return lib.dehexify(lib.flatten([pkt.payload for pkt in pkts]))
-
-
-
     def run(self, *args):
 
         """
@@ -1147,11 +1169,8 @@ class ReadPumpTime(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpTime, self).decode()
 
         # Destructure
         [h, m, s, Y1, Y2, M, D] = payload[0:7]
@@ -1193,11 +1212,11 @@ class ReadPumpModel(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpModel, self).decode()
 
-        # Decode payload
-        payload = lib.charify(lib.dehexify(pkt.payload))
+        # Convert payload to char format
+        payload = lib.charify(payload)
 
         # Decode
         self.response = int("".join(payload[1:4]))
@@ -1233,11 +1252,11 @@ class ReadPumpFirmware(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpFirmware, self).decode()
 
-        # Decode payload
-        payload = lib.charify(lib.dehexify(pkt.payload))
+        # Convert payload to char format
+        payload = lib.charify(payload)
 
         # Decode
         self.response = "".join(payload[0:8] + [" "] + payload[8:11])
@@ -1273,11 +1292,8 @@ class ReadPumpBattery(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpBattery, self).decode()
 
         # Decode
         self.response = round(lib.unpack(payload[1:3]) / 100.0, 2)
@@ -1313,11 +1329,8 @@ class ReadPumpReservoir(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpReservoir, self).decode()
 
         # Decode
         self.response = round(lib.unpack(payload[0:2]) * PUMP_BOLUS_STROKE, 1)
@@ -1353,11 +1366,8 @@ class ReadPumpStatus(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpStatus, self).decode()
 
         # Decode
         self.response = {"Normal": payload[0] == 3,
@@ -1395,11 +1405,8 @@ class ReadPumpSettings(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpSettings, self).decode()
 
         # Decode
         self.response = {"DIA": payload[17],
@@ -1438,11 +1445,8 @@ class ReadPumpBGUnits(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpBGUnits, self).decode()
 
         # Decode
         # mg/dL
@@ -1488,11 +1492,8 @@ class ReadPumpCarbsUnits(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpCarbsUnits, self).decode()
 
         # Decode
         # mg/dL
@@ -1538,11 +1539,8 @@ class ReadPumpBGTargets(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpBGTargets, self).decode()
 
         # Initialize response
         self.response = {"Times": [],
@@ -1550,7 +1548,7 @@ class ReadPumpBGTargets(PumpGetCommand):
                          "Units": None}
 
         # Define size of entry
-        size = 3
+        length = 3
 
         # Decode units
         # mg/dL
@@ -1572,13 +1570,13 @@ class ReadPumpBGTargets(PumpGetCommand):
             m = 1.0
 
         # Compute number of targets
-        n = (pkt.size - 1) / size
+        n = (size - 1) / length
 
         # Decode targets
         for i in range(n):
 
             # Update index
-            i *= size
+            i *= length
 
             # Decode time (m)
             t = payload[i + 1] * PUMP_BASAL_TIME_BLOCK
@@ -1608,11 +1606,8 @@ class ReadPumpFactors(PumpGetCommand):
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """
 
-        # Get last packet
-        pkt = self.packets["RX"][-1]
-
-        # Decode payload
-        payload = lib.dehexify(pkt.payload)
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpFactors, self).decode()
 
         # Initialize response
         self.response = {"Times": [],
@@ -1620,10 +1615,10 @@ class ReadPumpFactors(PumpGetCommand):
                          "Units": None}
 
         # Define size of entry
-        size = 2
+        length = 2
 
         # Compute number of targets
-        n = (pkt.size - 1) / size
+        n = (size - 1) / length
 
         # Define decoding factor
         # Integer
@@ -1642,7 +1637,7 @@ class ReadPumpFactors(PumpGetCommand):
         for i in range(n):
 
             # Update index
-            i *= size
+            i *= length
 
             # Decode time (m)
             t = payload[i + 1] % 64 * PUMP_BASAL_TIME_BLOCK
@@ -1660,7 +1655,7 @@ class ReadPumpFactors(PumpGetCommand):
             self.response["Factors"].append(f)
 
         # Return payload for further decoding
-        return payload
+        return [payload, size]
 
 
 
@@ -1691,7 +1686,7 @@ class ReadPumpISF(ReadPumpFactors):
         """
 
         # Initialize decoding and get payload
-        payload = super(ReadPumpISF, self).decode()
+        [payload, size] = super(ReadPumpISF, self).decode()
 
         # Decode units
         # mg/dL
@@ -1738,7 +1733,7 @@ class ReadPumpCSF(ReadPumpFactors):
         """
 
         # Initialize decoding and get payload
-        payload = super(ReadPumpCSF, self).decode()
+        [payload, size] = super(ReadPumpCSF, self).decode()
 
         # Decode units
         # mg/dL
@@ -1786,14 +1781,14 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpGetBigCommand):
         """
 
         # Initialize decoding and get whole payload
-        payload = super(ReadPumpBasalProfile, self).decode()
+        [payload, size] = super(ReadPumpBasalProfile, self).decode()
 
         # Initialize response
         self.response = {"Times": [],
                          "Rates": []}
 
         # Define size of entry
-        size = 3
+        length = 3
 
         # Initialize index
         i = 0
@@ -1803,14 +1798,14 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpGetBigCommand):
 
             # Define start (a) and end (b) indices of current entry based
             # on the latter's size
-            a = size * i
-            b = a + size
+            a = length * i
+            b = a + length
 
             # Get entry
             entry = payload[a:b]
 
             # No more data in payload
-            if sum(entry) == 0 or len(entry) != size:
+            if sum(entry) == 0 or len(entry) != length:
 
                 # Exit
                 break
@@ -1955,6 +1950,28 @@ class ReadPumpDailyTotals(PumpGetCommand):
 
 
 
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpDailyTotals, self).decode()
+
+        # Decode
+        self.response = {"Today": round(lib.unpack(payload[0:2]) *
+                                        PUMP_BOLUS_STROKE, 2),
+                         "Yesterday": round(lib.unpack(payload[2:4]) *
+                                            PUMP_BOLUS_STROKE, 2)}
+
+        # Show response
+        print "Daily Totals: " + str(self.response)
+
+
+
 class ReadPumpTB(PumpGetCommand):
 
     def __init__(self, stick):
@@ -2067,6 +2084,19 @@ class ReadPumpMore(PumpGetBigCommand):
 
         # Define code
         self.code = "06"
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Ignore
+        pass
 
 
 
