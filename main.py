@@ -62,31 +62,31 @@ def main():
     powerCmd.run()
 
     # Define pump commands
-    cmds = {"Time": commands.ReadPumpTime(_stick),
-            "Model": commands.ReadPumpModel(_stick),
-            "Firmware": commands.ReadPumpFirmware(_stick),
-            "Battery": commands.ReadPumpBattery(_stick),
-            "Reservoir": commands.ReadPumpReservoir(_stick),
-            "Status": commands.ReadPumpStatus(_stick),
-            "Settings": commands.ReadPumpSettings(_stick),
-            "BG Units": commands.ReadPumpBGUnits(_stick),
-            "Carbs Units": commands.ReadPumpCarbsUnits(_stick),
-            "BG Targets": commands.ReadPumpBGTargets(_stick),
-            "ISF": commands.ReadPumpISF(_stick),
-            "CSF": commands.ReadPumpCSF(_stick),
-            "Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
-            "Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
-            "Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
-            "Daily Totals": commands.ReadPumpDailyTotals(_stick),
-            "TB": commands.ReadPumpTB(_stick),
-            "Button": commands.PushPumpButton(_stick),
+    cmds = {#"Time": commands.ReadPumpTime(_stick),
+            #"Model": commands.ReadPumpModel(_stick),
+            #"Firmware": commands.ReadPumpFirmware(_stick),
+            #"Battery": commands.ReadPumpBattery(_stick),
+            #"Reservoir": commands.ReadPumpReservoir(_stick),
+            #"Status": commands.ReadPumpStatus(_stick),
+            #"Settings": commands.ReadPumpSettings(_stick),
+            #"BG Units": commands.ReadPumpBGUnits(_stick),
+            #"Carbs Units": commands.ReadPumpCarbsUnits(_stick),
+            #"BG Targets": commands.ReadPumpBGTargets(_stick),
+            #"ISF": commands.ReadPumpISF(_stick),
+            #"CSF": commands.ReadPumpCSF(_stick),
+            #"Basal Profile Standard": commands.ReadPumpBasalProfileStandard(_stick),
+            #"Basal Profile A": commands.ReadPumpBasalProfileA(_stick),
+            #"Basal Profile B": commands.ReadPumpBasalProfileB(_stick),
+            #"Daily Totals": commands.ReadPumpDailyTotals(_stick),
+            #"TB": commands.ReadPumpTB(_stick),
+            #"Button": commands.PushPumpButton(_stick),
+            #"History Size": commands.ReadPumpHistorySize(_stick),
             #"Suspend": commands.SuspendPump(_stick),
             #"Resume": commands.ResumePump(_stick)
             }
 
     # Define pump commands
-    historyCmds = {"History Size": commands.ReadPumpHistorySize(_stick),
-                   "History Page": commands.ReadPumpHistoryPage(_stick)}
+    historyCmd = commands.ReadPumpHistoryPage(_stick)
 
     # Go through them
     for name, cmd in sorted(cmds.iteritems()):
@@ -100,14 +100,20 @@ def main():
     # Define history size (max 36)
     historySize = 2
 
+    # Initialize history
+    history = []
+
     # Read whole history
-    for i in range(historySize):
+    for i in reversed(range(historySize)):
 
         # Info
         print "// History Page: " + str(i) + " //"
 
-        # Send and listen to radio
-        historyCmds["History Page"].run(i)
+        # Get and extend history
+        history.extend(historyCmd.run(i))
+
+    # Show it
+    print history
 
     # # Define bolus command
     # bolusCmd = commands.DeliverPumpBolus(_stick)

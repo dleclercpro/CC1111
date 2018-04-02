@@ -1804,6 +1804,12 @@ class ReadPumpBasalProfile(PumpBigCommand, PumpGetBigCommand):
             # Get entry
             entry = payload[a:b]
 
+            # Basal profile not initialized
+            if i == 0 and entry == [0, 0, 63]:
+
+                # Exit
+                break
+
             # No more data in payload
             if sum(entry) == 0 or len(entry) != length:
 
@@ -1990,6 +1996,50 @@ class ReadPumpTB(PumpGetCommand):
 
 
 
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpTB, self).decode()
+
+        # Initialize response
+        self.response = {"Rate": None,
+                         "Units": None,
+                         "Duration": None}
+
+        # Decode units
+        # U/h
+        if payload[0] == 0:
+
+            # Store them
+            self.response["Units"] = "U/h"
+
+            # Decode rate
+            self.response["Rate"] = round(lib.unpack(payload[2:4]) *
+                                          PUMP_BASAL_STROKE, 2)
+
+        # %
+        elif payload[0] == 1:
+
+            # Store them
+            self.response["Units"] = "%"
+
+            # Decode rate
+            self.response["Rate"] = round(payload[1], 2)
+
+        # Decode duration
+        self.response["Duration"] = round(lib.unpack(payload[4:6]), 0)
+
+        # Show response
+        print "TB: " + str(self.response)
+
+
+
 class ReadPumpHistorySize(PumpGetCommand):
 
     def __init__(self, stick):
@@ -2005,6 +2055,25 @@ class ReadPumpHistorySize(PumpGetCommand):
 
         # Define code
         self.code = "9D"
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpHistorySize, self).decode()
+
+        # Decode (max 36 pages)
+        self.response = min(payload[3] + 1, 36)
+
+        # Show response
+        print "History size: " + str(self.response)
 
 
 
@@ -2066,6 +2135,22 @@ class ReadPumpHistoryPage(PumpBigCommand, PumpGetBigCommand):
 
         # Define page
         self.parameters[1] = "{0:02X}".format(page)
+
+
+
+    def decode(self):
+
+        """
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            DECODE
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """
+
+        # Initialize decoding and get payload
+        [payload, size] = super(ReadPumpHistoryPage, self).decode()
+
+        # Set response to payload
+        self.response = payload
 
 
 
