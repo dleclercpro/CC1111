@@ -122,9 +122,6 @@ void usb_init(void) {
 
     // Enable interrupts
     usb_enable_interrupts();
-
-    // Reset interrupts
-    usb_reset_interrupts();
 }
 
 /*
@@ -256,6 +253,9 @@ void usb_reset_counters(int ep) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 void usb_enable_interrupts(void) {
+
+    // Reset interrupts
+    usb_reset_interrupts();
 
     // Enable control and IN EP interrupts
     USBIIE = USB_EP0IE | USB_INEP5IE;
