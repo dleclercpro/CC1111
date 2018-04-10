@@ -315,10 +315,12 @@ uint8_t * radio_register(uint8_t addr) {
 */
 uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
 
-    // Initialize byte count, current byte, and error
+    // Initialize byte count, and error
     uint8_t n = 0;
-    uint8_t byte = 0;
     uint8_t error = 0;
+
+    // Initialize byte
+    int byte = 0;
 
     // Put radio in idle state
     radio_state_idle();
@@ -377,6 +379,16 @@ uint8_t radio_receive(uint8_t channel, uint32_t timeout) {
                 // Exit
                 break;
             }
+        }
+
+        // If interruption requested
+        if (usb_poll_byte() != -1) {
+
+            // Assign error
+            error = RADIO_ERROR_INTERRUPTED;
+
+            // Exit
+            break;
         }
     }
 

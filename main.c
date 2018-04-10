@@ -24,6 +24,6 @@ void main(void) {
     while (1) {
 
         // Wait for commands
-        command_get();
+        command_do(command_get());
     }
 }

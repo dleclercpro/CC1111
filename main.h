@@ -6,7 +6,7 @@
 #include "led.h"
 #include "usb.h"
 #include "radio.h"
-#include "command.h"
+#include "commands.h"
 #include "interrupts.h"
 
 #endif
