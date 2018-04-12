@@ -59,9 +59,19 @@ void command_do(uint8_t cmd) {
 			command_radio_send_receive();
 			break;
 
-		// Flash LED
+		// Toggle LED
 		case 30:
-			command_led();
+			command_led_toggle();
+			break;
+
+		// Turn LED on
+		case 31:
+			command_led_on();
+			break;
+
+		// Turn LED off
+		case 32:
+			command_led_off();
 			break;
 	}
 }
@@ -186,11 +196,33 @@ void command_radio_send_receive(void) {
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    COMMAND_LED
+    COMMAND_LED_TOGGLE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-void command_led(void) {
+void command_led_toggle(void) {
 
-	// Switch LED
-	led_switch();
+	// Toggle LED
+	led_toggle();
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    COMMAND_LED_ON
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void command_led_on(void) {
+
+	// Turn LED on
+	led_on();
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    COMMAND_LED_OFF
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+void command_led_off(void) {
+
+	// Turn LED off
+	led_off();
 }
