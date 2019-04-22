@@ -1,2 +1,2 @@
 # CC1111
-My own attempt at writing a firmware to operate the CC1111 from Texas Instruments.
+Firmware to operate the CC1111 from Texas Instruments and use it to communicate with MiniMed Paradigm insulin pumps from Medtronic.
